@@ -4,8 +4,8 @@ h3,
 padding: 4px 12px;
 font-size: 12px;
 line-height: 1.42857;
-color: #fff;
-background-color: #777674;
+/* color: #fff; [re]defined in color styles, comment to use color headers */
+/* background-color: #777674; [re]defined in color styles, comment to use color headers */
 background-image: none;
 border-radius: 4px;
 border-color: none;
@@ -17,14 +17,22 @@ border-color: #777674;
 border-radius: 3px;
 background-image: none;
 }
+table tr:hover {
+background-color: #f1f1f1; /* lighter tr hoover */
+}
 .submitFooter {
-background-color: #CCCCCC;
+background-color: #CCC;
+}
+.submitFooter .button {
+margin:.362em .362em; /* some vertical margins in case of 2 lines */
 }
 #menuSub {
 border-radius: 4px 4px 0px 0px;
+border-width: 0; /* fix UI (this removes submenu line separator) in FF */
+border-style: none; /* fix UI (this removes submenu line separator) */
 }
 li.current {
-margin-top:2px;
+margin-top:1px;
 }
 #menuMainList li span,
 #menuSubList li span,
@@ -33,16 +41,18 @@ margin-top:2px;
 border-radius: 4px 4px 0px 0px;
 border-style: solid solid none;
 border-width: 0.09em;
+border-width: 1px; /* fix UI (no borders) in Safari */
 display: block;
 margin-left: 0.362em;
 text-decoration: none;
 }
-#menuSubList li.current {
-background:#6384cf; 
+#menuSubList li span {
+margin-top: 0px; /* align vertical border with bottom menu line */
 }
 fieldset {
 border-radius: 4px;
-border-width: 1px;
+border-width: 1px; /* fix UI (no borders) in Safari */
+margin-top: 1em; /* fix spacing on Networking.asp */
 }
 fieldset legend {
 left: 0px;
@@ -71,9 +81,10 @@ border: solid 1px #707070;
 box-shadow: 0 0 5px 1px #969696;
 }
 input {
-padding: 4px;
+/* padding: 4px; */
+padding: 2px 6px; /* align with select */
+line-height: 1.42857; /* align with select */
 font-size: 12px;
-line-height: 1.42857;
 color: #555;
 background-color: #FFF;
 background-image: none;
@@ -82,27 +93,27 @@ border-radius: 4px;
 box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.075) inset;
 transition: border-color 0.15s ease-in-out 0s, box-shadow 0.15s ease-in-out 0s;
 }
-input[value="Apply Settings"]{
+input[name="apply_button"]{
 background: none repeat scroll 0 0 #696969;
 color: #FFF;
 }
-input[value="Apply Settings"]:hover{
+input[name="apply_button"]:hover{
 background: none repeat scroll 0 0 #777674;
 color: #000;
 }
-input[value="Cancel Changes"] {
+input[name="reset_button"] {
 background: none repeat scroll 0 0 #fff;
 color: #000;
 }
-input[value="Cancel Changes"]:hover {
+input[name="reset_button"]:hover {
 background: none repeat scroll 0 0 #FFA500;
 color: #000;
 }
-input[value="Reboot Router"]{
+input[name="reboot_button"]{
 background: none repeat scroll 0 0 #FF0000;
 color:#FFF;
 }
-input[value="Reboot Router"]:hover{
+input[name="reboot_button"]:hover{
 background: none repeat scroll 0 0 #FF7C7C;
 color:#000;
 }
@@ -117,7 +128,8 @@ color: #000;
 background-color: #DADADA;
 }
 select {
-padding: 4px 4px;
+/* padding: 4px 4px; */
+padding: 2px 2px; /* align with input */
 font-size: 12px;
 line-height: 1.42857;
 color: #555;
@@ -149,13 +161,13 @@ line-height: 1.42857;
 border-radius: 4px;
 -moz-user-select: none;
 }
-
 #content.infopage{
 	background-color: transparent;
 }
 #content.infopage #main{
 	background-color: #FFF;
 	border-radius: 5px;
+	border: 1px solid #111111; /* fix UI (content padding) in Safari */
 }
 input.button {
 	box-shadow: 2px 2px 2px gray;
@@ -165,7 +177,8 @@ input.button[disabled] {
 }
 #content {
 	border-radius: 0 0 5px 5px;
-	margin-bottom: 7px;
+	margin-bottom: 1em;
+	border: 1px solid #111111; /* fix UI (content padding) in Safari */
 }
 /* I can't change the size attributes therefore this will have to do - fix in firefox*/
 table[summary="ports forwardig table"] .num[size="15"]{ 
@@ -176,4 +189,54 @@ table[summary="ports forwardig table"] .num[size="5"]{
 }
 table[summary="ports forwardig table"] input[size="10"]{
 	max-width: 79px;
+}
+/* Fresh Add-Ons */
+#header {  /* looks like after removing submenu border it must be little smaller - no dark bottom line in firefox etc */
+	height:9.140em;
+}
+#statusInfo {
+	color: #999;
+}
+.infopage #header {  /* looks like after removing submenu border it must be little smaller - no dark bottom line in firefox etc */
+	height:6.512em;
+}
+.setting { /* spacing default */
+/*	margin-bottom: 0.5em; */
+}
+.setting .default { /* make smaller, align with labels */
+	width:20em;
+	font-size: smaller;
+	line-height: 1.33em;
+	margin-top: 0.57em;
+}
+.message {
+	border-radius: 6px;
+}
+.meter {
+	border-radius: 3px;
+	border-width: 1px;
+}
+.progressbar {
+	border-radius: 4px;
+}
+.warning {
+	border-radius: 6px;
+	border-width: 2px;
+	background-color: #f99;
+}
+.off {  /* disabled ui elements */
+	background-color: #e0e0e0;
+}
+.odd {  /* odd / even table rows */
+	background-color: #f1f1f1;
+	border-radius: 2px;
+}
+input, select { /* align together */
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+}
+input.num {
+	margin-top: 1px;
+	margin-bottom: 1px;
 }
