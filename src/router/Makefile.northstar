@@ -51,29 +51,8 @@ ifeq ($(CONFIG_UCLIBC),y)
 export PLATFORM := $(PLATFORM)-uclibc
 endif
 
-#export LINUXDIR := $(SRCBASE)/linux/linux.v24
-ifeq ($(ARCH),mips)
-export LINUXDIR := $(SRCBASE)/linux/brcm63xx/linux-2.6.17
-endif
-#ifeq ($(ARCH),armeb)
-#export LINUXDIR := $(SRCBASE)/linux/xscale/linux-2.6.23
-#endif
-ifeq ($(ARCH),mipsel)
-export LINUXDIR := $(SRCBASE)/kernel/rb500/linux-2.6.17-rc5
-endif
-ifeq ($(ARCH),i386)
-export LINUXDIR := $(SRCBASE)/kernel/wrap/linux-2.6.16.7
-endif
-
 export KERNELRELEASE = $(shell cat $(LINUXDIR)/include/config/kernel.release 2> /dev/null)
 
-#export KERNELRELEASE = $(shell cat $(LINUXDIR)/.kernelrelease 2> /dev/null)
-
-#ifeq ($(PLATFORM),mipsel)
-#export CROSS_COMPILE := mipsel-linux-
-#export CONFIGURE := ./configure mipsel-linux --build=$(BUILD)
-#export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../mipsel-linux && pwd -P)
-#endif
 
 #ifeq ($(PLATFORM),mipsel-uclibc)
 export CROSS_COMPILE := $(ARCH)-linux-uclibc-
@@ -86,7 +65,7 @@ export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/.. && p
 #endif
 
 export BASEOPT:=-Os
-#export ARCH:= mipsel
+#export ARCH:= arm
 
 ifeq ($(ARCH),mipsel)
 export COPTS:=$(BASEOPT) -pipe -mips32 -mtune=mips32 -funit-at-a-time 
@@ -170,8 +149,10 @@ ifeq ($(CONFIG_BUFFALO),y)
 	-cp $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data_1750.c $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
 	-touch $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
 else
-	-cp $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data_default.c $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
-	-touch $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
+#       ### this shit produce buggy wl.ko ###
+#       ### wl: Unknown symbol clm_header
+#	-cp $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data_default.c $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
+#	-touch $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
 endif
 endif
 ifeq ($(CONFIG_EOP_TUNNEL),y)
@@ -197,13 +178,10 @@ endif
 	rm -rf $(TARGETDIR)/lib/modules
 	$(MAKE) -C $(LINUXDIR) modules_install DEPMOD=/bin/true INSTALL_MOD_PATH=$(TARGETDIR)
 
-#	-$(MAKE) -f Makefile.northstar ath9k
-#	-$(MAKE) -f Makefile.northstar ath9k-install
 	-$(MAKE) -f Makefile.northstar libutils
-	-$(MAKE) -f Makefile.northstar emf
-	-$(MAKE) -f Makefile.northstar emf-install
-#	-$(MAKE) -f Makefile.northstar madwifi
-#	-$(MAKE) -f Makefile.northstar madwifi-install
+#	-$(MAKE) -f Makefile.northstar emf
+#	-$(MAKE) -f Makefile.northstar emf-install
+
 ifeq ($(CONFIG_BATMANADV),y)
 	-$(MAKE) -f Makefile.northstar batman-adv
 	-$(MAKE) -f Makefile.northstar batman-adv-install
@@ -442,18 +420,14 @@ install package: clean_target $(filter-out lib.$(ARCH)-install,$(obj-install)) $
 	mkdir -p $(ARCH)-uclibc/target/etc/config
 	mkdir -p $(ARCH)-uclibc/target/etc/kaid
 	mkdir -p $(ARCH)-uclibc/target/etc/langpack
-	cp ./opt/bin/ipkg $(ARCH)-uclibc/target/bin
+	cp ../../opt/bin/ipkg $(ARCH)-uclibc/target/bin
 	cd  $(ARCH)-uclibc/target/lib
-	cp ./opt/etc/preinit $(ARCH)-uclibc/target/etc
-	cp ./opt/etc/postinit $(ARCH)-uclibc/target/etc
-	cp ./opt/etc/ipkg-arm.conf $(ARCH)-uclibc/target/etc/ipkg.conf
-	cp ./opt/etc/config/* $(ARCH)-uclibc/target/etc/config
-	cp ./opt/usr/lib/smb.conf $(ARCH)-uclibc/target/usr/lib
+	cp ../../opt/etc/preinit $(ARCH)-uclibc/target/etc
+	cp ../../opt/etc/postinit $(ARCH)-uclibc/target/etc
+	cp ../../opt/etc/ipkg-arm.conf $(ARCH)-uclibc/target/etc/ipkg.conf
+	cp ../../opt/etc/config/* $(ARCH)-uclibc/target/etc/config
+	cp ../../opt/usr/lib/smb.conf $(ARCH)-uclibc/target/usr/lib
 	ln -sf ../tmp/smbshare $(ARCH)-uclibc/target/www/smb
-	# optimize the crypto library by removing unneeded symbols
-	# Install (and possibly optimize) C library
-#	$(MAKE) -f Makefile.northstar lib.$(ARCH)-install
-	# optimize the others library by removing unneeded symbols
 	$(MAKE) -f Makefile.northstar optimize-lib
 	# Install modules into filesystem
 	if grep -q "CONFIG_MODULES=y" $(LINUXDIR)/.config ; then \
@@ -523,7 +497,7 @@ ifneq ($(CONFIG_USB_ADVANCED),y)
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/udf
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/isofs
 endif
-ifeq ($(CONFIG_DIST),"mini")
+ifeq ($(CONFIG_DIST),"micro")
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/ext4
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/xfs
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/btrfs
@@ -554,6 +528,11 @@ ifneq ($(CONFIG_SAMBA),y)
 endif
 	rm -f $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/build
 	rm -f $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/source
+
+	### Broadcom New Drivers Install ###
+	cp emf_bin/arm/igs.ko $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/net/wl/
+	cp emf_bin/arm/emf.ko $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/net/wl/
+
         # Prepare filesystem
         # Make sure mksquashfs-2.0 is used
 	cd $(TARGETDIR)  &&  find . -iname "CVS" | xargs rm -rf
@@ -562,9 +541,7 @@ endif
 	-find $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/net -name *.ko -exec mv {} $(TARGETDIR)/lib/modules/$(KERNELRELEASE) \;
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/net
-	#e2fsck -y -f $(ARCH)-uclibc/root.fs
 	./busybox/examples/depmod.pl -F $(LINUXDIR)/System.map -b $(ARCH)-uclibc/target/lib/modules
-#	tar --directory=$(TARGETDIR) --remove-files -cvvjf $(TARGETDIR)/etc/local.tar.bz2 usr/local
 	rm -rf $(TARGETDIR)/usr/local
 	mkdir $(TARGETDIR)/usr/local
 ifeq ($(CONFIG_KAID),y)
@@ -582,48 +559,11 @@ endif
 	mkfs.jffs2 --pad --big-endian --squash -e 0x20000 -o $(ARCH)-uclibc/dd-wrt.jffs2 -d $(ARCH)-uclibc/target
 	tools/lzma_4k e $(LINUXDIR)/arch/arm/boot/zImage $(ARCH)-uclibc/vmlinuz.lzma
 	echo -ne '\xde\xad\xc0\xde' >> $(ARCH)-uclibc/dd-wrt.jffs2
-#	./tools/trx -m 32000000 -o $(ARCH)-uclibc/northstar-firmware-jffs2.bin $(ARCH)-uclibc/vmlinuz.lzma $(ARCH)-uclibc/dd-wrt.jffs2
-	./tools/trx -m 40000000 -o $(ARCH)-uclibc/northstar-firmware-squashfs.bin $(ARCH)-uclibc/vmlinuz.lzma -a 131072 $(ARCH)-uclibc/root.fs
-	./tools/trx -m 40000000 -o tools/tplink/kernel.hdr0 $(ARCH)-uclibc/vmlinuz.lzma
-	cd tools/tplink && ./mktplinkfw3 -B CPE510 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc9.bin
-	./tools/seama/packimgs -b 64 -o $(ARCH)-uclibc/raw-dir868.img -i $(ARCH)-uclibc/vmlinuz.lzma -i $(ARCH)-uclibc/root.fs
-	./tools/seama/seama -i $(ARCH)-uclibc/raw-dir868.img -m dev=/dev/mtdblock/7 -m type=firmware 
-	./tools/seama/seama -s $(ARCH)-uclibc/web-dir868.img -i $(ARCH)-uclibc/raw-dir868.img.seama -m signature=wrgac02_dlob.hans_dir868
-	./tools/seama/seama -d $(ARCH)-uclibc/web-dir868.img
-	dd if=$(ARCH)-uclibc/web-dir868.img of=$(ARCH)-uclibc/webflash-dir868.img skip=48 iflag=skip_bytes 
-	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dir868.trx $(ARCH)-uclibc/webflash-dir868.img
-	
-	./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC56U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac56u-firmware.trx
-#	./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC67U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac67u-firmware.trx
-	./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC68U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac68u-firmware.trx
-	./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC87U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac87u-firmware.trx
-	./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-N18U,3.0.0.4,$(ARCH)-uclibc/asus_rt-n18u-firmware.trx
-	dd if=$(ARCH)-uclibc/northstar-firmware-squashfs.bin of=$(ARCH)-uclibc/buffalo.trx bs=131072 conv=sync
-	cd $(ARCH)-uclibc && ../tools/bufenc/makefw.sh buffalo
 
-	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin $(ARCH)-uclibc/netgear.trx
-ifeq ($(CONFIG_DHDAP),y)
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r8000.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r8000.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R8000.chk
-else
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-ex6200.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-ex6200.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_EX6200.chk
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-ac1450.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-ac1450.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_AC1450.chk
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r6250.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r6250.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R6250.chk
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r6300v2.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r6300v2.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R6300V2.chk 
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r6300v2-CH.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r6300v2-CH.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R6300V2CH.chk
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r6700.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r6700.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R6700.chk
-	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r7000.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r7000.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R7000.chk
-endif	
-	-$(MAKE) -f Makefile.northstar validate MAXIMUM_SIZE=7470000 EX_PATH=$(ARCH)-uclibc/K3_EX6200.chk
+	../../opt/tools/trx -m 40000000 -o $(ARCH)-uclibc/northstar-firmware-squashfs.bin $(ARCH)-uclibc/vmlinuz.lzma -a 131072 $(ARCH)-uclibc/root.fs
 
-
-	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/tnet818.trx
-	./tools/trendnet/auto_add_header_818 $(ARCH)-uclibc/tnet818.trx
-
-	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/tnet812.trx
-	./tools/trendnet/auto_add_header_812 $(ARCH)-uclibc/tnet812.trx
-
-	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/tnet811.trx
-	./tools/trendnet/auto_add_header_811 $(ARCH)-uclibc/tnet811.trx
+	### Pack for Huawei WS880 ###
+	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r WS880,3.0.0.4,$(ARCH)-uclibc/huawei_ws880-firmware.trx
 
 include rules/all.mk
 
