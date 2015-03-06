@@ -536,7 +536,7 @@ static int robo_probe(char *devname)
 	char *boothwmodel = nvram_get("boot_hw_model");
 	char *boothwver = nvram_get("boot_hw_ver");
 
-	printk(KERN_INFO PFX "Probing device '%s'\n", devname);
+	printk(KERN_INFO PFX "Probing device %s\n", devname);
 	strcpy(robo.ifr.ifr_name, devname);
 
 	if ((robo.dev = dev_get_by_name(&init_net, devname)) == NULL) {
@@ -658,7 +658,7 @@ static int robo_probe(char *devname)
 	}
 	robo.port[i] = ROBO_IM_PORT_CTRL;
 
-	printk(KERN_INFO PFX "trying a %s%s%x!%s at %s\n", robo.devid & 0xf0000 ? "" : "5", robo.devid & 0xff00 ? "" : "3", robo.devid, robo.is_5365 ? " It's a BCM5365." : "", devname);
+	printk(KERN_INFO PFX "Trying BCM%s%s%x%s at %s\n", robo.devid & 0xf0000 ? "" : "5", robo.devid & 0xff00 ? "" : "3", robo.devid, robo.is_5365 ? " It's a BCM5365." : "", devname);
 
 	if (!iswrt610nv1)
 		robo_switch_reset();
@@ -667,7 +667,7 @@ static int robo_probe(char *devname)
 	if (err)
 		goto err_put;
 
-	printk(KERN_INFO PFX "found a %s%s%x!%s at %s\n", robo.devid & 0xf0000 ? "" : "5", robo.devid & 0xff00 ? "" : "3", robo.devid, robo.is_5365 ? " It's a BCM5365." : "", devname);
+	printk(KERN_INFO PFX "Found BCM%s%s%x%s at %s\n", robo.devid & 0xf0000 ? "" : "5", robo.devid & 0xff00 ? "" : "3", robo.devid, robo.is_5365 ? " It's a BCM5365." : "", devname);
 
 	return 0;
 
@@ -1145,7 +1145,13 @@ static int handle_reset(void *driver, char *buf, int nr)
 		handle_reset_old(d, buf, nr);
 
 	/* reset ports to a known good state */
-	if (!strcmp(boardnum, "32") && !strcmp(boardtype, "0x0665") && !strcmp(boardrev, "0x1101")) {
+	if (  !strcmp(boardnum, "32") && !strcmp(boardtype, "0x0665") && !strcmp(boardrev, "0x1101") // ||
+		//Huawei WS880
+		//boardnum=1234
+		//boardrev=0x1101
+		//boardtype=0x0646
+		//!strcmp(boardnum, "1234") && !strcmp(boardtype, "0x0646") && !strcmp(boardrev, "0x1101")
+	    ) {
 		//do nothing
 	} else {
 		for (j = 0; j < d->ports; j++) {
@@ -1153,7 +1159,6 @@ static int handle_reset(void *driver, char *buf, int nr)
 			robo_write16(ROBO_VLAN_PAGE, ROBO_VLAN_PORT0_DEF_TAG + (j << 1), 0);
 		}
 	}
-
 
 	/* enable switching */
 	set_switch(1);

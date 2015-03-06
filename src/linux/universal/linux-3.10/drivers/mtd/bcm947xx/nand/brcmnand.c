@@ -1042,6 +1042,12 @@ init_brcmnand_mtd_partitions(struct mtd_info *mtd, size_t size)
 		offset = 0x4000000;
 	}
 
+	if (nvram_match("model","WS880") || nvram_match("odmpid","WS880") || nvram_match("productid","WS880") ||
+	    (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1101"))) {
+		printk(KERN_EMERG "Huawei WS880. jffs offset: 0x4000000\n");
+		offset = 0x4000000;
+	}
+
 	if (boardnum == 1 && nvram_match("boardtype","0xF646") && nvram_match("boardrev","0x1100")) {
 		offset = 0x4000000;
 		
