@@ -12,6 +12,8 @@ installwebfiles:
 	install -m 644 $(wildcard *.asp) $(wildcard *.svg) $(wildcard *.css) $(wildcard *.jpg) $(wildcard *.gif) $(wildcard *.js) $(wildcard *.htm) $(wildcard *.ico) $(wildcard *.html) $(INSTALLDIR)/www
 
 	cp -a images $(INSTALLDIR)/www
+	### fix non-existent dir error
+	mkdir -p style
 	cp -a style $(INSTALLDIR)/www
 	
 ifeq ($(CONFIG_DIST),"micro")
@@ -350,6 +352,10 @@ endif
 endif
 endif
 # end orange fix
+
+	### WS880 logo
+	# cp huawei-logo-ws880.png $(INSTALLDIR)/www/style/logo.png
+	cp huawei-logo.png $(INSTALLDIR)/www/style/logo.png
 
 ifeq ($(CONFIG_34TELECOM),y)
 	$(MAKE) -C $(SRCBASE)/router/kromo/34telecom/ install
@@ -991,24 +997,24 @@ ifeq ($(CONFIG_IAS),y)
 endif
 ifeq ($(CONFIG_PWC),y)
 	-repugly $(INSTALLDIR)/www/js
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/js
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/js
 endif
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/help
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/lang_pack
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/blue
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/brainslayer
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/cyan
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/elegant
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/green
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/kromo
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/orange
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/pwc
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/red
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/wikar
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/xirian
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/yellow
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/help
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/lang_pack
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/blue
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/brainslayer
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/cyan
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/elegant
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/green
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/kromo
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/orange
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/pwc
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/red
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/wikar
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/xirian
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/style/yellow
 
 removeobsolete:
 	cd $(INSTALLDIR)/www  &&  find . -iname "CVS" | xargs rm -rf
