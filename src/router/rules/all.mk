@@ -266,7 +266,7 @@ include rules/lighttpd.mk
 include rules/transmission.mk
 include rules/libevent.mk
 include rules/tor.mk
-include rules/emf.mk
+#include rules/emf.mk
 include rules/softflowd.mk
 include rules/python.mk
 include rules/nmap.mk
