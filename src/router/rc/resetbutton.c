@@ -92,8 +92,8 @@ int getbuttonstate()
 	return (*REG(page, GPIO0_IR) & GPIO_BUTTON) == 0;
 
 }
-#endif
-
+#endif // ifdef HAVE_MAGICBOX
+////////////////////
 #if defined(HAVE_FONERA) || defined(HAVE_WHRAG108) || defined(HAVE_LS2) || defined(HAVE_CA8) || defined(HAVE_TW6600)  || defined(HAVE_LS5) || defined(HAVE_WP54G) || defined(HAVE_NP28G) || defined(HAVE_SOLO51) || defined(HAVE_OPENRISC)
 int getbuttonstate()
 {
@@ -127,7 +127,7 @@ int getbuttonstate()
 #else
 	int ret = get_gpio(6);
 	return ret;
-#endif
+#endif // defined(HAVE_EAP3660)
 }
 #elif defined(HAVE_VENTANA)
 int getbuttonstate()
@@ -546,7 +546,8 @@ int getbuttonstate()
 
 	return 0;
 }
-#endif
+#endif // defined(HAVE_FONERA)
+////////////////////
 #if defined(HAVE_GATEWORX) || defined (HAVE_STORM)
 
 #include <linux/mii.h>
@@ -693,7 +694,8 @@ int getbuttonstate()
 	return ret == 0 ? 1 : 0;
 #endif
 }
-#endif
+#endif // defined(HAVE_GATEWORX)
+////////////////////
 
 static int mode = 0;		/* mode 1 : pushed */
 static int ses_mode = 0;	/* mode 1 : pushed */
@@ -807,7 +809,7 @@ void period_check(int sig)
 #endif
 #endif
 
-#else
+#else // defined(HAVE_MAGICBOX)
 	if (brand == ROUTER_BOARD_WCRGN) {
 		val = (get_gpio(10) << 10) | (get_gpio(0) << 0);
 	} else if (brand == ROUTER_BOARD_WHRG300N) {
@@ -862,6 +864,9 @@ void period_check(int sig)
 		val = get_gpio(240);
 	} else if (brand == ROUTER_BOARD_GW2388) {
 		val = get_gpio(240);
+	} else if (brand == ROUTER_HUAWEI_WS880) {
+		// initialize val for ws880
+		val = get_gpio(2) << 2;
 	} else {
 
 		if ((fp = fopen(GPIO_FILE, "r"))) {
@@ -903,7 +908,7 @@ void period_check(int sig)
 	val |= get_gpio(12) << 12;	//aoss pushbutton
 #elif defined(HAVE_WMBR_G300NH)
 	sesgpio = 0x100;
-	val |= get_gpio(0);	//aoss pushbutton
+	val |= get_gpio(0);		//aoss pushbutton
 #elif defined(HAVE_WZRG450)
 	sesgpio = 0x108;
 	val |= get_gpio(8) << 8;	//aoss pushbutton
@@ -915,7 +920,6 @@ void period_check(int sig)
 	val |= get_gpio(5) << 5;	//aoss pushbutton
 #elif defined(HAVE_CARAMBOLA)
 	sesgpio = 0xfff;
-
 #elif defined(HAVE_HORNET)
 	sesgpio = 0x00b;
 	val |= get_gpio(11) << 11;	//aoss pushbutton
@@ -941,7 +945,7 @@ void period_check(int sig)
 	sesgpio = 0x00b;
 	val |= get_gpio(11) << 11;	//aoss pushbutton
 #elif defined(HAVE_WNR2200)
-	sesgpio = 0x101;	//not yet supported
+	sesgpio = 0x101;		//not yet support
 	val |= get_gpio(37) << 1;	//aoss pushbutton
 #elif defined(HAVE_WNR2000)
 	sesgpio = 0x00b;
@@ -954,19 +958,19 @@ void period_check(int sig)
 	val |= get_gpio(12) << 12;	//aoss pushbutton
 #elif defined(HAVE_RT10N)
 	sesgpio = 0x100;
-	val |= get_gpio(0);	//aoss pushbutton
+	val |= get_gpio(0);		//aoss pushbutton
 #elif defined(HAVE_RT15N)
 	sesgpio = 0x100;
-	val |= get_gpio(0);	//aoss pushbutton
+	val |= get_gpio(0);		//aoss pushbutton
 #elif defined(HAVE_F5D8235)
 	sesgpio = 0x100;
-	val |= get_gpio(0);	//aoss pushbutton
+	val |= get_gpio(0);		//aoss pushbutton
 #elif defined(HAVE_WR5422)
 	sesgpio = 0x100;
-	val |= get_gpio(0);	//aoss pushbutton
+	val |= get_gpio(0);		//aoss pushbutton
 #elif defined(HAVE_DIR600)
 	sesgpio = 0x100;
-	val |= get_gpio(0);	//aoss pushbutton
+	val |= get_gpio(0);		//aoss pushbutton
 #elif defined(HAVE_WR841V9)
 	sesgpio = 0x111;
 	val |= get_gpio(17) << 17;	//aoss pushbutton
@@ -1007,7 +1011,7 @@ void period_check(int sig)
 #elif defined(HAVE_OPENRISC)
 	sesgpio = 0x005;
 	val |= get_gpio(5) << 5;	//aoss pushbutton
-#endif
+#endif // HAVE_WZRG300NH
 #ifdef HAVE_WRT160NL
 	sesgpio = 0x107;
 	val |= get_gpio(7) << 7;	//wps/ses pushbutton
@@ -1019,7 +1023,8 @@ void period_check(int sig)
 #ifdef HAVE_UNFY
 	sesgpio = 0xfff;
 #endif
-#else
+////////
+#else // defined(HAVE_XSCALE) -- ALL OTHER BRANDS
 	if (brand > 0xffff) {
 		if ((brand & 0x000ff) != 0x000ff)
 			gpio = 1 << (brand & 0x000ff);	// calculate gpio value.
@@ -1149,6 +1154,12 @@ void period_check(int sig)
 	case ROUTER_ASUS_AC67U:
 		wifigpio = 0x10f;
 		sesgpio = 0x107;	// gpio 7, inversed
+		break;
+	case ROUTER_HUAWEI_WS880:
+		sesgpio = 0x103;	// gpio 3, inversed
+		val |= get_gpio(3) << 3;
+		wifigpio = 0x10f;	// gpio 15, inversed
+		val |= get_gpio(15) << 15;
 		break;
 	case ROUTER_ASUS_AC87U:
 		sesgpio = 0x102;	// gpio 2, inversed
@@ -1351,6 +1362,7 @@ void period_check(int sig)
 				}
 			}
 		}
+///////// SES button
 	} else if ((sesgpio != 0xfff)
 		   && (((sesgpio & 0x100) == 0 && (val & push))
 		       || ((sesgpio & 0x100) == 0x100 && !(val & push)))) {
@@ -1383,7 +1395,6 @@ void period_check(int sig)
 				sysprintf("startstop radio_on");
 #endif
 #endif
-
 				ses_mode = 0;
 				break;
 			case 0:
@@ -1399,11 +1410,9 @@ void period_check(int sig)
 				sysprintf("startstop radio_off");
 #endif
 #endif
-
 				ses_mode = 1;
 				break;
 			}
-
 		}
 #ifdef HAVE_AOSS
 		else if (nvram_match("radiooff_button", "2")) {
@@ -1411,19 +1420,22 @@ void period_check(int sig)
 		}
 #else
 #endif
-
+///////// WI-FI button
 	} else if ((wifigpio != 0xfff)
 		   && (((wifigpio & 0x100) == 0 && (val & pushwifi))
 		       || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
 		led_control(LED_WLAN, LED_FLASH);	// when pressed, blink white
 		switch (wifi_mode) {
 		case 1:
+			// (DIAG) led
+			led_control(LED_DIAG, LED_FLASH);
 			dd_syslog(LOG_DEBUG, "Wifi button: turning radio(s) on\n");
 			sysprintf("startstop radio_on");
 			wifi_mode = 0;
 			break;
 		case 0:
-			// (AOSS) led
+			// (DIAG) led
+			led_control(LED_DIAG, LED_FLASH);
 			dd_syslog(LOG_DEBUG, "Wifi button: turning radio(s) off\n");
 			sysprintf("startstop radio_off");
 			wifi_mode = 1;

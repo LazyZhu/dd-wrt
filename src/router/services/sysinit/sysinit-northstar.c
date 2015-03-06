@@ -111,7 +111,7 @@ void start_sysinit(void)
 		if (fp) {
 			fseek(fp, 0, SEEK_END);
 			long seek = ftell(fp);
-			fprintf(stderr, "length = %X\n");
+			fprintf(stderr, "sysinit-northstar: length = %X\n");
 			if (seek == 0x200000) {
 				char *temp = malloc(65536);
 				fseek(fp, seek - 0x10000, SEEK_SET);
@@ -133,7 +133,7 @@ void start_sysinit(void)
 	struct ifreq ifr;
 	int s;
 
-	fprintf(stderr, "try modules for ethernet adapters\n");
+	fprintf(stderr, "sysinit-northstar: try modules for ethernet adapters\n");
 	nvram_set("intel_eth", "0");
 	mkdir("/dev/gpio", 0700);
 	mknod("/dev/gpio/in", S_IFCHR | 0644, makedev(127, 0));
@@ -141,12 +141,13 @@ void start_sysinit(void)
 	mknod("/dev/gpio/outen", S_IFCHR | 0644, makedev(127, 2));
 	mknod("/dev/gpio/control", S_IFCHR | 0644, makedev(127, 3));
 	mknod("/dev/gpio/hc595", S_IFCHR | 0644, makedev(127, 4));
+	/* Lets make it user defined
 	if (nvram_invmatch("boot_wait", "on") || nvram_match("wait_time", "1")) {
 		nvram_set("boot_wait", "on");
 		nvram_set("wait_time", "3");
 		nvram_commit();
 	}
-
+	*/
 	if (nvram_get("et_txq_thresh") == NULL) {
 		nvram_set("et_txq_thresh", "1024");
 	}
@@ -1688,7 +1689,7 @@ void start_sysinit(void)
 			while (deadcount--) {
 				FILE *fp = fopen("/dev/mtdblock1", "rb");
 				if (fp == NULL) {
-					fprintf(stderr, "waiting for mtd devices to get available %d\n", deadcount);
+					fprintf(stderr, "sysinit-northstar: waiting for mtd devices to get available %d\n", deadcount);
 					sleep(1);
 					continue;
 				}
@@ -1770,6 +1771,379 @@ void start_sysinit(void)
 		else
 			set_regulation(1, "US", "0");
 		break;
+	case ROUTER_HUAWEI_WS880:
+		/*
+		if (nvram_get("productid") != NULL || nvram_match("http_username", "admin")) {
+			int deadcount = 10;
+			while (deadcount--) {
+				FILE *fp = fopen("/dev/mtdblock1", "rb");
+				if (fp == NULL) {
+					fprintf(stderr, "sysinit-northstar: waiting for mtd devices to get available %d\n", deadcount);
+					sleep(1);
+					continue;
+				}
+				fclose(fp);
+				break;
+			}
+			sleep(1);
+			sysprintf("/sbin/erase nvram");
+			nvram_set("flash_active", "1");	// prevent recommit of value until reboot is done
+			sys_reboot();
+		}*/
+		if (!nvram_get("clkfreq") || nvram_match("clkfreq", "")) {
+			fprintf(stderr, "sysinit-northstar: fix clkfreq to 800,533\n");
+			nvram_set("clkfreq", "800,533");
+			//nvram_commit();
+		}
+		if (!nvram_get("lan_ifname") || nvram_match("lan_ifname", "")) {
+			//nvram_set("lan_ifname", "br0");
+			// nvram_commit();
+		}
+		if (!nvram_get("lan_ifnames") || nvram_match("lan_ifnames", "")) {
+			//nvram_set("lan_ifnames", "vlan1 vlan2");
+			//nvram_commit();
+		}
+		if (!nvram_get("wan_devs") || nvram_match("wan_devs", "")) {
+			nvram_set("wandevs", "vlan2");
+			nvram_set("wan_ifname", "vlan2");
+			nvram_set("wan_ifnames", "vlan2");
+			//nvram_commit();
+		}
+		/*
+		if (!nvram_get("wl_reg_mode") || nvram_match("wl_reg_mode", "")) {
+			nvram_set("wl_reg_mode", "off");
+			nvram_commit();
+		}
+		if (!nvram_get("wl_tpc_db") || nvram_match("wl_tpc_db", "")) {
+			nvram_set("wl_tpc_db", "off");
+			nvram_commit();
+		}*/
+		// ALL leds OFF
+		set_gpio(14, 1);	// USB led
+		set_gpio(1, 1);		// LAN led
+		set_gpio(12, 0);	// INTERNET led
+		set_gpio(0, 1);		// WLAN led
+		set_gpio(6, 1);		// WPS led
+		usleep(500000);
+		// ON
+		set_gpio(14, 0);	// USB led
+		set_gpio(1, 0);		// LAN led
+		set_gpio(12, 1);	// INTERNET led
+		set_gpio(0, 0);		// WLAN led
+		set_gpio(6, 0);		// WPS led
+		usleep(500000);
+		// buttons fixup
+		set_gpio(2, 1);		// fixup reset button
+		set_gpio(3, 1);		// fixup wps button
+		set_gpio(15, 1);	// fixup pwr button
+		// set_gpio(7, 1);	// USB pwr OFF?
+		// no wi-fi software LED control
+		// nvram_set("disable_watchdog", "1");
+
+		// set MAC
+		
+		char mac[20];
+		strcpy(mac, nvram_safe_get("et0macaddr"));
+		if (!sv_valid_hwaddr(nvram_safe_get("lan_hwaddr"))) {
+			fprintf(stderr, "sysinit-northstar:set WS880 LAN mac: %s\n", mac);
+			nvram_set("lan_hwaddr", mac);
+			// nvram_commit();
+			// diag blink INTERNET led
+			set_gpio(12, 0);
+			sleep(1);
+			set_gpio(12, 1);
+			sleep(1);
+			set_gpio(12, 0);
+			sleep(1);
+			set_gpio(12, 1);
+			sleep(1);
+			set_gpio(12, 0);
+			sleep(1);
+			//set_gpio(12, 1);
+		};
+		if (nvram_get("0:venid") == NULL) {
+			//char mac[20];
+			//strcpy(mac, nvram_safe_get("et0macaddr"));
+			MAC_ADD(mac);
+			MAC_ADD(mac);
+			/* 2 GHz */
+			fprintf(stderr, "sysinit-northstar: set 2GHz mac: %s\n", mac);
+			nvram_set("0:macaddr", mac);
+			MAC_ADD(mac);
+			MAC_ADD(mac);
+			MAC_ADD(mac);
+			MAC_ADD(mac);
+			/* 5 GHz */
+			fprintf(stderr, "sysinit-northstar: set 5GHz mac: %s\n", mac);
+			nvram_set("1:macaddr", mac);
+			struct nvram_param ws880_defaults[] = {
+				{ "0:boardvendor", "0x14e4"},
+				{ "0:venid", "0x14e4"},
+				{ "0:devid", "0x4332"},
+				{ "0:sromrev", "9"},
+				{ "0:boardflags", "0x80001200"},
+				{ "0:boardflags2", "0x00100000"},
+				{ "0:boardtype", "0x59b"},
+				{ "0:xtalfreq", "20000"},
+				{ "0:txchain", "7"},
+				{ "0:rxchain", "7"},
+				{ "0:antswitch", "0"},
+				{ "0:aa2g", "7"},
+				{ "0:ag0", "0"},
+				{ "0:ag1", "0"},
+				{ "0:ag2", "0"},
+				{ "0:tssipos2g", "1"},
+				{ "0:extpagain2g", "3"},
+				{ "0:pdetrange2g", "3"},
+				{ "0:triso2g", "3"},
+				{ "0:antswctl2g", "0"},
+				{ "0:elna2g", "2"},
+				{ "0:pa2gw0a0", "0xfe63"},
+				{ "0:pa2gw1a0", "0x1dfd"},
+				{ "0:pa2gw2a0", "0xf8c7"},
+				{ "0:pa2gw0a1", "0xfe78"},
+				{ "0:pa2gw1a1", "0x1e4a"},
+				{ "0:pa2gw2a1", "0xf8d8"},
+				{ "0:pa2gw0a2", "0xfe65"},
+				{ "0:pa2gw1a2", "0x1e74"},
+				{ "0:pa2gw2a2", "0xf8b9"},
+				{ "0:maxp2ga0", "0x46"},
+				{ "0:maxp2ga1", "0x46"},
+				{ "0:maxp2ga2", "0x46"},
+				{ "0:cckbw202gpo", "0"},
+				{ "0:cckbw20ul2gpo", "0"},
+				{ "0:legofdmbw202gpo", "0x88888888"},
+				{ "0:legofdmbw20ul2gpo", "0x88888888"},
+				{ "0:mcsbw202gpo", "0x88888888"},
+				{ "0:mcsbw20ul2gpo", "0x88888888"},
+				{ "0:mcsbw402gpo", "0x88888888"},
+				{ "0:mcs32po", "0"},
+				{ "0:legofdm40duppo", "0"},
+				{ "0:parefldovoltage", "35"},
+				{ "0:temps_period", "5"},
+				{ "0:tempthresh", "120"},
+				{ "0:temps_hysteresis", "5"},
+				{ "0:phycal_tempdelta", "0"},
+				{ "0:tempoffset", "0"},
+				{ "1:boardvendor", "0x14e4"},
+				{ "1:venid", "0x14e4"},
+				{ "1:devid", "0x43a2"},
+				{ "1:sromrev", "11"},
+				{ "1:boardflags", "0x30000000"},
+				{ "1:boardflags2", "0x00300002"},
+				{ "1:boardflags3", "0"},
+				{ "1:xtalfreq", "40000"},
+				{ "1:txchain", "7"},
+				{ "1:rxchain", "7"},
+				{ "1:antswitch", "0"},
+				{ "1:aa5g", "7"},
+				{ "1:aga0", "0"},
+				{ "1:aga1", "0"},
+				{ "1:aga2", "0"},
+				{ "1:agbg0", "71"},
+				{ "1:agbg1", "71"},
+				{ "1:agbg2", "133"},
+				{ "1:femctrl", "3"},
+				{ "1:subband5gver", "4"},
+				{ "1:gainctrlsph", "0"},
+				{ "1:papdcap5g", "0"},
+				{ "1:tworangetssi5g", "0"},
+				{ "1:pdgain5g", "4"},
+				{ "1:epagain5g", "0"},
+				{ "1:tssiposslope5g", "1"},
+				{ "1:pcieingress_war", "15"},
+				{ "1:rxgains5gelnagaina0", "1"},
+				{ "1:rxgains5gelnagaina1", "1"},
+				{ "1:rxgains5gelnagaina2", "1"},
+				{ "1:rxgains5ghelnagaina0", "2"},
+				{ "1:rxgains5ghelnagaina1", "2"},
+				{ "1:rxgains5ghelnagaina2", "3"},
+				{ "1:rxgains5ghtrelnabypa0", "1"},
+				{ "1:rxgains5ghtrelnabypa1", "1"},
+				{ "1:rxgains5ghtrelnabypa2", "1"},
+				{ "1:rxgains5ghtrisoa0", "5"},
+				{ "1:rxgains5ghtrisoa1", "4"},
+				{ "1:rxgains5ghtrisoa2", "4"},
+				{ "1:rxgains5gmelnagaina0", "2"},
+				{ "1:rxgains5gmelnagaina1", "2"},
+				{ "1:rxgains5gmelnagaina2", "3"},
+				{ "1:rxgains5gmtrelnabypa0", "1"},
+				{ "1:rxgains5gmtrelnabypa1", "1"},
+				{ "1:rxgains5gmtrelnabypa2", "1"},
+				{ "1:rxgains5gmtrisoa0", "5"},
+				{ "1:rxgains5gmtrisoa1", "4"},
+				{ "1:rxgains5gmtrisoa2", "4"},
+				{ "1:rxgains5gtrelnabypa0", "1"},
+				{ "1:rxgains5gtrelnabypa1", "1"},
+				{ "1:rxgains5gtrelnabypa2", "1"},
+				{ "1:rxgains5gtrisoa0", "7"},
+				{ "1:rxgains5gtrisoa1", "6"},
+				{ "1:rxgains5gtrisoa2", "5"},
+				{ "1:rxgainerr5ga0", "63,63,63,63"},
+				{ "1:rxgainerr5ga1", "31,31,31,31"},
+				{ "1:rxgainerr5ga2", "31,31,31,31"},
+				{ "1:noiselvl5ga0", "31,31,31,31"},
+				{ "1:noiselvl5ga1", "31,31,31,31"},
+				{ "1:noiselvl5ga2", "31,31,31,31"},
+				{ "1:maxp5ga0", "70,70,86,86"},
+				{ "1:pa5ga0", "0xff31,0x1a56,0xfcc7,0xff35,0x1a8f,0xfcc1,0xff35,0x18d4,0xfcf4,0xff2d,0x18d5,0xfce8"},
+				{ "1:maxp5ga1", "70,70,86,86"},
+				{ "1:pa5ga1", "0xff30,0x190f,0xfce6,0xff38,0x1abc,0xfcc0,0xff0f,0x1762,0xfcef,0xff18,0x1648,0xfd23"},
+				{ "1:maxp5ga2", "70,70,86,86"},
+				{ "1:pa5ga2", "0xff32,0x18f6,0xfce8,0xff36,0x195d,0xfcdf,0xff28,0x16ae,0xfd1e,0xff28,0x166c,0xfd2b"},
+				{ "1:pdoffset40ma0", "0x1111"},
+				{ "1:pdoffset40ma1", "0x1111"},
+				{ "1:pdoffset40ma2", "0x1111"},
+				{ "1:pdoffset80ma0", "0"},
+				{ "1:pdoffset80ma1", "0"},
+				{ "1:pdoffset80ma2", "0xfecc"},
+				{ "1:mcsbw205glpo", "0x66666666"},
+				{ "1:mcsbw405glpo", "0x22222222"},
+				{ "1:mcsbw805glpo", "0x00222222"},
+				{ "1:mcsbw1605glpo", "0x00222222"},
+				{ "1:mcsbw205gmpo", "0x66666666"},
+				{ "1:mcsbw405gmpo", "0x22222222"},
+				{ "1:mcsbw805gmpo", "0x00222222"},
+				{ "1:mcsbw1605gmpo", "0"},
+				{ "1:mcsbw205ghpo", "0xaa880000"},
+				{ "1:mcsbw405ghpo", "0xaa880000"},
+				{ "1:mcsbw805ghpo", "0x88880000"},
+				{ "1:mcsbw1605ghpo", "0"},
+				{ "1:mcslr5glpo", "0"},
+				{ "1:mcslr5gmpo", "0"},
+				{ "1:mcslr5ghpo", "0"},
+				{ "1:sb20in40hrpo", "0"},
+				{ "1:sb20in40lrpo", "0"},
+				{ "1:sb20in80and160hr5ghpo", "0"},
+				{ "1:sb20in80and160hr5gmpo", "0"},
+				{ "1:sb20in80and160hr5glpo", "0"},
+				{ "1:sb20in80and160lr5ghpo", "0"},
+				{ "1:sb20in80and160lr5gmpo", "0"},
+				{ "1:sb20in80and160lr5glpo", "0"},
+				{ "1:sb40and80hr5ghpo", "0"},
+				{ "1:sb40and80hr5gmpo", "0"},
+				{ "1:sb40and80hr5glpo", "0"},
+				{ "1:sb40and80lr5ghpo", "0"},
+				{ "1:sb40and80lr5gmpo", "0"},
+				{ "1:sb40and80lr5glpo", "0"},
+				{ "1:dot11agduphrpo", "0"},
+				{ "1:dot11agduplrpo", "0"},
+				{ "1:rpcal5gb0", "0xffff"},
+				{ "1:rpcal5gb1", "0xffff"},
+				{ "1:rpcal5gb2", "0xffff"},
+				{ "1:rpcal5gb3", "0xffff"},
+				{ "1:measpower", "0x7f"},
+				{ "1:measpower1", "0x7f"},
+				{ "1:measpower2", "0x7f"},
+				{ "1:sar5g", "15"},
+				{ "1:temps_period", "5"},
+				{ "1:tempthresh", "120"},
+				{ "1:temps_hysteresis", "5"},
+				{ "1:phycal_tempdelta", "0"},
+				{ "1:tempoffset", "0"},
+				{ 0, 0 }
+			};
+			extra_params = ws880_defaults;
+			while (extra_params->name) {
+				nvram_nset(extra_params->value, "%s", extra_params->name);
+				extra_params++;
+			}
+			nvram_set("devpath0", "pci/1/1");
+			nvram_set("devpath1", "pci/2/1");
+
+			// missing params
+			nvram_set("lan_ifname", "br0");
+			nvram_set("lan_ifnames", "vlan1 eth1 eth2");
+
+			nvram_set("wandevs", "vlan2");
+			nvram_set("wan_ifname", "vlan2");
+			nvram_set("wan_ifnames", "vlan2");
+			nvram_set("wan_ifname2", "vlan2");
+
+			// PIN
+			char pin[10];
+			strcpy(pin, nvram_safe_get("secret_code"));
+			nvram_set("wl_wpa_psk", pin);
+			nvram_set("wl0_wpa_psk", pin);
+			nvram_set("wl1_wpa_psk", pin);
+
+			//nvram_set("0:ccode", "DE");
+			//nvram_set("0:rrev", "0");
+			//nvram_set("1:ccode", "EU");
+			//nvram_set("1:rrev", "38");
+			//nvram_set("wl_regdomain", "EUROPE");
+			//nvram_set("wl_country", "DE");
+			//nvram_set("wl_country_code", "DE");
+			//nvram_set("wl_country_rev", "0");
+			//nvram_set("wl0_country_code", "DE");
+			//nvram_set("wl0_country_rev", "0");
+			//nvram_set("wl1_country_code", "EU");
+			//nvram_set("wl1_country_rev", "38");
+			// set country codes
+			set_regulation(0, "US", "0");
+			set_regulation(1, "US", "0");
+
+			//nvram_set("wl_ifname", "eth1");
+			// this avoid reset params to defaults (wlconf)
+			//nvram_set("wl0_ifname", "eth1");
+			//nvram_set("wl1_ifname", "eth2");
+
+			//nvram_set("wl_akm", "disabled");
+			//nvram_set("wl_crypto", "off");
+			//nvram_set("wl_security_mode", "disabled");
+
+			//nvram_set("wl0_unit", "0");
+			//nvram_set("wl0_ifname", "eth1");
+			//nvram_set("wl0_channel", "6");
+			//nvram_set("wl0_akm", "disabled");
+			//nvram_set("wl0_crypto", "off");
+			//nvram_set("wl0_security_mode", "disabled");
+			//nvram_set("wl0_txpwr", "100");
+			//nvram_set("wl0_wep", "disabled");
+			//nvram_set("wl0_infra", "1");
+
+			//nvram_set("wl1_unit", "1");
+			//nvram_set("wl1_ifname", "eth2");
+			//nvram_set("wl1_channel", "48");
+			//nvram_set("wl1_akm", "disabled");
+			//nvram_set("wl1_crypto", "off");
+			//nvram_set("wl1_security_mode", "disabled");
+			//nvram_set("wl1_txpwr", "100");
+			//nvram_set("wl1_wep", "disabled");
+			//nvram_set("wl1_infra", "1");
+
+			// commit defaults
+			fprintf(stderr, "sysinit-northstar: fix/restore nvram values for WS880 Wi-Fi radios...\n");
+			nvram_commit();
+			// diag blink WLAN & WPS led 3 times
+			set_gpio(0, 1);	
+			set_gpio(6, 1);
+			sleep(1);
+			set_gpio(0, 0);
+			set_gpio(6, 0);
+			sleep(1);
+			set_gpio(0, 1);	
+			set_gpio(6, 1);
+			sleep(1);
+			set_gpio(0, 0);
+			set_gpio(6, 0);
+			sleep(1);
+			set_gpio(0, 1);	
+			set_gpio(6, 1);
+			sleep(1);
+			//set_gpio(0, 0);
+			//set_gpio(6, 0);
+			//sleep(1);
+			// fprintf(stderr, "sysinit-northstar: sys_reboot WS880 4 sure (new macs and wi-fi)...\n");
+			nvram_commit();
+			sys_reboot();
+		}
+		// for debug
+		nvram_set("service_debug", "1");
+		nvram_set("syslogd_enable", "1");
+		nvram_set("console_loglevel", "7");
+		nvram_commit();
+		break;
 	case ROUTER_ASUS_RTN18U:
 		set_gpio(7, 1);	// fixup reset button
 		set_gpio(11, 1);	// fixup wps button
@@ -1781,7 +2155,7 @@ void start_sysinit(void)
 			while (deadcount--) {
 				FILE *fp = fopen("/dev/mtdblock1", "rb");
 				if (fp == NULL) {
-					fprintf(stderr, "waiting for mtd devices to get available %d\n", deadcount);
+					fprintf(stderr, "sysinit-northstar: waiting for mtd devices to get available %d\n", deadcount);
 					sleep(1);
 					continue;
 				}
@@ -1865,28 +2239,28 @@ void start_sysinit(void)
 			fread(buf, 1, 24, fp);
 			pclose(fp);
 			buf[24] = 0;
-			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			fprintf(stderr, "sysinit-northstar: set main mac %s\n", &buf[7]);
 			nvram_set("et0macaddr", &buf[7]);
 
 			fp = popen("cat /dev/mtdblock0|grep wlan24mac=", "r");
 			fread(buf, 1, 27, fp);
 			pclose(fp);
 			buf[27] = 0;
-			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			fprintf(stderr, "sysinit-northstar: set 2.4g mac %s\n", &buf[10]);
 			nvram_set("0:macaddr", &buf[10]);
 
 			fp = popen("cat /dev/mtdblock0|grep wlan5mac2=", "r");
 			fread(buf, 1, 27, fp);
 			pclose(fp);
 			buf[27] = 0;
-			fprintf(stderr, "set 5g mac 1 %s\n", &buf[10]);
+			fprintf(stderr, "sysinit-northstar: set 5g mac 1 %s\n", &buf[10]);
 			nvram_set("1:macaddr", &buf[10]);
 
 			fp = popen("cat /dev/mtdblock0|grep wlan5mac=", "r");
 			fread(buf, 1, 26, fp);
 			pclose(fp);
 			buf[26] = 0;
-			fprintf(stderr, "set 5g mac 2 %s\n", &buf[9]);
+			fprintf(stderr, "sysinit-northstar: set 5g mac 2 %s\n", &buf[9]);
 			nvram_set("2:macaddr", &buf[9]);
 			nvram_commit();
 		}
@@ -1898,19 +2272,19 @@ void start_sysinit(void)
 			fread(buf, 1, 24, fp);
 			pclose(fp);
 			buf[24] = 0;
-			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			fprintf(stderr, "sysinit-northstar: set main mac %s\n", &buf[7]);
 			nvram_set("et0macaddr", &buf[7]);
 			fp = popen("cat /dev/mtdblock0|grep wlan5mac", "r");
 			fread(buf, 1, 26, fp);
 			pclose(fp);
 			buf[26] = 0;
-			fprintf(stderr, "set 5g mac %s\n", &buf[9]);
+			fprintf(stderr, "sysinit-northstar: set 5g mac %s\n", &buf[9]);
 			nvram_set("1:macaddr", &buf[9]);
 			fp = popen("cat /dev/mtdblock0|grep wlan24mac", "r");
 			fread(buf, 1, 27, fp);
 			pclose(fp);
 			buf[27] = 0;
-			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			fprintf(stderr, "sysinit-northstar: set 2.4g mac %s\n", &buf[10]);
 			nvram_set("0:macaddr", &buf[10]);
 			struct nvram_param dir880_0params[] = {
 				{"rxgains2gtrisoa0", "7"},
@@ -2119,21 +2493,21 @@ void start_sysinit(void)
 			fread(buf, 1, 24, fp);
 			pclose(fp);
 			buf[24] = 0;
-			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			fprintf(stderr, "sysinit-northstar: set main mac %s\n", &buf[7]);
 			nvram_set("et0macaddr", &buf[7]);
 
 			fp = popen("cat /dev/mtdblock0|grep wlan5mac", "r");
 			fread(buf, 1, 26, fp);
 			pclose(fp);
 			buf[26] = 0;
-			fprintf(stderr, "set 5g mac %s\n", &buf[9]);
+			fprintf(stderr, "sysinit-northstar: set 5g mac %s\n", &buf[9]);
 			nvram_set("pci/2/0/macaddr", &buf[9]);
 			nvram_set("pci/2/1/macaddr", &buf[9]);
 			fp = popen("cat /dev/mtdblock0|grep wlan24mac", "r");
 			fread(buf, 1, 27, fp);
 			pclose(fp);
 			buf[27] = 0;
-			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			fprintf(stderr, "sysinit-northstar: set 2.4g mac %s\n", &buf[10]);
 			nvram_set("pci/1/0/macaddr", &buf[10]);
 			nvram_set("pci/1/1/macaddr", &buf[10]);
 
@@ -2325,13 +2699,13 @@ void start_sysinit(void)
 			struct nvram_param *t;
 			t = dir868_1_1params;
 			while (t->name) {
-//                              fprintf(stderr, "set pci/1/1/%s to %s\n", t->name, t->value);
+//                              fprintf(stderr, "sysinit-northstar: set pci/1/1/%s to %s\n", t->name, t->value);
 				nvram_nset(t->value, "pci/1/1/%s", t->name);
 				t++;
 			}
 			t = dir868_2_1params;
 			while (t->name) {
-//                              fprintf(stderr, "set pci/2/1/%s to %s\n", t->name, t->value);
+//                              fprintf(stderr, "sysinit-northstar: set pci/2/1/%s to %s\n", t->name, t->value);
 				nvram_nset(t->value, "pci/2/1/%s", t->name);
 				t++;
 			}
@@ -2974,9 +3348,9 @@ void start_sysinit(void)
 				out = NULL;
 				bp = NULL;
 				fp = NULL;
-				fprintf(stderr, "update bootloader\n");
+				fprintf(stderr, "sysinit-northstar: update bootloader\n");
 				sysprintf("mtd -f write /tmp/cfe.bin boot");
-				fprintf(stderr, "reboot\n");
+				fprintf(stderr, "sysinit-northstar: reboot\n");
 				sys_reboot();
 			}
 			if (fp)
@@ -3028,6 +3402,8 @@ void start_sysinit(void)
 		ioctl(s, SIOCGIFHWADDR, &ifr);
 //              nvram_set("et0macaddr", ether_etoa((unsigned char *)ifr.ifr_hwaddr.sa_data, eabuf));
 		nvram_set("et0macaddr_safe", ether_etoa((unsigned char *)ifr.ifr_hwaddr.sa_data, eabuf));
+		// br0 mac and eth0 mac must be identical, otherwise it wont work without promisc
+		nvram_set("lan_hwaddr", ether_etoa((unsigned char *)ifr.ifr_hwaddr.sa_data, eabuf));
 		close(s);
 	}
 
@@ -3036,7 +3412,39 @@ void start_sysinit(void)
 #ifdef HAVE_DHDAP
 	insmod("dhd");
 #endif
-	insmod("wl");
+
+	if (getRouterBrand() == ROUTER_HUAWEI_WS880) {
+		// only after set up
+		// if (nvram_match("is_default", "0")) {
+			// diag blink WLAN & WPS leds
+			set_gpio(0, 0);
+			set_gpio(6, 0);
+			usleep(250000);
+			set_gpio(0, 1);	
+			usleep(250000);
+			set_gpio(0, 0);
+			set_gpio(6, 0);
+			usleep(250000);
+			set_gpio(6, 1);
+			usleep(250000);
+			set_gpio(0, 0);
+			set_gpio(6, 0);
+			usleep(250000);
+			set_gpio(0, 1);	
+			usleep(250000);
+			set_gpio(0, 0);
+			set_gpio(6, 0);
+			usleep(250000);
+			set_gpio(6, 1);
+			usleep(250000);
+			set_gpio(0, 0);
+			set_gpio(6, 0);
+			fprintf(stderr, "sysinit-northstar: insmod wl...\n");
+			insmod("wl");
+		//	}
+	} else {
+		insmod("wl");
+	}
 
 	/*
 	 * Set a sane date 
@@ -3123,10 +3531,14 @@ void start_overclocking(void)
 
 	if (set) {
 		cprintf("clock frequency adjusted from %d to %d, reboot needed\n", cclk, clk);
-		sprintf(clkfr, "%d", clk);
+		if (getRouterBrand() == ROUTER_HUAWEI_WS880) {
+			sprintf(clkfr, "%d,533", clk);
+		} else {
+			sprintf(clkfr, "%d", clk);
+		}
 		nvram_set("clkfreq", clkfr);
 		nvram_commit();
-		fprintf(stderr, "Overclocking done, rebooting...\n");
+		fprintf(stderr, "sysinit-northstar: Overclocking done, rebooting...\n");
 		sys_reboot();
 	}
 #endif
@@ -3204,7 +3616,7 @@ char *enable_dtag_vlan(int enable)
 		writevaproc("1", "/proc/switch/%s/reset", eth);
 		writevaproc("1", "/proc/switch/%s/enable_vlan", eth);
 		if (enable) {
-			fprintf(stderr, "enable vlan port mapping %s/%s\n", vlan_lan_ports, vlan7ports);
+			fprintf(stderr, "sysinit-northstar: enable vlan port mapping %s/%s\n", vlan_lan_ports, vlan7ports);
 			if (!nvram_match("dtag_vlan8", "1")
 			    || nvram_match("wan_vdsl", "0")) {
 				writevaproc(vlan_lan_ports, "/proc/switch/%s/vlan/%d/ports", eth, lan_vlan_num);
@@ -3219,7 +3631,7 @@ char *enable_dtag_vlan(int enable)
 				writevaproc(vlan7ports, "/proc/switch/%s/vlan/8/ports", eth);
 			}
 		} else {
-			fprintf(stderr, "disable vlan port mapping %s/%s\n", vlan_lan_ports, vlan_wan_ports);
+			fprintf(stderr, "sysinit-northstar: disable vlan port mapping %s/%s\n", vlan_lan_ports, vlan_wan_ports);
 			writevaproc(" ", "/proc/switch/%s/vlan/7/ports", eth);
 			writevaproc(" ", "/proc/switch/%s/vlan/8/ports", eth);
 			writevaproc(vlan_lan_ports, "/proc/switch/%s/vlan/%d/ports", eth, lan_vlan_num);

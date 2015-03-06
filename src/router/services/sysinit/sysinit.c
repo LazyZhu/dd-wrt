@@ -1018,8 +1018,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 ath0 ath1 ath2 ath3 ath4 ath5",
-		 0},
+		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 ath0 ath1 ath2 ath3 ath4 ath5"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifnames", "eth0"},
 		{0, 0}
@@ -1051,8 +1050,7 @@ void start_restore_defaults(void)
 #elif HAVE_EAP9550
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth2 ra0",
-		 0},
+		{"lan_ifnames", "eth2 ra0"},
 		{"wan_ifname2", "eth2"},
 		{"wan_ifname", "eth2"},
 		{"wan_default", "eth2"},
@@ -1062,8 +1060,7 @@ void start_restore_defaults(void)
 #elif HAVE_HAMEA15
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "vlan1 ra0",
-		 0},
+		{"lan_ifnames", "vlan1 ra0"},
 		{"wan_ifname2", "vlan1"},
 		{"wan_ifname", "vlan1"},
 		{"wan_default", "vlan1"},
@@ -1073,8 +1070,7 @@ void start_restore_defaults(void)
 #elif HAVE_RT2880
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "vlan1 vlan2 ra0 ba0",
-		 0},
+		{"lan_ifnames", "vlan1 vlan2 ra0 ba0"},
 		{"wan_ifname2", "vlan2"},
 		{"wan_ifname", "vlan2"},
 		{"wan_default", "vlan2"},
@@ -1085,8 +1081,7 @@ void start_restore_defaults(void)
 #if defined(HAVE_XIOCOM) || defined(HAVE_MI424WR)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "ixp1 ath0 ath1 ath2 ath3",
-		 0},
+		{"lan_ifnames", "ixp1 ath0 ath1 ath2 ath3"},
 		{"wan_ifname2", "ixp0"},
 		{"wan_ifname", "ixp0"},
 		{"wan_default", "ixp0"},
@@ -1096,8 +1091,7 @@ void start_restore_defaults(void)
 #else
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "ixp0 ath0 ath1 ath2 ath3",
-		 0},
+		{"lan_ifnames", "ixp0 ath0 ath1 ath2 ath3"},
 		{"wan_ifname2", "ixp1"},
 		{"wan_ifname", "ixp1"},
 		{"wan_default", "ixp1"},
@@ -1110,17 +1104,14 @@ void start_restore_defaults(void)
 		{"lan_ifname", "br0"},
 #ifdef HAVE_NOWIFI
 		{"lan_ifnames",
-		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10",
-		 0},
+		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10"},
 #else
 #ifdef HAVE_GW700
 		{"lan_ifnames",
-		 "eth0 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8",
-		 0},
+		 "eth0 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8"},
 #else
 		{"lan_ifnames",
-		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8",
-		 0},
+		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8"},
 #endif
 #endif
 #ifdef HAVE_GW700
@@ -1138,8 +1129,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "ixp0.1 ixp0.2 ath0 ath1",
-		 0},
+		 "ixp0.1 ixp0.2 ath0 ath1"},
 		{"wan_ifname", "ixp1"},
 		{"wan_ifname2", "ixp1"},
 		{"wan_ifnames", "ixp1"},
@@ -1150,8 +1140,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "eth0 eth1 ath0 ath1 ath2 ath3",
-		 0},
+		 "eth0 eth1 ath0 ath1 ath2 ath3"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1162,8 +1151,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "eth0 eth1 ath0 ath1 ath2 ath3",
-		 0},
+		 "eth0 eth1 ath0 ath1 ath2 ath3"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1174,8 +1162,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "vlan1 vlan2 eth1 eth2",
-		 0},
+		 "vlan1 vlan2 eth1 eth2"},
 		{"wan_ifname", "vlan2"},
 		{"wan_ifname2", "vlan2"},
 		{"wan_ifnames", "vlan2"},
@@ -1185,8 +1172,7 @@ void start_restore_defaults(void)
 #elif HAVE_MAGICBOX
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth1 ath0",
-		 0},
+		{"lan_ifnames", "eth1 ath0"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1197,8 +1183,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "eth0 ath0 ath1",
-		 0},
+		 "eth0 ath0 ath1"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1209,8 +1194,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "vlan1 vlan2 ath0 ath1",
-		 0},
+		 "vlan1 vlan2 ath0 ath1"},
 		{"wan_ifname", "vlan2"},
 		{"wan_ifname2", "vlan2"},
 		{"wan_ifnames", "vlan2"},
@@ -1221,8 +1205,7 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames",
-		 "eth0 eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 ath0 ath1 ath2 ath3 ath4 ath5 ath6 ath7",
-		 0},
+		 "eth0 eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 ath0 ath1 ath2 ath3 ath4 ath5 ath6 ath7"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1987,13 +1970,10 @@ void start_restore_defaults(void)
 	int brand = getRouterBrand();
 	linux_overrides = generic;
 
-	if (nvram_invmatch("sv_restore_defaults", "0"))	// ||
-		// nvram_invmatch("os_name", 
-		// "linux"))
+	if (nvram_invmatch("sv_restore_defaults", "0"))
 	{
 		restore_defaults = 1;
 	}
-
 	if (nvram_match("product_name", "INSPECTION")) {
 		nvram_unset("product_name");
 		restore_defaults = 1;
@@ -2013,13 +1993,16 @@ void start_restore_defaults(void)
 	{
 		// nvram_unset("sv_restore_defaults");
 		restore_defaults = 1;
+		cprintf("no sv_restore_defaults, set restore_defaults = 1\n");
 	}
 	if (nvram_match("product_name", "INSPECTION")) {
 		nvram_unset("product_name");
 		restore_defaults = 1;
+		cprintf("product_name = INSPECTION, set restore_defaults = 1\n");
 	}
 	if (nvram_get("router_name") == NULL) {
 		restore_defaults = 1;
+		cprintf("router_name is NULL, set restore_defaults = 1\n");
 	}
 
 	if (restore_defaults) {
@@ -2053,7 +2036,6 @@ void start_restore_defaults(void)
 		nvram_unset("wl_vifs");
 		nvram_unset("wl0_vifs");
 	}
-	// }
 
 	/*
 	 * Delete dynamically generated variables 
@@ -2202,6 +2184,7 @@ void start_restore_defaults(void)
     || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_CA8) || defined(HAVE_80211AC) || defined(HAVE_OCTEON)
 	if (restore_defaults) {
 		nvram_clear();
+		cprintf("nvram_clear()\n");
 	}
 #endif
 
@@ -2209,6 +2192,8 @@ void start_restore_defaults(void)
 
 #ifndef HAVE_MADWIFI
 	int icnt = get_wl_instances();
+	if (brand == ROUTER_HUAWEI_WS880)	//nikk: dual radio, wl detect fix
+		icnt = 2;
 #else
 	int icnt = getdevicecount();
 	if (brand == ROUTER_LINKSYS_E2500 || brand == ROUTER_LINKSYS_E3200)	//dual radio, 2nd on usb-bus
@@ -2233,6 +2218,9 @@ void start_restore_defaults(void)
 					nvcnt++;
 					nvram_set(t->name, t->value);
 					if (icnt == 1 && startswith(t->name, "wl1_"))	//unset wl1_xx if we have single radio only
+						nvram_unset(t->name);
+					// remove 3rd radio values
+					if (icnt == 2 && startswith(t->name, "wl2_"))	//unset wl2_xx if we have double radio only
 						nvram_unset(t->name);
 				}
 			}
@@ -2279,6 +2267,78 @@ void start_restore_defaults(void)
 		case ROUTER_USR_5461:
 			nvram_set("vlan0ports", "4 1 2 3 5*");
 			nvram_set("vlan1ports", "0 5");
+			break;
+		case ROUTER_HUAWEI_WS880:
+			// some initial vars
+			// nvram_set("vlan1hwname", "et0");
+			// nvram_set("vlan1ports", "1 2 3 4 5*");
+			// nvram_set("vlan2hwname", "et0");
+			// nvram_set("vlan2ports", "0 5u"); // in another switch
+			// nvram_set("clkfreq", "800,533");
+			nvram_set("language", "russian");
+			nvram_set("router_style", "red");
+			nvram_set("router_style_dark", "1");
+			nvram_set("time_zone", "Europe/Moscow");
+			nvram_set("ntp_server", "ru.pool.ntp.org");
+			//if (!nvram_get("clkfreq") || nvram_match("clkfreq", ""))
+			//	nvram_set("clkfreq", "800,533");
+			// misc
+			nvram_set("boot_wait", "off");
+			nvram_set("wait_time", "3");
+			// for debug
+			nvram_set("service_debug", "1");
+			nvram_set("syslogd_enable", "1");
+			cprintf("add defaults for Huawei WS880\n");
+			// Flash all WS880 GPIO LEDS
+			// OFF
+			set_gpio(14, 1);	// USB led
+			set_gpio(1, 1);		// LAN led
+			set_gpio(12, 0);	// INTERNET led
+			set_gpio(0, 1);		// WLAN led
+			set_gpio(6, 1);		// WPS led
+			usleep(500000);
+			// ON
+			set_gpio(14, 0);	// USB led
+			set_gpio(1, 0);		// LAN led
+			set_gpio(12, 1);	// INTERNET led
+			set_gpio(0, 0);		// WLAN led
+			set_gpio(6, 0);		// WPS led
+			usleep(500000);
+			// OFF
+			set_gpio(14, 1);	// USB led
+			set_gpio(1, 1);		// LAN led
+			set_gpio(12, 0);	// INTERNET led
+			set_gpio(0, 1);		// WLAN led
+			set_gpio(6, 1);		// WPS led
+			usleep(500000);
+			// ON
+			set_gpio(14, 0);	// USB led
+			set_gpio(1, 0);		// LAN led
+			set_gpio(12, 1);	// INTERNET led
+			set_gpio(0, 0);		// WLAN led
+			set_gpio(6, 0);		// WPS led
+			usleep(500000);
+			// OFF
+			set_gpio(14, 1);	// USB led
+			set_gpio(1, 1);		// LAN led
+			set_gpio(12, 0);	// INTERNET led
+			set_gpio(0, 1);		// WLAN led
+			set_gpio(6, 1);		// WPS led
+			usleep(500000);
+			// ON
+			set_gpio(14, 0);	// USB led
+			set_gpio(1, 0);		// LAN led
+			set_gpio(12, 1);	// INTERNET led
+			set_gpio(0, 0);		// WLAN led
+			set_gpio(6, 0);		// WPS led
+			usleep(500000);
+			// OFF
+			set_gpio(14, 1);	// USB led
+			set_gpio(1, 1);		// LAN led
+			set_gpio(12, 0);	// INTERNET led
+			set_gpio(0, 1);		// WLAN led
+			set_gpio(6, 1);		// WPS led
+			usleep(500000);
 			break;
 		default:
 			if (nvram_match("boardnum", "WAP54GV3_8M_0614")) {
@@ -2406,11 +2466,14 @@ void start_restore_defaults(void)
 	case ROUTER_ASUS_RTN18U:
 	case ROUTER_ASUS_AC67U:
 	case ROUTER_TPLINK_ARCHERC9:
+	case ROUTER_HUAWEI_WS880:
 		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
 		    || !nvram_get("vlan2ports")
 		    || nvram_match("vlan2ports", "")) {
 			nvram_set("vlan1ports", "1 2 3 4 5*");
 			nvram_set("vlan2ports", "0 5u");
+			// for debug
+			cprintf("### setup vlan1/2 ports in nvram\n");
 		}
 		break;
 	case ROUTER_ASUS_AC87U:
@@ -2421,7 +2484,6 @@ void start_restore_defaults(void)
 			nvram_set("vlan2ports", "0 7u");
 		}
 		break;
-
 	case ROUTER_ASUS_RTN53:
 		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
 		    || !nvram_get("vlan2ports")
@@ -2603,6 +2665,8 @@ void start_restore_defaults(void)
 		nvram_set("port3vlans", "1");
 		nvram_set("port4vlans", "1");
 		nvram_set("port5vlans", "1 2 16");
+		// for debug
+		cprintf("### setup port0/1/2/3/4/5vlans in nvram\n");
 	}
 
 	if (brand == ROUTER_WRT54G || brand == ROUTER_WRT54G1X || brand == ROUTER_LINKSYS_WRT55AG) {
@@ -2675,9 +2739,9 @@ void start_restore_defaults(void)
 
 		nvram_set("overclocking", dup);
 	}
-	cprintf("start overclocking\n");
+	cprintf("start overclocking...");
 	start_overclocking();
-	cprintf("done()");
+	cprintf("done()\n");
 	if (nvram_get("http_username") != NULL) {
 		if (nvram_match("http_username", "")) {
 #ifdef HAVE_POWERNOC
@@ -2701,7 +2765,7 @@ void start_restore_defaults(void)
 		check_pmon_nv();
 	else
 		check_cfe_nv();
-	cprintf("restore defaults\n");
+	// cprintf("restore defaults\n");
 
 	glob_t globbuf;
 	char globstring[1024];
@@ -2740,7 +2804,7 @@ void start_restore_defaults(void)
 
 		unset_nvram();
 		nvram_commit();
-		cprintf("done\n");
+		cprintf("restore_defaults done()\n");
 		for (i = 0; i < MAX_NVPARSE; i++) {
 			del_wds_wsec(0, i);
 			del_wds_wsec(1, i);
@@ -2766,7 +2830,7 @@ void start_drivers(void)
 
 #ifdef HAVE_USB
 
-	fprintf(stderr, "[USB] checking...\n");
+	cprintf("[USB] checking...\n");
 	if (nvram_match("usb_enable", "1")) {
 		led_control(USB_POWER, LED_ON);
 		led_control(USB_POWER1, LED_ON);

@@ -696,6 +696,8 @@
 
 #define ROUTER_DLINK_DIR880 0xe71b
 
+#define ROUTER_HUAWEI_WS880 0xe912 // RESET GPIO 2 (see resetbutton.c)
+
 #define NVROUTER "DD_BOARD"
 
 

@@ -1129,6 +1129,12 @@ int internal_getRouterBrand()
 		return ROUTER_ASUS_AC67U;
 	}
 
+	if (nvram_match("model","WS880") || nvram_match("odmpid","WS880") || nvram_match("productid","WS880") ||
+	    (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1101"))) {
+		setRouter("Huawei WS880");
+		return ROUTER_HUAWEI_WS880;
+	}
+
 	if (nvram_match("odmpid", "RT-AC68R")) {
 		setRouter("Asus RT-AC68R");
 		return ROUTER_ASUS_AC67U;
@@ -5841,6 +5847,17 @@ int led_control(int type, int act)
 		diag_gpio = 0x003;
 		connected_gpio = 0x101;
 		disconnected_gpio = 0x102;
+		break;
+	case ROUTER_HUAWEI_WS880:
+		usb_gpio = 0x10e;	// (-14) USB led
+		bridge_gpio = 0x101;    // ( -1) LAN led
+		//diag_gpio = 0x101;	// ( -1) LAN led
+		diag_gpio = 0x106;	// ( -6) WPS led
+		connected_gpio = 0x00c;	// ( 12) INTERNET led
+		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio)
+		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio)
+		//wlan1_gpio = 0x106;	// ( -6) WPS led  (5GHz Radio)
+		usb_power = 0x007;	// (  7) USB power on/off
 		break;
 	case ROUTER_ASUS_AC87U:
 		usb_power = 0x009;
