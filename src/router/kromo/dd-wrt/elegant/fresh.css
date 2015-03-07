@@ -175,7 +175,7 @@ input.button {
 input.button[disabled] {
 	box-shadow: none;
 }
-body input[disabled] { /* dim inactive boxes */
+body input[disabled], body select[disabled] { /* dim inactive boxes */
 	background-color: #e0e0e0;
 }
 #content {

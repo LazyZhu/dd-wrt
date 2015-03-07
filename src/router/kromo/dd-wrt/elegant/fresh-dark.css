@@ -63,7 +63,7 @@ body input {
 	background-color: #333;
 	border-color: #454545;
 }
-body input[disabled] {
+body input[disabled], body select[disabled] {
 	color: #666;
 	background-color: #1a1a1a;
 	border-color: #111111;
