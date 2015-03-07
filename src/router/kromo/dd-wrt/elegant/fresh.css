@@ -122,10 +122,10 @@ input.focus {
 border: solid 1px #707070;
 box-shadow: 0 0 5px 1px #969696;
 }
-input.button[disabled] {
+body input.button[disabled] {
 cursor: default;
 color: #000;
-background-color: #DADADA;
+background-color: #FFF; /* as background */
 }
 select {
 /* padding: 4px 4px; */
@@ -175,6 +175,9 @@ input.button {
 input.button[disabled] {
 	box-shadow: none;
 }
+body input[disabled] { /* dim inactive boxes */
+	background-color: #e0e0e0;
+}
 #content {
 	border-radius: 0 0 5px 5px;
 	margin-bottom: 1em;
@@ -222,7 +225,7 @@ table[summary="ports forwardig table"] input[size="10"]{
 .warning {
 	border-radius: 6px;
 	border-width: 2px;
-	background-color: #f99;
+	/* background-color: #f99; weird on dark background, so off */
 }
 .off {  /* disabled ui elements */
 	background-color: #e0e0e0;
@@ -236,7 +239,7 @@ input, select { /* align together */
 	-moz-box-sizing: border-box;
 	-webkit-box-sizing: border-box;
 }
-input.num {
+input.num { /* they need some air */
 	margin-top: 1px;
 	margin-bottom: 1px;
 }
