@@ -70,6 +70,7 @@ if mount | grep 'opt' > /dev/null;
 then
   echo -e "$WARNING Deleting old /opt mount..."
   umount /opt
+  sleep 1
 fi
 echo -e $INFO Binding $entFolder to /opt...
   mount -o bind $entFolder /opt
@@ -77,12 +78,12 @@ echo -e $INFO Binding $entFolder to /opt...
 echo -e $INFO Creating /jffs scripts backup...
 tar -czf $entPartition/jffs_scripts_backup.tgz /jffs/etc/config/* >/dev/null
 
-mkdir -p /jffs/etc/config
-
 echo -e "$INFO Modifying start scripts..."
+# can not exist after format
+mkdir -p /jffs/etc
+mkdir -p /jffs/etc/config
 cat > /jffs/etc/config/entware.startup << EOF
 #!/bin/sh
-
 #
 # STARTUP
 #
@@ -90,35 +91,41 @@ cat > /jffs/etc/config/entware.startup << EOF
 # Mount EntWARE from jffs if exist
 if [ -d /jffs/entware ]; then
     if ! cat /proc/mounts | grep opt > /dev/null; then 
+	logger -s -p local0.notice -t entware.startup "Mount EntWARE from jffs"
 	mount -o bind /jffs/entware /opt
     fi
 fi
 sleep 1
-
 # Start ALL EntWARE services
+logger -s -p local0.notice -t entware.startup "Start EntWARE services"
 /opt/etc/init.d/rc.unslung start
 EOF
 chmod +x /jffs/etc/config/entware.startup
 
 cat > /jffs/etc/config/entware.shutdown << EOF
 #!/bin/sh
-
 #
 # SHUTDOWN
 #
 
 # Stop ALL EntWARE services
+logger -s -p local0.notice -t entware.shutdown "Shutdown EntWARE services"
 /opt/etc/init.d/rc.unslung stop
 EOF
 chmod +x /jffs/etc/config/entware.shutdown
 
 cat > /jffs/etc/config/post-mount << EOF
 #!/bin/sh
+#
+# POST-MOUNT
+#
 
 if [ \$1 = "__Partition__" ]
 then
+    logger -s -p local0.notice -t post-mount "Found $1 with EntWARE"
     # check if already mounted
-    if ! cat /proc/mounts | grep opt > /dev/null; then 
+    if ! cat /proc/mounts | grep opt > /dev/null; then
+	logger -s -p local0.notice -t post-mount "Mount EntWARE from $1 to /opt"
 	mount -o bind \$1/entware /opt
     fi
 fi
