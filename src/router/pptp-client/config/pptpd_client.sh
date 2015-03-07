@@ -9,11 +9,11 @@ sleep 10
 rm /tmp/pptpd_client/ -R
 mkdir /tmp/pptpd_client
 mkdir /tmp/ppp
-if [ -z "$OPTIONS" ]; then
+#if [ -z "$OPTIONS" ]; then
 cp /etc/config/pptpd_client.options /tmp/pptpd_client/options.vpn
-else
-echo "$OPTIONS" > /tmp/pptpd_client/options.vpn
-fi
+#else
+echo "$OPTIONS" >> /tmp/pptpd_client/options.vpn
+#fi
 echo "$SEC"  >> /tmp/pptpd_client/options.vpn
 echo -n "mtu " >> /tmp/pptpd_client/options.vpn
 echo "$MTU"  >> /tmp/pptpd_client/options.vpn

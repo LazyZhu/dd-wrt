@@ -1,8 +1,8 @@
-#debug stuff
-logfd 2
-debug
-dump
-#
+### debug stuff
+#logfd 2
+#debug
+#dump
+###
 defaultroute
 lock
 noauth
@@ -14,13 +14,14 @@ refuse-mschap
 nobsdcomp
 nodeflate
 mppc
-#lcp-echo-adaptive	#
+#lcp-echo-adaptive
 lcp-echo-failure 30
 lcp-echo-interval 2
-persist	#dont close session try to reconnect
-maxfail 0	#forever try to connect
+persist	#dont close session
+maxfail 0 #forever try to connect
 usepeerdns
 idle 0
 ip-up-script /tmp/pptpd_client/ip-up
 ip-down-script /tmp/pptpd_client/ip-down
 ipparam kelokepptpd
+###

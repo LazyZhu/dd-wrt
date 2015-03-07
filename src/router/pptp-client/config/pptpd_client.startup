@@ -19,6 +19,6 @@ if [ "$(nvram get pptpd_client_enable)" = "1" ]; then
      echo "No Ip or DNS name have been entered"
     if test -e "/tmp/pptpd_client/vpn"; then nohup /tmp/pptpd_client/vpn stop; fi
     else    
-    /etc/config/pptpd_client.sh &
+     /etc/config/pptpd_client.sh &
     fi
 fi
