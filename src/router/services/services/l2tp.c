@@ -150,15 +150,15 @@ length bit = yes
 		fprintf(fp, "redial timeout = 15\n");
 		fprintf(fp, "require authentication = %s\n", nvram_default_get("l2tp_req_auth", "yes"));
 		fprintf(fp, "name = %s\n", username);
-		fprintf(fp, "pppoptfile = /tmp/ppp/options\n");
+		fprintf(fp, "pppoptfile = /tmp/ppp/options.l2tp\n");
 		fprintf(fp, "length bit = yes\n");
 		fclose(fp);
 
 		/*
 		 * Generate options file 
 		 */
-		if (!(fp = fopen("/tmp/ppp/options", "w"))) {
-			perror("/tmp/ppp/options");
+		if (!(fp = fopen("/tmp/ppp/options.l2tp", "w"))) {
+			perror("/tmp/ppp/options.l2tp");
 			return;
 		}
 
