@@ -998,7 +998,7 @@ void ej_show_triggering(webs_t wp, int argc, char_t ** argv)
 	count = nvram_safe_get("trigger_entries");
 	if (count == NULL || strlen(count) == 0 || (c = atoi(count)) <= 0) {
 		websWrite(wp, "<tr>\n");
-		websWrite(wp, "<td colspan=\"6\" align=\"center\" valign=\"middle\">- <script type=\"text/javascript\">Capture(share.none)</script> -</td>\n");
+		websWrite(wp, "<td colspan=\"7\" align=\"center\" valign=\"middle\">- <script type=\"text/javascript\">Capture(share.none)</script> -</td>\n");
 		websWrite(wp, "</tr>\n");
 	}
 	for (i = 0; i < c; i++) {
@@ -1943,8 +1943,8 @@ void ej_do_pagehead(webs_t wp, int argc, char_t ** argv)	// Eko
 	/*
 	 * websWrite (wp, "<\?xml version=\"1.0\" encoding=\"%s\"\?>\n",
 	 * live_translate("lang_charset.set")); IE Problem ... 
-	 */ websWrite(wp,
-		      "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n");
+	 */
+	websWrite(wp, "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n");
 	websWrite(wp, "<html>\n");
 	websWrite(wp, "\t<head>\n");
 	websWrite(wp, "\t\t<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=%s\" />\n", live_translate("lang_charset.set"));
