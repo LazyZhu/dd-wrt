@@ -3,7 +3,7 @@
 //	Language update for DD-WRT V24 SP2 02/03/2014
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-lang_charset.set="utf-8";
+lang_charset.set="UTF-8";
 
 // ** COMMON SHARE LABEL **//
 share.annex="Тип Annex";
