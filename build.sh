@@ -1,18 +1,22 @@
 #!/bin/sh
+### #########################################
+### This must be properly setup on build host
+### #########################################
 DEVDIR=/home/dd-wrt/dd-wrt
 GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-4.8-linaro_musl-1.1.5_eabi/bin
-REVISION="26424G"
-REVISION=`git log --grep git-svn-id -n 1|grep -i dd-wrt|awk '{print $2}'|awk -F'@' '{print $2}'`
-EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
-
+REVISION="26424M"
 export PATH=$GCCARM:$PATH
 export ARCH=arm
 
+### update sources
 cd $DEVDIR
-# svn up
 # git pull
+REVISION=`git log --grep git-svn-id -n 1|grep -i dd-wrt|awk '{print $2}'|awk -F'@' '{print $2}'`
+EXTENDNO="-"`git rev-parse --verify HEAD --short|awk '{print toupper($0)}'`"-GIT"
 
-### SETUP TARGET ###
+### ###################
+### setup target router
+### ###################
 cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_mini $DEVDIR/src/router/.config
 # cp -f $DEVDIR/src/router/configs/northstar/.config_ws880 $DEVDIR/src/router/.config
 
@@ -37,17 +41,22 @@ echo -n $REVISION >> revision.h
 echo -n $EXTENDNO >> revision.h
 echo '"' >> revision.h
 
+### #################################################################
+### compile them once to make sure these binaries work on your distro,
+### then comment them as i did
+### ###
+
 ### compile trx ###
-cd $DEVDIR/opt/tools/
-gcc -o trx trx.c
-gcc -o trx_asus trx_asus.c
+#cd $DEVDIR/opt/tools/
+#gcc -o trx trx.c
+#gcc -o trx_asus trx_asus.c
 
 ### compile jsformat ###
 #cd $DEVDIR/src/router/tools
 #rm jsformat
 #make jsformat
 
-# compile them once to make sure these binaries work on your distro, then comment them as I did
+### compile webcomp ###
 #cd $DEVDIR/tools/
 #rm ./strip
 #gcc strip.c -o ./strip
@@ -108,7 +117,7 @@ make -f Makefile.northstar libutils # for dhcpv6 linking (radvd)
 # make -f Makefile.northstar openssl-configure # for ipeth
 # make -f Makefile.northstar openssl # for ipeth
 
-mkdir $DEVDIR/logs
+mkdir -p $DEVDIR/logs
 echo ""
 echo "************************************"
 echo "* Configure Northstar targets..."
