@@ -26,7 +26,7 @@ then
 fi
 
 echo -e $INFO Looking for available  partitions...
-for mounted in `/bin/mount | grep -E 'ext2|ext3|jffs2' | cut -d" " -f3`
+for mounted in `/bin/mount | grep -E 'ext2|ext3|ext4|jffs2' | cut -d" " -f3`
 do
   isPartitionFound="true"
   echo "[$i] -->" $mounted
@@ -119,16 +119,21 @@ cat > /jffs/etc/config/post-mount << EOF
 #
 # POST-MOUNT
 #
-
-if [ \$1 = "__Partition__" ]
-then
-    logger -s -p local0.notice -t post-mount "Found $1 with EntWARE"
-    # check if already mounted
-    if ! cat /proc/mounts | grep opt > /dev/null; then
-	logger -s -p local0.notice -t post-mount "Mount EntWARE from $1 to /opt"
-	mount -o bind \$1/entware /opt
-    fi
-fi
+logger -s -p local0.notice -t post-mount "### Looking for available EntWARE partitions..."
+for mounted in `/bin/mount | grep -E 'ext2|ext3|ext4' | cut -d" " -f3`
+do
+   if [ -d $mounted/entware ]; then
+        logger -s -p local0.notice -t post-mount "### found EntWARE on $mounted, bind to /opt and start services"
+        # check if already mounted
+        if ! cat /proc/mounts | grep opt > /dev/null; then
+            mount -o bind $mounted/entware /opt
+            sleep 3
+            /opt/etc/init.d/rc.unslug start                                     
+        else                                                                    
+            logger -s -p local0.notice -t post-mount "### /opt already mounted!"
+        fi
+   fi
+done
 EOF
 eval sed -i 's,__Partition__,$entPartition,g' /jffs/etc/config/post-mount
 chmod +x /jffs/etc/config/post-mount
