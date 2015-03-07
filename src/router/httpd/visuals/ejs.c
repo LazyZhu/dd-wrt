@@ -2006,7 +2006,7 @@ void ej_do_hpagehead(webs_t wp, int argc, char_t ** argv)	// Eko
 		return;		// stop here, for About.htm
 	websWrite(wp, "<html>\n");
 	websWrite(wp, "\t<head>\n");
-	websWrite(wp, "\t\t<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=%s\" />\n", live_translate("lang_charset.set"));
+	websWrite(wp, "\t\t<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=UTF-8\" />\n");
 	websWrite(wp, "\t\t<script type=\"text/javascript\" src=\"../common.js\"></script>\n");
 	websWrite(wp, "\t\t<script type=\"text/javascript\" src=\"../lang_pack/english.js\"></script>\n");
 #ifdef HAVE_LANGUAGE

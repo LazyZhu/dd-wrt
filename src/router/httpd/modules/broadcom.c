@@ -2017,7 +2017,7 @@ static void do_syslog(struct mime_handler *handler, char *url, webs_t stream, ch
 
 	websWrite(stream,
 		  "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
-		  "<html>\n" "<head>\n" "<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=%s\" />\n", live_translate("lang_charset.set"));
+		  "<html>\n" "<head>\n" "<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=UTF-8\" />\n");
 	websWrite(stream, "<style type=\"text/css\">\n body { font-size: small; } \n</style>\n</head>\n");
 	websWrite(stream, "<body>\n<fieldset><legend>System Log</legend>");
 
@@ -2138,7 +2138,7 @@ static void do_ttgraph(struct mime_handler *handler, char *url, webs_t stream, c
 
 	websWrite(stream,
 		  "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
-		  "<html>\n" "<head>\n" "<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=%s\" />\n", live_translate("lang_charset.set"));
+		  "<html>\n" "<head>\n" "<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=UTF-8\" />\n");
 
 	websWrite(stream, "<title>dd-wrt traffic graph</title>\n"
 		  "<script type=\"text/javascript\">\n"
