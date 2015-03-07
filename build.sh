@@ -12,7 +12,7 @@ export ARCH=arm
 cd $DEVDIR
 # git pull
 REVISION=`git log --grep git-svn-id -n 1|grep -i dd-wrt|awk '{print $2}'|awk -F'@' '{print $2}'`
-EXTENDNO="-"`git rev-parse --verify HEAD --short|awk '{print toupper($0)}'`"-GIT"
+EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
 
 ### ###################
 ### setup target router
@@ -138,10 +138,10 @@ if [ -e arm-uclibc/huawei_ws880-firmware.trx ]
 then
    STAMP="`date +%Y-%m-%d_%H:%M`"
    mkdir -p ../../image
-   cp arm-uclibc/huawei_ws880-firmware.trx ../../image/dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION".trx
+   cp arm-uclibc/huawei_ws880-firmware.trx ../../image/dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx
    echo ""
    echo ""
-   echo "Image created: dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION".trx"
+   echo "Image created: dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx"
    echo "Have a look in the \"image\" directory"
 else
    echo ""
