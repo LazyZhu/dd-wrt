@@ -1,13 +1,16 @@
 #!/bin/sh
 DEVDIR=/home/dd-wrt/dd-wrt
 GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-4.8-linaro_musl-1.1.5_eabi/bin
-REVISION="26424-GIT"
+REVISION="26424G"
+REVISION=`git log --grep git-svn-id -n 1|grep -i dd-wrt|awk '{print $2}'|awk -F'@' '{print $2}'`
+EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
 
 export PATH=$GCCARM:$PATH
 export ARCH=arm
 
 cd $DEVDIR
 # svn up
+# git pull
 
 ### SETUP TARGET ###
 cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_mini $DEVDIR/src/router/.config
@@ -17,18 +20,21 @@ cd $DEVDIR/src/router/libutils
 echo -n '#define SVN_REVISION "' > revision.h
 # svnversion -n . >> revision.h
 echo -n $REVISION >> revision.h
+echo -n $EXTENDNO >> revision.h
 echo '"' >> revision.h
 
 cd $DEVDIR/src/router/httpd/visuals
 echo -n '#define SVN_REVISION "' > revision.h
 # svnversion -n . >> revision.h
 echo -n $REVISION >> revision.h
+echo -n $EXTENDNO >> revision.h
 echo '"' >> revision.h
 
 cd $DEVDIR/src/router/httpd
 echo -n '#define SVN_REVISION "' > revision.h
 # svnversion -n . >> revision.h
 echo -n $REVISION >> revision.h
+echo -n $EXTENDNO >> revision.h
 echo '"' >> revision.h
 
 ### compile trx ###
@@ -108,7 +114,7 @@ echo "************************************"
 echo "* Configure Northstar targets..."
 echo "************************************"
 echo ""
-#(make -f Makefile.northstar configure | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutconf.log) 3>&1 1>&2 2>&3 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stderrconf.log 
+(make -f Makefile.northstar configure | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutconf.log) 3>&1 1>&2 2>&3 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stderrconf.log 
 echo ""
 echo "************************************"
 echo "* Make Northstar targets..."
@@ -122,6 +128,7 @@ make -f Makefile.northstar clean all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.
 if [ -e arm-uclibc/huawei_ws880-firmware.trx ]
 then
    STAMP="`date +%Y-%m-%d_%H:%M`"
+   mkdir -p ../../image
    cp arm-uclibc/huawei_ws880-firmware.trx ../../image/dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION".trx
    echo ""
    echo ""
