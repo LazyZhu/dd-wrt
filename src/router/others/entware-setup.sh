@@ -128,14 +128,14 @@ do
         if ! cat /proc/mounts | grep opt > /dev/null; then
             mount -o bind $mounted/entware /opt
             sleep 3
-            /opt/etc/init.d/rc.unslug start                                     
-        else                                                                    
+            /opt/etc/init.d/rc.unslung start                                     
+        else
             logger -s -p local0.notice -t post-mount "### /opt already mounted!"
         fi
    fi
 done
 EOF
-eval sed -i 's,__Partition__,$entPartition,g' /jffs/etc/config/post-mount
+#eval sed -i 's,__Partition__,$entPartition,g' /jffs/etc/config/post-mount
 chmod +x /jffs/etc/config/post-mount
 # announce mount script to dd-wrt
 /usr/sbin/nvram set usb_runonmount=/jffs/etc/config/post-mount
