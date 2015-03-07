@@ -101,7 +101,7 @@ addEvent(window, "unload", function() {
 									<div class="label"><% tran("share.mac"); %></div>
 									<script type="text/javascript">
 									//<![CDATA[
-									document.write("<span id=\"wan_mac\" style=\"cursor:pointer; text-decoration:underline;\" title=\"" + share.oui + "\" onclick=\"getOUIFromMAC('<% nvg("wan_hwaddr"); %>');\" >");
+									document.write("<span id=\"wan_mac\" style=\"cursor:pointer; text-decoration:underline; text-transform: uppercase;\" title=\"" + share.oui + "\" onclick=\"getOUIFromMAC('<% nvg("wan_hwaddr"); %>');\" >");
 									document.write("<% nvg("wan_hwaddr"); %>");
 									document.write("</span>");
 									//]]>

@@ -21,6 +21,7 @@ function setWirelessTable() {
 		cellmac.title = share.oui;
 		cellmac.style.cursor = "pointer";
 		cellmac.style.textDecoration = "underline";
+		cellmac.style.textTransform = "uppercase";
 		eval("addEvent(cellmac, 'click', function() { getOUIFromMAC('" + mac + "') })");
 		cellmac.innerHTML = mac;
 
@@ -59,6 +60,7 @@ function setWDSTable() {
 		cellmac.title = share.oui;
 		cellmac.style.cursor = "pointer";
 		cellmac.style.textDecoration = "underline";
+		cellmac.style.textTransform = "uppercase";
 		eval("addEvent(cellmac, 'click', function() { getOUIFromMAC('" + mac + "') })");
 		cellmac.innerHTML = mac;
 
@@ -169,7 +171,7 @@ addEvent(window, "unload", function() {
 									<div class="label"><% tran("share.mac"); %></div>
 									<script type="text/javascript">
 									//<![CDATA[
-									document.write("<span id=\"wl_mac\" style=\"cursor:pointer; text-decoration:underline;\" title=\"" + share.oui + "\" onclick=\"getOUIFromMAC('<% show_wl_mac(); %>')\" >");
+									document.write("<span id=\"wl_mac\" style=\"cursor:pointer; text-decoration:underline; text-transform: uppercase;\" title=\"" + share.oui + "\" onclick=\"getOUIFromMAC('<% show_wl_mac(); %>')\" >");
 									document.write("<% show_wl_mac(); %>");
 									document.write("</span>");
 									//]]>
@@ -225,15 +227,15 @@ addEvent(window, "unload", function() {
 								<table class="table center" cellspacing="5" id="wireless_table" summary="wireless clients table">
 									<tr>
 										<th width="16%"><% tran("share.mac"); %></th>
-										<th width="8%"><% tran("share.intrface"); %></th>
+										<th width="8%"><% tran("share.itf"); %></th>
 										<th width="10%"><% tran("status_router.sys_up"); %></th>
 										<th width="8%"><% tran("share.txrate"); %></th>
 										<th width="8%"><% tran("share.rxrate"); %></th>
-										<th width="15%">Info</th>
+										<th width="8%"><% tran("share.inf"); %></th>
 										<th width="8%"><% tran("share.signal"); %></th>
 										<th width="8%"><% tran("share.noise"); %></th>
 										<th width="8%">SNR</th>
-										<th width="24%"><% tran("status_wireless.signal_qual"); %></th>
+										<th width="18%"><% tran("status_wireless.signal_qual"); %></th>
 									</tr>
 								</table>
 								<script type="text/javascript">

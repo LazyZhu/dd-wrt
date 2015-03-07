@@ -280,13 +280,13 @@ addEvent(window, "unload", function() {
 								<legend><% tran("qos.legend2"); %></legend>
 								<table class="table" summary="services priority table">
 									<tr>
-										<th><% tran("share.del"); %></th>
+										<th width="50px"><% tran("share.del"); %></th>
 										<th><% tran("share.srv"); %></th>
 										<th><% tran("share.priority"); %></th>
 									</tr>
 									<% get_qossvcs(); %>
 									<tr>
-										<td>&nbsp;</td>
+										<!--td>&nbsp;</td-->
 										<td colspan="2">
 											<script type="text/javascript">
 											//<![CDATA[
@@ -322,8 +322,8 @@ addEvent(window, "unload", function() {
 								<table class="table" summary="IP addresses priority table">
 									<% get_qosips(); %>
 									<tr>
-										<td>&nbsp;</td>
-										<td colspan="3">
+										<!--td>&nbsp;</td-->
+										<td colspan="5">
 											<script type="text/javascript">
 											//<![CDATA[
 											document.write("<input class=\"button\" type=\"button\" name=\"add_ipsprio_button\" value=\"" + sbutton.add + "\" onclick=\"ip_add_submit(this.form);\" />");
@@ -341,8 +341,8 @@ addEvent(window, "unload", function() {
 								<table class="table" summary="MAC priority table">
 									<% get_qosmacs(); %>
 									<tr>
-										<td>&nbsp;</td>
-										<td colspan="4">
+										<!--td>&nbsp;</td-->
+										<td colspan="5">
 											<script type="text/javascript">
 											//<![CDATA[
 											document.write("<input class=\"button\" type=\"button\" name=\"add_macprio_button\" value=\"" + sbutton.add + "\" onclick=\"mac_add_submit(this.form);\" />")

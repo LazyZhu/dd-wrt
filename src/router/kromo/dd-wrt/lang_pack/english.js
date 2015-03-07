@@ -2,10 +2,10 @@
 //		English reference translation file - DD-WRT V24 SP2       01/JUL/2013				//
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-// ** COMMON SHARE LABEL **//
 var lang_charset=new Object();
 lang_charset.set="utf-8";
 
+// ** COMMON SHARE LABEL **//
 var share=new Object();
 share.annex="Annex Type";
 share.apn="APN";
@@ -144,6 +144,7 @@ share.port_range="Port Range";
 share.priority="Priority";
 share.gateway="Gateway";
 share.intrface="Interface";  //don't use share.interface, Mozilla problem!!!
+share.itf="IF";
 share.ccq="CCQ";
 share.pintrface="Physical Interface";
 share.vintrface="Virtual Interfaces";
@@ -160,6 +161,7 @@ share.connect="Connect";
 share.connected="Connected";
 share.disconnect="Disconnect";
 share.disconnected="Disconnected";
+share.inf="Info";
 share.info="Information";
 share.state="State";
 share.mode="Mode";
@@ -1678,7 +1680,7 @@ service.vpnd_startip="Pool start IP";
 service.vpnd_endip="Pool end IP";
 service.vpnd_cl2cl="Client to Client connection allowed";
 service.vpnd_switch="Config as";
-service.vpnd_dupcn="Allow duplicate cn";
+service.vpnd_dupcn="Allow duplicate CN";
 service.vpnd_proxy="DHCP-Proxy mode";
 service.vpnd_clcon="Client connect script";
 service.vpnd_cldiscon="Client disconnect script";
@@ -1887,6 +1889,7 @@ service.zabbix_usrpara="User Parameters";
 service.transmission_legend="Bittorrent";
 service.transmission_srv="Transmission Daemon";
 service.transmission_dir="Transmission Directory";
+service.transmission_url="Web interface URL";
 
 // ** eop-tunnel.asp **//
 var eoip=new Object();

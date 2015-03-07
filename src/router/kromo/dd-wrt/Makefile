@@ -77,8 +77,15 @@ endif
 
 
 	mkdir -p $(INSTALLDIR)/www/lang_pack
-	cp lang_pack/*.js $(INSTALLDIR)/www/lang_pack	
-	rm -f $(INSTALLDIR)/www/lang_pack/arabic.js	
+#	cp lang_pack/*.js $(INSTALLDIR)/www/lang_pack	
+#	only selected langs (english required)
+	cp lang_pack/english.js $(INSTALLDIR)/www/lang_pack/
+	cp lang_pack/russian.js $(INSTALLDIR)/www/lang_pack/
+	cp lang_pack/german.js $(INSTALLDIR)/www/lang_pack/
+	cp lang_pack/french.js $(INSTALLDIR)/www/lang_pack/
+	cp lang_pack/italian.js $(INSTALLDIR)/www/lang_pack/
+	cp lang_pack/spanish.js $(INSTALLDIR)/www/lang_pack/
+	rm -f $(INSTALLDIR)/www/lang_pack/arabic.js
 	
 ifneq ($(CONFIG_LANGUAGE),y)
 	rm -f $(INSTALLDIR)/www/lang_pack/*.js

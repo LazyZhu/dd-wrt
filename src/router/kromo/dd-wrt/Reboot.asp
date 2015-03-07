@@ -75,12 +75,13 @@ addEvent(window, "unload", function() {
 			<script type="text/javascript">
 			//<![CDATA[
 				document.write("<input class=\"button\" type=\"button\" name=\"action\" value=\"" + sbutton.continu + "\" onclick=\"to_submit();\" />");
-				if (browserName == "Microsoft Internet Explorer")
+				if (browserName == "Microsoft Internet Explorer") {
 					document.write("<input class=\"button\" type=\"button\" name=\"close_button\" value=\"" + sbutton.clos + "\" onclick=\"opener=self;self.close();\" />");
+				}
 			//]]>
 			</script>
-		</div>
-				</form>
+			</div>
+			</form>
 			</div>
 		</div>
 	</body>

@@ -21,6 +21,7 @@
  */
 
 #define VISUALSOURCE 1
+#define HAVE_BRANDING 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2010,9 +2011,9 @@ void ej_show_bridgenames(webs_t wp, int argc, char_t ** argv)
 				  "<td><script type=\"text/javascript\">\n//<![CDATA[\n document.write(\"<input class=\\\"button\\\" type=\\\"button\\\" value=\\\"\" + sbutton.del + \"\\\" onclick=\\\"bridge_del_submit(this.form,%d)\\\" />\");\n//]]>\n</script></td></tr>\n",
 				  count);
 			// don't show that here, since that is under Basic Setup
-			websWrite(wp, "<tr><td colspan=\"7\" align=\"center\">");
-			show_ipnetmask(wp, bridge);
-			websWrite(wp, "</td></tr>");
+			//websWrite(wp, "<tr><td colspan=\"7\" align=\"center\">");
+			//show_ipnetmask(wp, bridge);
+			//websWrite(wp, "</td></tr>");
 		} else {
 			websWrite(wp,
 				  "<td><script type=\"text/javascript\">\n//<![CDATA[\n document.write(\"<input class=\\\"button\\\" type=\\\"button\\\" value=\\\"\" + sbutton.del + \"\\\" disabled />\");\n//]]>\n</script></td></tr>\n");
@@ -5933,7 +5934,7 @@ void ej_get_wdsp2p(webs_t wp, int argc, char_t ** argv)
 	}
 
 	if (nvram_match(nvramvar, "1")) {
-		websWrite(wp, "<div class=\"setting\">\n"
+		websWrite(wp, "<div class=\"setting\" style=\"margin-top:0.5em\">\n"
 			  "<input type=\"hidden\" name=\"%s_wds%d_ipaddr\" value=\"4\">\n"
 			  "<div class=\"label\"><script type=\"text/javascript\">Capture(share.ip)</script></div>\n"
 			  "<input size=\"3\" maxlength=\"3\" name=\"%s_wds%d_ipaddr0\" value=\"%d\" onblur=\"valid_range(this,0,255,'IP')\" class=\"num\">.<input size=\"3\" maxlength=\"3\" name=\"%s_wds%d_ipaddr1\" value=\"%d\" onblur=\"valid_range(this,0,255,'IP')\" class=\"num\">.<input size=\"3\" maxlength=\"3\" name=\"%s_wds%d_ipaddr2\" value=\"%d\" onblur=\"valid_range(this,0,255,'IP')\" class=\"num\">.<input size=\"3\" maxlength=\"3\" name=\"%s_wds%d_ipaddr3\" value=\"%d\" onblur=\"valid_range(this,1,254,'IP')\" class=\"num\">\n"
@@ -6298,7 +6299,7 @@ void ej_get_qossvcs(webs_t wp, int argc, char_t ** argv)
 
 	// write HTML data
 
-	websWrite(wp, "<tr><td colspan=\"3\"><input type=\"hidden\" name=\"svqos_nosvcs\" value=\"%d\" /></td></tr>", no_svcs);
+	websWrite(wp, "<input type=\"hidden\" name=\"svqos_nosvcs\" value=\"%d\" />", no_svcs);
 
 	qos_svcs = nvram_safe_get("svqos_svcs");
 
@@ -6311,10 +6312,11 @@ void ej_get_qossvcs(webs_t wp, int argc, char_t ** argv)
 			break;
 
 		websWrite(wp, "<tr>\n"
-			  "<td>\n"
+			  "<td align=\"center\">\n"
 			  "<input type=\"checkbox\" name=\"svqos_svcdel%d\" />\n"
 			  "<input type=\"hidden\" name=\"svqos_svcname%d\" value=\"%s\" />\n"
-			  "<input type=\"hidden\" name=\"svqos_svctype%d\" value=\"%s\" />\n" "</td>\n" "<td><em>%s</em></td>\n" "<td >\n", i, i, name, i, type, name);
+			  "<input type=\"hidden\" name=\"svqos_svctype%d\" value=\"%s\" />\n" "</td>\n"
+			  "<td><em>%s</em></td>\n" "<td >\n", i, i, name, i, type, name);
 		websWrite(wp, "<select name=\"svqos_svcprio%d\"> \n"
 			  "<script type=\"text/javascript\">\n//<![CDATA[\n document.write(\"<option value=\\\"100\\\" %s >\" + qos.prio_x + \"</option>\");\n"
 			  "document.write(\"<option value=\\\"10\\\" %s >\" + qos.prio_p + \"</option>\");\n"
@@ -6348,8 +6350,10 @@ void ej_get_qosips(webs_t wp, int argc, char_t ** argv)
 		qos_ips++;
 	}
 	websWrite(wp, "<tr>\n"
-		  "<th><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
-		  "<th><script type=\"text/javascript\">Capture(qos.ipmask)</script></th>\n" "<th><script type=\"text/javascript\">Capture(share.priority)</script></th>\n" "</tr>\n");
+		  "<th width=\"50px\"><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
+		  "<th><script type=\"text/javascript\">Capture(qos.ipmask)</script></th>\n"
+		  "<th><script type=\"text/javascript\">Capture(share.priority)</script></th>\n"
+		  "</tr>\n");
 
 	// write HTML data
 
@@ -6365,7 +6369,7 @@ void ej_get_qosips(webs_t wp, int argc, char_t ** argv)
 			break;
 
 		websWrite(wp, "<tr>\n"
-			  "<td>\n" "<input type=\"checkbox\" name=\"svqos_ipdel%d\" />\n" "<input type=\"hidden\" name=\"svqos_ip%d\" value=\"%s\" />\n" "</td>\n" "<td><em>%s</em></td>\n" "<td>\n", i, i, ip, ip);
+			  "<td align=\"center\">\n" "<input type=\"checkbox\" name=\"svqos_ipdel%d\" />\n" "<input type=\"hidden\" name=\"svqos_ip%d\" value=\"%s\" />\n" "</td>\n" "<td><em>%s</em></td>\n" "<td>\n", i, i, ip, ip);
 		websWrite(wp, "<select name=\"svqos_ipprio%d\"> \n"
 			  "<script type=\"text/javascript\">\n//<![CDATA[\n document.write(\"<option value=\\\"100\\\" %s >\" + qos.prio_x + \"</option>\");\n"
 			  "document.write(\"<option value=\\\"10\\\" %s >\" + qos.prio_p + \"</option>\");\n"
@@ -6398,7 +6402,7 @@ void ej_get_qosips(webs_t wp, int argc, char_t ** argv)
 		qos_ips++;
 	}
 	websWrite(wp, "<tr>\n"
-		  "<th><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
+		  "<th width=\"50px\"><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
 		  "<th><script type=\"text/javascript\">Capture(qos.ipmask)</script></th>\n"
 		  "<th><script type=\"text/javascript\">Capture(qos.maxdownrate_b)</script></th>\n"
 		  "<th><script type=\"text/javascript\">Capture(qos.maxuprate_b)</script></th>\n"
@@ -6406,7 +6410,7 @@ void ej_get_qosips(webs_t wp, int argc, char_t ** argv)
 
 	// write HTML data
 
-	websWrite(wp, "<tr><td colspan=\"3\"><input type=\"hidden\" name=\"svqos_noips\" value=\"%d\" /></td></tr>", no_ips);
+	websWrite(wp, "<tr><td colspan=\"5\"><input type=\"hidden\" name=\"svqos_noips\" value=\"%d\" /></td></tr>", no_ips);
 
 	qos_ips = nvram_safe_get("svqos_ips");
 
@@ -6428,16 +6432,16 @@ void ej_get_qosips(webs_t wp, int argc, char_t ** argv)
 				strcpy(prio, "0");
 		}
 
-		websWrite(wp, "<tr>\n" "<td align=\"center\">\n" "<input type=\"checkbox\" name=\"svqos_ipdel%d\" />\n" "<input type=\"hidden\" name=\"svqos_ip%d\" value=\"%s\" />\n" "</td>\n", i, i, ip);
+		websWrite(wp, "<tr>\n" "<td align=\"center\" width=\"50px\">\n" "<input type=\"checkbox\" name=\"svqos_ipdel%d\" />\n" "<input type=\"hidden\" name=\"svqos_ip%d\" value=\"%s\" />\n" "</td>\n", i, i, ip);
 		websWrite(wp, "	<td><em>%s</em></td>\n", ip);
 
 		websWrite(wp, "	<td nowrap>\n"
-			  "<input name=\"svqos_ipdown%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> kBits\n" "</td>\n", i, level2, strcmp(prio, "0") == 0 ? "" : "disabled");
-		websWrite(wp, "	<td nowrap>\n" "<input class=\"num\" name=\"svqos_ipup%d\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> kBits\n" "</td>\n", i, level,
+			  "<input name=\"svqos_ipdown%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> Kbit\n" "</td>\n", i, level2, strcmp(prio, "0") == 0 ? "" : "disabled");
+		websWrite(wp, "	<td nowrap>\n" "<input class=\"num\" name=\"svqos_ipup%d\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> Kbit\n" "</td>\n", i, level,
 			  strcmp(prio, "0") == 0 ? "" : "disabled");
 
 		websWrite(wp, "	<td nowrap>\n"
-			  "<input name=\"svqos_iplanlvl%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> kBits\n"
+			  "<input name=\"svqos_iplanlvl%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> Kbit\n"
 			  "</td>\n", i, lanlevel, strcmp(prio, "0") == 0 ? "" : "disabled");
 
 		websWrite(wp, "	<td>\n"
@@ -6479,8 +6483,9 @@ void ej_get_qosmacs(webs_t wp, int argc, char_t ** argv)
 	}
 
 	websWrite(wp, "<tr>\n"
-		  "<th><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
-		  "<th><script type=\"text/javascript\">Capture(share.mac)</script></th>\n" "<th><script type=\"text/javascript\">Capture(share.priority)</script></th>\n" "</tr>\n");
+		  "<th width=\"50px\"><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
+		  "<th><script type=\"text/javascript\">Capture(share.mac)</script></th>\n"
+		  "<th><script type=\"text/javascript\">Capture(share.priority)</script></th>\n" "</tr>\n");
 
 	// write HTML data
 	websWrite(wp, "<input type=\"hidden\" name=\"svqos_nomacs\" value=\"%d\" />", no_macs);
@@ -6527,11 +6532,12 @@ void ej_get_qosmacs(webs_t wp, int argc, char_t ** argv)
 		qos_macs++;
 	}
 	websWrite(wp, "<tr>\n"
-		  "<th><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
+		  "<th width=\"50px\"><script type=\"text/javascript\">Capture(share.del)</script></th>\n"
 		  "<th><script type=\"text/javascript\">Capture(share.mac)</script></th>\n"
 		  "<th><script type=\"text/javascript\">Capture(qos.maxdownrate_b)</script></th>\n"
 		  "<th><script type=\"text/javascript\">Capture(qos.maxuprate_b)</script></th>\n"
-		  "<th><script type=\"text/javascript\">Capture(qos.maxlanrate_b)</script></th>\n" "<th><script type=\"text/javascript\">Capture(share.priority)</script></th>\n" "</tr>\n");
+		  "<th><script type=\"text/javascript\">Capture(qos.maxlanrate_b)</script></th>\n"
+		  "<th><script type=\"text/javascript\">Capture(share.priority)</script></th>\n" "</tr>\n");
 
 	// write HTML data
 	websWrite(wp, "<input type=\"hidden\" name=\"svqos_nomacs\" value=\"%d\" />", no_macs);
@@ -6559,13 +6565,13 @@ void ej_get_qosmacs(webs_t wp, int argc, char_t ** argv)
 			  "</td>\n"
 			  "<td><em>%s</em></td>\n"
 			  "<td nowrap>\n"
-			  "<input name=\"svqos_macdown%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> kBits\n"
+			  "<input name=\"svqos_macdown%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> Kbit\n"
 			  "</td>\n"
 			  "<td nowrap>\n"
-			  "<input name=\"svqos_macup%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> kBits\n"
+			  "<input name=\"svqos_macup%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> Kbit\n"
 			  "</td>\n"
 			  "<td nowrap>\n"
-			  "<input name=\"svqos_maclanlvl%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> kBits\n"
+			  "<input name=\"svqos_maclanlvl%d\" class=\"num\" size=\"5\" maxlength=\"6\" value=\"%s\" style=\"text-align:right;\" %s /> Kbit\n"
 			  "</td>\n"
 			  "<td>\n", i, i, mac, mac, i, level2, strcmp(prio, "0") == 0 ? "" : "disabled", i, level, strcmp(prio, "0") == 0 ? "" : "disabled", i, lanlevel, strcmp(prio, "0") == 0 ? "" : "disabled");
 

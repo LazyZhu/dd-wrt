@@ -103,6 +103,7 @@ function setDHCPTable() {
 		cellmac.title = share.oui;
 		cellmac.style.cursor = "pointer";
 		cellmac.style.textDecoration = "underline";
+		cellmac.style.textTransform = "uppercase";
 		eval("addEvent(cellmac, 'click', function() { getOUIFromMAC('" + val[i+2] + "') })");
 		cellmac.innerHTML = val[i+2];
 
@@ -136,6 +137,7 @@ function setARPTable() {
 		cellmac.title = share.oui;
 		cellmac.style.cursor = "pointer";
 		cellmac.style.textDecoration = "underline";
+		cellmac.style.textTransform = "uppercase";
 		eval("addEvent(cellmac, 'click', function() { getOUIFromMAC('" + val[i+2] + "') })");
 		cellmac.innerHTML = val[i+2];
 		
@@ -228,7 +230,7 @@ addEvent(window, "unload", function() {
 									<div class="label"><% tran("share.mac"); %></div>
 									<script type="text/javascript">
 									//<![CDATA[
-									document.write("<span id=\"lan_mac\" style=\"cursor:pointer; text-decoration:underline;\" title=\"" + share.oui + "\" onclick=\"getOUIFromMAC('<% nvg("lan_hwaddr"); %>')\" >");
+									document.write("<span id=\"lan_mac\" style=\"cursor:pointer; text-decoration:underline; text-transform: uppercase;\" title=\"" + share.oui + "\" onclick=\"getOUIFromMAC('<% nvg("lan_hwaddr"); %>')\" >");
 									document.write("<% nvg("lan_hwaddr"); %>");
 									document.write("</span>");
 									//]]>

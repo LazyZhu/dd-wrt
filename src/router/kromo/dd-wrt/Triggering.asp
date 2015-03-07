@@ -67,10 +67,8 @@ addEvent(window, "unload", function() {
 								<legend><% tran("trforward.legend"); %></legend>
 								<table class="table center" cellspacing="5" summary="ports triggering table">
 									<tr>
-										<td></td>
-										<th colspan="2"><% tran("trforward.trrange"); %></th>
-										<th colspan="2"><% tran("trforward.fwdrange"); %></th>
-										<td></td>
+										<th colspan="3"><% tran("trforward.trrange"); %></th>
+										<th colspan="3"><% tran("trforward.fwdrange"); %></th>
 									</tr>
 									<tr>
 										<th><% tran("trforward.app"); %></th>

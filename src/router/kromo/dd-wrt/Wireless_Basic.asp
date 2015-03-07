@@ -270,13 +270,13 @@ function submitcheck(F) {
 	if(F.wl0_nbw.value == 0) { // Auto
 		F.wl0_channel.value = 0;
 	}
-	else if(F.wl0_nbw.value == 10) { // 10MHz
-		F.wl0_nctrlsb.value = "none";
-		F.wl0_nbw.value = 10;
-	}
 	else if(F.wl0_nbw.value == 5) { // 5MHz
 		F.wl0_nctrlsb.value = "none";
 		F.wl0_nbw.value = 5;
+	}
+	else if(F.wl0_nbw.value == 10) { // 10MHz
+		F.wl0_nctrlsb.value = "none";
+		F.wl0_nbw.value = 10;
 	}
 	else if(F.wl0_nbw.value == 20) { // 20MHz
 		F.wl0_nctrlsb.value = "none";
