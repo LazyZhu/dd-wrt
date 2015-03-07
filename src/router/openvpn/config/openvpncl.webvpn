@@ -103,8 +103,8 @@
 			</div>
 			<div class="setting">
 				<div class="label"><% tran("service.vpn_nat"); %></div>
-				<input class="spaceradio" type="radio" name="openvpncl_nat" value="1" <% nvram_checked("openvpncl_nat", "1"); %> onclick="show_layer_ext(this, 'idsec', true)" /><% tran("share.enable"); %>&nbsp;
-				<input class="spaceradio" type="radio" name="openvpncl_nat" value="0" <% nvram_checked("openvpncl_nat", "0"); %> onclick="show_layer_ext(this, 'idsec', false)" /><% tran("share.disable"); %>
+				<input class="spaceradio" type="radio" name="openvpncl_nat" value="1" <% nvram_checked("openvpncl_nat", "1"); %> onclick="show_layer_ext(this, 'idsec', true); show_layer_ext(this, 'idnat', true)" /><% tran("share.enable"); %>&nbsp;
+				<input class="spaceradio" type="radio" name="openvpncl_nat" value="0" <% nvram_checked("openvpncl_nat", "0"); %> onclick="show_layer_ext(this, 'idsec', false); show_layer_ext(this, 'idnat', false)" /><% tran("share.disable"); %>
 			</div>
 			<div id="idsec">
 				<div class="setting">
@@ -116,8 +116,8 @@
 			<div id="idnat">
 				<div class="setting">
 					<div class="label"><% tran("service.vpn_bridge"); %></div>
-      				<input class="spaceradio" type="radio" name="openvpncl_bridge" value="1" <% nvram_checked("openvpncl_bridge", "1"); %> /><% tran("share.enable"); %>&nbsp; 
-					<input class="spaceradio" type="radio" name="openvpncl_bridge" value="0" <% nvram_checked("openvpncl_bridge", "0"); %> /><% tran("share.disable"); %> 
+					<input class="spaceradio" type="radio" name="openvpncl_bridge" value="1" <% nvram_checked("openvpncl_bridge", "1"); %> /><% tran("share.enable"); %>&nbsp;
+					<input class="spaceradio" type="radio" name="openvpncl_bridge" value="0" <% nvram_checked("openvpncl_bridge", "0"); %> /><% tran("share.disable"); %>
 				</div>
 			</div>
 			<div class="setting">

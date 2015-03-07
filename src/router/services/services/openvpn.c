@@ -467,6 +467,10 @@ void start_openvpn(void)
 		    && strlen(nvram_safe_get("openvpncl_ip")) > 0)
 			fprintf(fp, "ifconfig %s %s netmask %s up\n", ovpniface, nvram_safe_get("openvpncl_ip"), nvram_safe_get("openvpncl_mask"));
 	}
+	//up TAP if unbridged but have IP (for NAT or only router itself), othervise there will be no active interface by default
+	else if (nvram_match("openvpncl_tuntap", "tap") && strlen(nvram_safe_get("openvpncl_ip")) > 0) {
+		fprintf(fp, "ifconfig %s %s netmask %s up\n", ovpniface, nvram_safe_get("openvpncl_ip"), nvram_safe_get("openvpncl_mask"));
+	}
 	if (nvram_match("openvpncl_nat", "1"))
 		fprintf(fp, "iptables -D POSTROUTING -t nat -o %s -j MASQUERADE\n" "iptables -I POSTROUTING -t nat -o %s -j MASQUERADE\n", ovpniface, ovpniface);
 	if (nvram_match("openvpncl_sec", "0"))
