@@ -17,7 +17,11 @@ EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
 ### ###################
 ### setup target router
 ### ###################
-cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_mini $DEVDIR/src/router/.config
+# MINI (~10MB firmware) - try to build with that config it first!
+# cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_mini $DEVDIR/src/router/.config
+# 16M (~16MB firmware)
+cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_16m $DEVDIR/src/router/.config
+# STD (~30MB firmware)
 # cp -f $DEVDIR/src/router/configs/northstar/.config_ws880 $DEVDIR/src/router/.config
 
 cd $DEVDIR/src/router/libutils
@@ -130,10 +134,11 @@ echo "* Make Northstar targets..."
 echo "************************************"
 echo ""
 # make -f Makefile.northstar install_headers
-make -f Makefile.northstar kernel # must be buided first, or opendpi won't compile
+make -f Makefile.northstar kernel # must be builded first, or opendpi won't compile
 make -f Makefile.northstar clean all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutbuild.log
 #make -f Makefile.northstar all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutbuild.log
 
+# copy firmware to image dir
 if [ -e arm-uclibc/huawei_ws880-firmware.trx ]
 then
    STAMP="`date +%Y-%m-%d_%H:%M`"
