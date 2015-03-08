@@ -69,7 +69,7 @@ mkdir $entFolder
 if mount | grep 'opt' > /dev/null;
 then
   echo -e "$WARNING Deleting old /opt mount..."
-  /opt/etc/init.d/rc.unslung stop
+  /opt/etc/init.d/rc.unslung stop 2>/dev/null
   sleep 5
   umount /opt
 fi
@@ -138,7 +138,7 @@ do
    fi
 done
 EOF
-#eval sed -i 's,__Partition__,$entPartition,g' /jffs/etc/config/post-mount
+# eval sed -i 's,__Partition__,$entPartition,g' /jffs/etc/config/post-mount
 chmod +x /jffs/etc/config/post-mount
 # announce mount script to dd-wrt
 /usr/sbin/nvram set usb_runonmount=/jffs/etc/config/post-mount
