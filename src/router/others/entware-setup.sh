@@ -83,54 +83,57 @@ echo -e "$INFO Modifying start scripts..."
 # can not exist after format
 mkdir -p /jffs/etc
 mkdir -p /jffs/etc/config
-cat > /jffs/etc/config/entware.startup << EOF
+cat > /jffs/etc/config/S11-entware.startup << EOF
 #!/bin/sh
+
 #
-# STARTUP
+# EntWARE STARTUP
 #
 
 # Mount EntWARE from jffs if exist
 if [ -d /jffs/entware ]; then
     if ! cat /proc/mounts | grep opt > /dev/null; then
-	logger -s -p local0.notice -t entware.startup "### Mount EntWARE from jffs"
+	logger -s -p local0.notice -t entware.startup "### mount EntWARE from jffs partition"
 	mount -o bind /jffs/entware /opt
     fi
 fi
 sleep 1
 # Start ALL EntWARE services
-logger -s -p local0.notice -t entware.startup "### Start EntWARE services"
+logger -s -p local0.notice -t entware.startup "### start EntWARE services"
 /opt/etc/init.d/rc.unslung start
 EOF
-chmod +x /jffs/etc/config/entware.startup
+chmod +x /jffs/etc/config/S11-entware.startup
 
-cat > /jffs/etc/config/entware.shutdown << EOF
+cat > /jffs/etc/config/K11-entware.shutdown << EOF
 #!/bin/sh
+
 #
-# SHUTDOWN
+# EntWARE SHUTDOWN
 #
 
 # Stop ALL EntWARE services
-logger -s -p local0.notice -t entware.shutdown "### Shutdown EntWARE services"
+logger -s -p local0.notice -t entware.shutdown "### shutdown EntWARE services"
 /opt/etc/init.d/rc.unslung stop
 EOF
-chmod +x /jffs/etc/config/entware.shutdown
+chmod +x /jffs/etc/config/K11-entware.shutdown
 
 cat > /jffs/etc/config/post-mount << EOF
 #!/bin/sh
+
 #
 # POST-MOUNT
 #
 
-sleep 3
-logger -s -p local0.notice -t post-mount "### Looking for available EntWARE partitions..."
-for mounted in `/bin/mount | grep -E 'ext2|ext3|ext4' | cut -d" " -f3`
+sleep 5
+logger -s -p local0.notice -t post-mount "### looking for available EntWARE partitions..."
+for mountpath in \`/bin/mount | grep -E 'ext2|ext3|ext4' | cut -d" " -f3\`
 do
-   if [ -d $mounted/entware ]; then
-        logger -s -p local0.notice -t post-mount "### found EntWARE on $mounted, bind to /opt and start services..."
+   if [ -d \$mountpath/entware ]; then
+        logger -s -p local0.notice -t post-mount "### found EntWARE on \$mountpath, bind it to /opt and start services"
         # check if already mounted
         if ! cat /proc/mounts | grep opt > /dev/null; then
-            mount -o bind $mounted/entware /opt
-            sleep 3
+            mount -o bind \$mountpath/entware /opt
+            sleep 1
             /opt/etc/init.d/rc.unslung start
         else
             logger -s -p local0.notice -t post-mount "### /opt already mounted! skip EntWARE setup"
@@ -138,7 +141,6 @@ do
    fi
 done
 EOF
-# eval sed -i 's,__Partition__,$entPartition,g' /jffs/etc/config/post-mount
 chmod +x /jffs/etc/config/post-mount
 # announce mount script to dd-wrt
 /usr/sbin/nvram set usb_runonmount=/jffs/etc/config/post-mount
