@@ -69,8 +69,9 @@ mkdir $entFolder
 if mount | grep 'opt' > /dev/null;
 then
   echo -e "$WARNING Deleting old /opt mount..."
+  /opt/etc/init.d/rc.unslung stop
+  sleep 5
   umount /opt
-  sleep 1
 fi
 echo -e $INFO Binding $entFolder to /opt...
   mount -o bind $entFolder /opt
@@ -90,14 +91,14 @@ cat > /jffs/etc/config/entware.startup << EOF
 
 # Mount EntWARE from jffs if exist
 if [ -d /jffs/entware ]; then
-    if ! cat /proc/mounts | grep opt > /dev/null; then 
-	logger -s -p local0.notice -t entware.startup "Mount EntWARE from jffs"
+    if ! cat /proc/mounts | grep opt > /dev/null; then
+	logger -s -p local0.notice -t entware.startup "### Mount EntWARE from jffs"
 	mount -o bind /jffs/entware /opt
     fi
 fi
 sleep 1
 # Start ALL EntWARE services
-logger -s -p local0.notice -t entware.startup "Start EntWARE services"
+logger -s -p local0.notice -t entware.startup "### Start EntWARE services"
 /opt/etc/init.d/rc.unslung start
 EOF
 chmod +x /jffs/etc/config/entware.startup
@@ -109,7 +110,7 @@ cat > /jffs/etc/config/entware.shutdown << EOF
 #
 
 # Stop ALL EntWARE services
-logger -s -p local0.notice -t entware.shutdown "Shutdown EntWARE services"
+logger -s -p local0.notice -t entware.shutdown "### Shutdown EntWARE services"
 /opt/etc/init.d/rc.unslung stop
 EOF
 chmod +x /jffs/etc/config/entware.shutdown
@@ -119,18 +120,20 @@ cat > /jffs/etc/config/post-mount << EOF
 #
 # POST-MOUNT
 #
+
+sleep 3
 logger -s -p local0.notice -t post-mount "### Looking for available EntWARE partitions..."
 for mounted in `/bin/mount | grep -E 'ext2|ext3|ext4' | cut -d" " -f3`
 do
    if [ -d $mounted/entware ]; then
-        logger -s -p local0.notice -t post-mount "### found EntWARE on $mounted, bind to /opt and start services"
+        logger -s -p local0.notice -t post-mount "### found EntWARE on $mounted, bind to /opt and start services..."
         # check if already mounted
         if ! cat /proc/mounts | grep opt > /dev/null; then
             mount -o bind $mounted/entware /opt
             sleep 3
-            /opt/etc/init.d/rc.unslung start                                     
+            /opt/etc/init.d/rc.unslung start
         else
-            logger -s -p local0.notice -t post-mount "### /opt already mounted!"
+            logger -s -p local0.notice -t post-mount "### /opt already mounted! skip EntWARE setup"
         fi
    fi
 done
