@@ -8,6 +8,12 @@ REVISION="26424M"
 export PATH=$GCCARM:$PATH
 export ARCH=arm
 
+### #########################################
+### install missing packages for Ubuntu 14.04
+### #########################################
+# sudo apt-get install build-essential gcc g++ gengetopt binutils cmake bzip2 flex bison make automake automake1.9 automake1.11 autoconf gettext texinfo unzip sharutils subversion libncurses5-dev zlib1g-dev libglib2.0-dev patch pkg-config rsync libtool sed wget
+# sudo apt-get install lib32stdc++6 # for lzma_4k on 64bit systems
+
 ### update sources
 cd $DEVDIR
 # git pull
@@ -23,6 +29,16 @@ EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
 cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_16m $DEVDIR/src/router/.config
 # STD (~30MB firmware)
 # cp -f $DEVDIR/src/router/configs/northstar/.config_ws880 $DEVDIR/src/router/.config
+echo "CONFIG_BUILD_HUAWEI=y" >> $DEVDIR/src/router/.config
+echo "CONFIG_USB_AUDIO=y" >> $DEVDIR/src/router/.config
+# Make fw for other brands too
+# (uncomment desired and check src/router/Makefile.northstar)
+#echo "CONFIG_BUILD_TPLINK=y" >> $DEVDIR/src/router/.config
+#echo "CONFIG_BUILD_DLINK=y" >> $DEVDIR/src/router/.config
+#echo "CONFIG_BUILD_ASUS=y" >> $DEVDIR/src/router/.config
+#echo "CONFIG_BUILD_BUFFALO=y" >> $DEVDIR/src/router/.config
+#echo "CONFIG_BUILD_NETGEAR=y" >> $DEVDIR/src/router/.config
+#echo "CONFIG_BUILD_TRENDNET=y" >> $DEVDIR/src/router/.config
 
 cd $DEVDIR/src/router/libutils
 echo -n '#define SVN_REVISION "' > revision.h
@@ -51,9 +67,9 @@ echo '"' >> revision.h
 ### ###
 
 ### compile trx ###
-#cd $DEVDIR/opt/tools/
-#gcc -o trx trx.c
-#gcc -o trx_asus trx_asus.c
+cd $DEVDIR/opt/tools/
+gcc -o trx trx.c
+gcc -o trx_asus trx_asus.c
 
 ### compile jsformat ###
 #cd $DEVDIR/src/router/tools
@@ -71,31 +87,40 @@ echo '"' >> revision.h
 #rm ./webcomp
 #gcc -o webcomp -DUEMF -DWEBS -DLINUX webcomp.c
 
-#echo ................................................................
-#echo fixing alconf's
-#echo ................................................................
+echo ""
+echo "************************************"
+echo " Fixing alconf..."
+echo " - comment this section after 1st run"
+echo " - some fixes doesn't needed at all"
+echo "************************************"
 #cd $DEVDIR/src/router/zlib
 #aclocal
 #cd $DEVDIR/src/router/jansson
 #aclocal
-#automake --add-missing
-#cd $DEVDIR/src/router/daq
+### glib2.0/gettext automake version build error fix
+#cd $DEVDIR/src/router/glib20/gettext
+#autoconf
+### comgt compile fix
+#cd $DEVDIR/src/router/usb_modeswitch/libusb-compat
 #aclocal
-#automake --add-missing
+#autoreconf -ivf
 #cd $DEVDIR/src/router/pptpd
 #aclocal
-#automake --add-missing
 #cd $DEVDIR/src/router/igmp-proxy
 #aclocal
-#automake --add-missing
 #cd $DEVDIR/src/router/nocat
 #aclocal
-#cd $DEVDIR/src/router/minidlna
-#aclocal
+### for snort (moved to rules/*.mk)
 #cd $DEVDIR/src/router/libnfnetlink
 #aclocal
 #cd $DEVDIR/src/router/libnetfilter_queue
 #aclocal
+#autoreconf -ivf
+#cd $DEVDIR/src/router/daq
+#aclocal
+#autoconf
+#automake --add-missing
+#autoreconf -ivf
 #cd $DEVDIR/src/router/zabbix
 #aclocal
 #cd $DEVDIR/src/router/openvpn
@@ -116,15 +141,14 @@ make -f Makefile.northstar nvram
 make -f Makefile.northstar shared
 make -f Makefile.northstar utils
 make -f Makefile.northstar libutils # for dhcpv6 linking (radvd)
-# make -f Makefile.northstar glib20-configure # for nocat
-# make -f Makefile.northstar pptpd-configure # for ipeth
-# make -f Makefile.northstar openssl-configure # for ipeth
-# make -f Makefile.northstar openssl # for ipeth
+# make -f Makefile.northstar glib20-configure # for nocat linking
 
 mkdir -p $DEVDIR/logs
 echo ""
 echo "************************************"
 echo "* Configure Northstar targets..."
+echo "* doesn't need to run on every build"
+echo "* comment if build with same config"
 echo "************************************"
 echo ""
 (make -f Makefile.northstar configure | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutconf.log) 3>&1 1>&2 2>&3 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stderrconf.log 
@@ -148,6 +172,7 @@ then
    echo ""
    echo "Image created: dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx"
    echo "Have a look in the \"image\" directory"
+   echo "Others placed in src/router/arm-uclibc"
 else
    echo ""
    echo ""
