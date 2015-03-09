@@ -1,5 +1,5 @@
 libnfnetlink-configure:
-	cd libnfnetlink && ./configure \
+	cd libnfnetlink && aclocal && ./configure \
 		--build=$(ARCH)-linux \
 		--host=$(ARCH)-linux-gnu \
 		--prefix=/usr \

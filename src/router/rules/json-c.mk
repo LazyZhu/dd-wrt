@@ -1,8 +1,8 @@
 json-c-configure: 
 	cd json-c && \
+		./configure --host=$(ARCH)-linux \
 		ac_cv_func_malloc_0_nonnull=yes \
 		ac_cv_func_realloc_0_nonnull=yes \
-		./configure --host=$(ARCH)-linux \
 		--prefix=$(TOP)/_staging \
 		--libdir=$(TOP)/_staging/usr/lib \
 		--includedir=$(TOP)/_staging/usr/include \

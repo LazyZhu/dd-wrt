@@ -1,4 +1,4 @@
-snort-configure: daq-configure pcre-configure daq pcre
+snort-configure: daq-configure pcre-configure libdnet-configure daq pcre libdnet
 
 	export ac_cv_func_malloc_0_nonnull=yes  ; \
 	export have_inaddr_none=yes ; \
