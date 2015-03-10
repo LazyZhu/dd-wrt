@@ -360,10 +360,11 @@ endif
 endif
 endif
 # end orange fix
-
+ifeq ($(CONFIG_BUILD_HUAWEI),y)
 	### WS880 logo
 	# cp huawei-logo-ws880.png $(INSTALLDIR)/www/style/logo.png
 	cp huawei-logo.png $(INSTALLDIR)/www/style/logo.png
+endif
 
 ifeq ($(CONFIG_34TELECOM),y)
 	$(MAKE) -C $(SRCBASE)/router/kromo/34telecom/ install
