@@ -863,7 +863,7 @@ privoxy.whitel="Whitelist";
 privoxy.custom="Custom Configuration";
 
 var hprivoxy=new Object();
-hprivoxy.right2="Enable privoxy and configure your clients proxy settings. Proxy IP = <b>Router IP</b> Proxy Port = <b>8118</b>";
+hprivoxy.right2="Enable privoxy and configure your clients proxy settings.<br/><br/>Proxy IP = <b>Router IP</b><br/>Proxy Port = <b>8118</b>";
 
 //help page
 hprivoxy.page1="<dd>Privoxy enables you to filter common ads. <br/><ul><br/></ul></dd>";

@@ -38,7 +38,7 @@ addEvent(window, "unload", function() {
 			<div id="content">
 				<div id="header">
 					<div id="logo"><h1><% show_control(); %></h1></div>
-					<% do_menu("Services.asp", "Privoxy.asp"); %>
+					<% do_menu("Filters.asp", "Privoxy.asp"); %>
 				</div>
 				<div id="main">
 					<div id="contents">

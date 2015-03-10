@@ -1549,7 +1549,7 @@ void ej_do_menu(webs_t wp, int argc, char_t ** argv)
 		{"setup", "setupbasic", "setupddns", "", "", "", "", "", "", "", "", "", ""},	//
 		{"wireless", "wirelessBasic", "wirelessSecurity", "", "", "", "", "", "", "", "", "", ""},	//
 		{"applications", "applicationspforwarding", "", "", "", "", "", "", "", "", "", "", ""},	//
-		{"accrestriction", "webaccess", "", "", "", "", "", "", "", "", "", "", ""},	//
+		{"accrestriction", "webaccess", "servicesPrivoxy", "", "", "", "", "", "", "", "", "", ""},	//
 		{"admin", "adminManagement", "", "", "", "", "", "", "", "", "", "", ""},	//
 		{"", "", "", "", "", "", "", "", "", "", "", "", ""},	//
 		{"", "", "", "", "", "", "", "", "", "", "", "", ""},	//
@@ -1564,9 +1564,9 @@ void ej_do_menu(webs_t wp, int argc, char_t ** argv)
 	static char menu_t[8][13][32] = {
 		{"index.asp", "IPV6.asp", "DDNS.asp", "WanMAC.asp", "Routing.asp", "Vlan.asp", "Networking.asp", "eop-tunnel.asp", "", "", "", ""},	// 
 		{"Wireless_Basic.asp", "SuperChannel.asp", "WiMAX.asp", "Wireless_radauth.asp", "WL_WPATable.asp", "AOSS.asp", "Wireless_MAC.asp", "Wireless_Advanced.asp", "Wireless_WDS.asp", "", "", ""},	//
-		{"Services.asp", "FreeRadius.asp", "PPPoE_Server.asp", "PPTP.asp", "USB.asp", "NAS.asp", "Hotspot.asp", "Nintendo.asp", "Milkfish.asp", "Privoxy.asp", "Lighttpd.asp", ""},	//
+		{"Services.asp", "FreeRadius.asp", "PPPoE_Server.asp", "PPTP.asp", "USB.asp", "NAS.asp", "Hotspot.asp", "Nintendo.asp", "Milkfish.asp", "Lighttpd.asp", "", ""},	//
 		{"Firewall.asp", "VPN.asp", "", "", "", "", "", "", "", "", "", ""},	//
-		{"Filters.asp", "", "", "", "", "", "", "", "", "", "", ""},	//
+		{"Filters.asp", "Privoxy.asp", "", "", "", "", "", "", "", "", "", ""},	//
 		{"ForwardSpec.asp", "Forward.asp", "Triggering.asp", "UPnP.asp", "DMZ.asp", "QoS.asp", "P2P.asp", "", "", "", "", ""},	//
 		{"Management.asp", "Alive.asp", "Diagnostics.asp", "Wol.asp", "Factory_Defaults.asp", "Upgrade.asp", "config.asp", "", "", "", "", ""},	//
 		{"Status_Router.asp", "Status_Internet.asp", "Status_Lan.asp", "Status_Wireless.asp", "Status_SputnikAPD.asp", "Status_OpenVPN.asp", "Status_Bandwidth.asp", "Syslog.asp", "Info.htm", "register.asp", "MyPage.asp", "Gpio.asp", "Status_CWMP.asp"}	//
@@ -1583,9 +1583,9 @@ void ej_do_menu(webs_t wp, int argc, char_t ** argv)
 		 "wirelessAoss",
 #endif
 		 "wirelessMac", "wirelessAdvanced", "wirelessWds", "", "", ""},	//
-		{"services", "servicesServices", "servicesRadius", "servicesPppoesrv", "servicesPptp", "servicesUSB", "servicesNAS", "servicesHotspot", "servicesNintendo", "servicesMilkfish", "servicesPrivoxy", "servicesLighttpd", ""},	//
+		{"services", "servicesServices", "servicesRadius", "servicesPppoesrv", "servicesPptp", "servicesUSB", "servicesNAS", "servicesHotspot", "servicesNintendo", "servicesMilkfish", "servicesLighttpd", "", ""},	//
 		{"security", "firwall", "vpn", "", "", "", "", "", "", "", "", "", ""},	// 
-		{"accrestriction", "webaccess", "", "", "", "", "", "", "", "", "", "", ""},	//
+		{"accrestriction", "webaccess", "servicesPrivoxy", "", "", "", "", "", "", "", "", "", ""},	//
 		{"applications", "applicationspforwarding", "applicationsprforwarding", "applicationsptriggering", "applicationsUpnp", "applicationsDMZ", "applicationsQoS", "applicationsP2P", "", "", "", "", ""},	//
 		{"admin", "adminManagement", "adminAlive", "adminDiag", "adminWol", "adminFactory", "adminUpgrade", "adminBackup", "", "", "", "", ""},	//
 		{"statu", "statuRouter", "statuInet", "statuLAN", "statuWLAN", "statuSputnik", "statuVPN", "statuBand", "statuSyslog", "statuSysInfo", "statuActivate", "statuMyPage", "statuGpio", "statuCWMP"}	//
