@@ -220,6 +220,9 @@ endif
 ifeq ($(CONFIG_USBIP),y)
 CFLAGS += -DHAVE_USBIP
 endif
+ifeq ($(CONFIG_USB_AUDIO),y)
+CFLAGS += -DHAVE_USBAUDIO
+endif
 ifeq ($(CONFIG_ESR6650),y)
   CFLAGS += -DHAVE_ESR6650
 endif

@@ -22,3 +22,4 @@ ifeq ($(CONFIG_USB_ADVANCED),y)
 else
 	cp $(MODULE)* $(INSTALLDIR)/etc/config
 endif
+

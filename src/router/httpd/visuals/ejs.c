@@ -566,6 +566,9 @@ static char *s_conditions[] = {
 #ifdef HAVE_USBIP
 	"USBIP",
 #endif
+#ifdef HAVE_USBAUDIO
+	"USBAUDIO",
+#endif
 	NULL
 };
 

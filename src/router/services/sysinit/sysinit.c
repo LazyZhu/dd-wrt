@@ -2848,6 +2848,12 @@ void start_drivers(void)
 			cprintf("loading printer\n");
 			insmod("printer usblp");
 		}
+#ifdef HAVE_USBAUDIO
+		if (nvram_match("usb_audio", "1")) {
+			cprintf("loading usb audio drivers\n");
+			insmod("soundcore.ko snd.ko snd-timer.ko snd-page-alloc.ko snd-hwdep.ko snd-pcm.ko snd-seq-device.ko snd-seq.ko snd-seq-dummy.ko snd-seq-midi-event.ko snd-rawmidi.ko snd-seq-midi.ko snd-mixer-oss.ko snd-pcm-oss.ko snd-usbmidi-lib.ko snd-usb-audio.ko");
+		}
+#endif
 #ifdef HAVE_USBIP
 		if (nvram_match("usb_ip", "1")) {
 			cprintf("loading usb over ip drivers\n");

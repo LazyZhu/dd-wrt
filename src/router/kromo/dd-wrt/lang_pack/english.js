@@ -794,6 +794,7 @@ usb.usb_ehci="USB 2.0 Support";
 usb.usb_storage="USB Storage Support";
 usb.usb_ip="USB Over IP";
 usb.usb_printer="USB Printer Support";
+usb.usb_audio="USB Audio Support";
 usb.usb_automnt="Automatic Drive Mount";
 usb.usb_mntpoint="Disk Mount Point";
 usb.usb_runonmount="Run-on-mount Script Name";
