@@ -7,7 +7,7 @@ var update;
 addEvent(window, "load", function() {
 	if(document.getElementsByName("refresh_button")) {
 		document.getElementsByName("refresh_button")[0].disabled = true;
-		document.getElementsByName("refresh_button")[0].style.background = '#DADADA';
+	//	document.getElementsByName("refresh_button")[0].style.background = '#DADADA';
 		document.getElementsByName("refresh_button")[0].style.cursor = "default";
 	}
 	
@@ -56,9 +56,9 @@ addEvent(window, "unload", function() {
 						<dl>
 							<dt class="term"><% tran("status_band.h2"); %>:</dt>
 							<dd class="definition"><% tran("hstatus_band.svg"); %></dd>
-							<dt class="term"><% tran("status_band.chg_unit"); %>:</dt>
+							<dt class="term"><% tran("status_band.chg_unit"); %></dt>
 							<dd class="definition"><% tran("hstatus_band.right1"); %></dd>
-							<dt class="term"><% tran("status_band.chg_scale"); %>:</dt>
+							<dt class="term"><% tran("status_band.chg_scale"); %></dt>
 							<dd class="definition"><% tran("hstatus_band.right2"); %></dd>
 						</dl><br />
 					</div>
