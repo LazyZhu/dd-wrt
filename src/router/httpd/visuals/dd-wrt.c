@@ -833,14 +833,14 @@ void ej_show_staticleases(webs_t wp, int argc, char_t ** argv)
 	for (i = 0; i < leasenum; i++) {
 		char *sep = strsep(&leases, "=");
 
-		websWrite(wp, "<tr><td><input name=\"lease%d_hwaddr\" value=\"%s\" size=\"18\" maxlength=\"18\" onblur=\"valid_name(this,share.mac,SPACE_NO)\" /></td>", i, sep != NULL ? sep : "");
+		websWrite(wp, "<tr><td><input name=\"lease%d_hwaddr\" value=\"%s\" size=\"18\" maxlength=\"17\" onblur=\"valid_name(this,share.mac,SPACE_NO)\" /></td>", i, sep != NULL ? sep : "");
 		sep = strsep(&leases, "=");
-		websWrite(wp, "<td><input name=\"lease%d_hostname\" value=\"%s\" size=\"24\" maxlength=\"24\" onblur=\"valid_name(this,share.hostname,SPACE_NO)\" /></td>", i, sep != NULL ? sep : "");
+		websWrite(wp, "<td><input name=\"lease%d_hostname\" value=\"%s\" size=\"18\" maxlength=\"24\" onblur=\"valid_name(this,share.hostname,SPACE_NO)\" /></td>", i, sep != NULL ? sep : "");
 		sep = strsep(&leases, "=");
 		websWrite(wp, "<td><input name=\"lease%d_ip\" value=\"%s\" size=\"15\" maxlength=\"15\" class=\"num\" onblur=\"valid_name(this,share.ip,SPACE_NO)\" /></td>\n", i, sep != NULL ? sep : "");
 		sep = strsep(&leases, " ");
 		websWrite(wp,
-			  "<td><input name=\"lease%d_time\" value=\"%s\" size=\"10\" maxlength=\"10\" class=\"num\" onblur=\"valid_name(this,share.time,SPACE_NO)\" /><script type=\"text/javascript\">Capture(share.minutes)</script></td></tr>\n",
+			  "<td><input name=\"lease%d_time\" value=\"%s\" size=\"4\" maxlength=\"8\" class=\"num\" onblur=\"valid_name(this,share.time,SPACE_NO)\" /><script type=\"text/javascript\">Capture(share.minutes)</script></td></tr>\n",
 			  i, sep != NULL ? sep : "");
 	}
 	free(originalpointer);

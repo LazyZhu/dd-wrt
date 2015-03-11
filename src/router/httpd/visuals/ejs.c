@@ -1354,7 +1354,8 @@ void show_bwif(webs_t wp, char *ifname, char *name)
 	websWrite(wp, "</iframe>\n");
 	websWrite(wp, "</fieldset>\n");
 	websWrite(wp, "<br />\n");
-} void ej_show_bandwidth(webs_t wp, int argc, char_t ** argv)
+}
+void ej_show_bandwidth(webs_t wp, int argc, char_t ** argv)
 {
 	char name[32];
 	char *next, *bnext;
