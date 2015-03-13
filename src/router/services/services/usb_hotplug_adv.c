@@ -417,6 +417,13 @@ int usb_process_path(char *path, int host, char *part, char *devpath)
 			if (strstr(line, "Opt") || strstr(line, "OPT") || strstr(line, "\"opt")) {
 				sprintf(mount_point, "/opt");
 			}
+			/* use labels in mountpath if desired */
+			char label[32] = "usbdisk";
+			if (strstr(line, label)) {
+				if (nvram_match("usb_mntbylabel", "1")) {	
+					sprintf(mount_point, "/tmp/mnt/%s", label);
+				}
+			}
 		}
 		fclose(fp);
 	}
