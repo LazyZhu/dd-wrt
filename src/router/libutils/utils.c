@@ -5857,7 +5857,7 @@ int led_control(int type, int act)
 		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio)
 		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio)
 		//wlan1_gpio = 0x106;	// ( -6) WPS led  (5GHz Radio)
-		usb_power = 0x007;	// (  7) USB power on/off
+		//usb_power = 0x007;	// (  7) USB power on/off !!! KERNEL POWER !!! enable this freeze router on boot with USB disabled
 		break;
 	case ROUTER_ASUS_AC87U:
 		usb_power = 0x009;
