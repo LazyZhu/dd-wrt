@@ -2861,8 +2861,7 @@ void start_drivers(void)
 			eval("usbipd", "-D");
 		}
 #endif
-
-//ahci
+		//ahci
 		insmod("libata libahci ahci ahci_platforms ahci_imx mmc_core mmc_block sdhci sdhci-pltfm sdhci-esdhc-imx");
 
 		mount("devpts", "/proc/bus/usb", "usbfs", MS_MGC_VAL, NULL);
@@ -2875,44 +2874,31 @@ void start_drivers(void)
 		eval("stopservice", "samba3");
 		eval("stopservice", "ftpsrv");
 		sysprintf("umount /%s", nvram_default_get("usb_mntpoint", "mnt"));
-		rmmod("usblp");
-		rmmod("printer");
-		rmmod("usb-storage");
-		rmmod("sr_mod");
-		rmmod("cdrom");
-		rmmod("sd_mod");
-		rmmod("scsi_wait_scan");
-		rmmod("scsi_mod");
 
-		rmmod("usbmisc_imx");
-		rmmod("ci13xxx_imx");
-		rmmod("ci_hdrc");
-		rmmod("phy-mxs-usb");
-		rmmod("fsl-mph-dr-of");
-
-		rmmod("usb-libusual");
-		rmmod("dwc_otg");	// usb
-		rmmod("xhci-hcd");
-
-		rmmod("usb-ohci");
-		rmmod("ohci-hcd");
-		rmmod("uhci-hcd");
-		rmmod("usb-uhci");
-		rmmod("ehci-pci");
-		rmmod("ehci-platform");
-		rmmod("ehci-hcd");
-		rmmod("fsl-mph-dr-of");
-
-		rmmod("usbcore");
-		rmmod("usb-common");
-
-/* unload filesystems */
-/* xfs */
+		//ahci
+		rmmod("sdhci-esdhc-imx sdhci-pltfm mmc_block sdhci ahci_imx mmc_core ahci_platforms ahci libahci libata");
+#ifdef HAVE_USBIP
+		rmmod("usbip-host usbip-core usbip usbip_common_mod");
+#endif
+#ifdef HAVE_USBAUDIO
+		rmmod("snd-usb-audio.ko snd-usbmidi-lib.ko snd-pcm-oss.ko snd-mixer-oss.ko snd-seq-midi.ko snd-rawmidi.ko snd-seq-midi-event.ko snd-seq-dummy.ko snd-seq.ko snd-seq-device.ko snd-pcm.ko snd-hwdep.ko snd-page-alloc.ko snd-timer.ko snd.ko soundcore.ko");
+#endif
+		// printer
+		rmmod("usblp printer");
+		// storage
+		rmmod("usb-storage sr_mod cdrom sd_mod scsi_wait_scan scsi_mod");
+		// common
+		rmmod("usbmisc_imx ci13xxx_imx ci_hdrc phy-mxs-usb fsl-mph-dr-of");
+		rmmod("usb-libusual dwc_otg");
+		// core
+		rmmod("xhci-hcd ohci-hcd usb-ohci uhci-hcd usb-uhci");
+		rmmod("ehci-pci ehci-platform ehci-hcd");
+		rmmod("usbcore usb-common");
+		/* unload filesystems */
+		/* xfs */
 		rmmod("xfs");
-/* fat */
-		rmmod("msdos");
-		rmmod("vfat");
-		rmmod("fat");
+		/* fat */
+		rmmod("msdos vfat fat");
 		rmmod("nls_utf8");
 		rmmod("nls_iso8859-2");
 		rmmod("nls_iso8859-1");
@@ -2921,16 +2907,15 @@ void start_drivers(void)
 		rmmod("nls_cp936");
 		rmmod("nls_cp950");
 		rmmod("nls_base");
-//
-/* ext3 */
+		/* ext3 */
 #ifdef HAVE_USB_ADVANCED
 		rmmod("ext3");
 		rmmod("jbd");
 #endif
-/* ext2 */
+		/* ext2 */
 		rmmod("ext2");
 		rmmod("mbcache");
-/* ntfs-3g */
+		/* ntfs-3g */
 #ifdef HAVE_NTFS3G
 		rmmod("fuse");
 #endif
