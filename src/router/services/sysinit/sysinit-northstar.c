@@ -1793,31 +1793,12 @@ void start_sysinit(void)
 		if (!nvram_get("clkfreq") || nvram_match("clkfreq", "")) {
 			fprintf(stderr, "sysinit-northstar: fix clkfreq to 800,533\n");
 			nvram_set("clkfreq", "800,533");
-			//nvram_commit();
-		}
-		if (!nvram_get("lan_ifname") || nvram_match("lan_ifname", "")) {
-			//nvram_set("lan_ifname", "br0");
-			// nvram_commit();
-		}
-		if (!nvram_get("lan_ifnames") || nvram_match("lan_ifnames", "")) {
-			//nvram_set("lan_ifnames", "vlan1 vlan2");
-			//nvram_commit();
 		}
 		if (!nvram_get("wan_devs") || nvram_match("wan_devs", "")) {
 			nvram_set("wandevs", "vlan2");
 			nvram_set("wan_ifname", "vlan2");
 			nvram_set("wan_ifnames", "vlan2");
-			//nvram_commit();
 		}
-		/*
-		if (!nvram_get("wl_reg_mode") || nvram_match("wl_reg_mode", "")) {
-			nvram_set("wl_reg_mode", "off");
-			nvram_commit();
-		}
-		if (!nvram_get("wl_tpc_db") || nvram_match("wl_tpc_db", "")) {
-			nvram_set("wl_tpc_db", "off");
-			nvram_commit();
-		}*/
 		// ALL leds OFF
 		set_gpio(14, 1);	// USB led
 		set_gpio(1, 1);		// LAN led
@@ -1837,17 +1818,13 @@ void start_sysinit(void)
 		set_gpio(3, 1);		// fixup wps button
 		set_gpio(15, 1);	// fixup pwr button
 		// set_gpio(7, 1);	// USB pwr OFF?
-		// no wi-fi software LED control
-		// nvram_set("disable_watchdog", "1");
 
-		// set MAC
-		
+		// set MAC		
 		char mac[20];
 		strcpy(mac, nvram_safe_get("et0macaddr"));
 		if (!sv_valid_hwaddr(nvram_safe_get("lan_hwaddr"))) {
-			fprintf(stderr, "sysinit-northstar:set WS880 LAN mac: %s\n", mac);
+			fprintf(stderr, "sysinit-northstar: set WS880 LAN mac: %s\n", mac);
 			nvram_set("lan_hwaddr", mac);
-			// nvram_commit();
 			// diag blink INTERNET led
 			set_gpio(12, 0);
 			sleep(1);
@@ -1859,11 +1836,8 @@ void start_sysinit(void)
 			sleep(1);
 			set_gpio(12, 0);
 			sleep(1);
-			//set_gpio(12, 1);
 		};
 		if (nvram_get("0:venid") == NULL) {
-			//char mac[20];
-			//strcpy(mac, nvram_safe_get("et0macaddr"));
 			MAC_ADD(mac);
 			MAC_ADD(mac);
 			/* 2 GHz */
@@ -2067,30 +2041,13 @@ void start_sysinit(void)
 			nvram_set("wl0_wpa_psk", pin);
 			nvram_set("wl1_wpa_psk", pin);
 
-			//nvram_set("0:ccode", "DE");
-			//nvram_set("0:rrev", "0");
-			//nvram_set("1:ccode", "EU");
-			//nvram_set("1:rrev", "38");
-			//nvram_set("wl_regdomain", "EUROPE");
-			//nvram_set("wl_country", "DE");
-			//nvram_set("wl_country_code", "DE");
-			//nvram_set("wl_country_rev", "0");
-			//nvram_set("wl0_country_code", "DE");
-			//nvram_set("wl0_country_rev", "0");
-			//nvram_set("wl1_country_code", "EU");
-			//nvram_set("wl1_country_rev", "38");
 			// set country codes
 			set_regulation(0, "US", "0");
 			set_regulation(1, "US", "0");
 
-			//nvram_set("wl_ifname", "eth1");
 			// this avoid reset params to defaults (wlconf)
 			//nvram_set("wl0_ifname", "eth1");
 			//nvram_set("wl1_ifname", "eth2");
-
-			//nvram_set("wl_akm", "disabled");
-			//nvram_set("wl_crypto", "off");
-			//nvram_set("wl_security_mode", "disabled");
 
 			//nvram_set("wl0_unit", "0");
 			//nvram_set("wl0_ifname", "eth1");
@@ -2113,7 +2070,7 @@ void start_sysinit(void)
 			//nvram_set("wl1_infra", "1");
 
 			// commit defaults
-			fprintf(stderr, "sysinit-northstar: fix/restore nvram values for WS880 Wi-Fi radios...\n");
+			fprintf(stderr, "sysinit-northstar: restore default nvram values for WS880 Wi-Fi\n");
 			nvram_commit();
 			// diag blink WLAN & WPS led 3 times
 			set_gpio(0, 1);	
@@ -2131,18 +2088,14 @@ void start_sysinit(void)
 			set_gpio(0, 1);	
 			set_gpio(6, 1);
 			sleep(1);
-			//set_gpio(0, 0);
-			//set_gpio(6, 0);
-			//sleep(1);
-			// fprintf(stderr, "sysinit-northstar: sys_reboot WS880 4 sure (new macs and wi-fi)...\n");
+			// for debug
+			nvram_set("service_debug", "1");
+			nvram_set("syslogd_enable", "1");
+			nvram_set("console_loglevel", "5");
 			nvram_commit();
+			fprintf(stderr, "sysinit-northstar: sys_reboot 4 sure (new macs and wi-fi)\n");
 			sys_reboot();
 		}
-		// for debug
-		nvram_set("service_debug", "1");
-		nvram_set("syslogd_enable", "1");
-		nvram_set("console_loglevel", "7");
-		nvram_commit();
 		break;
 	case ROUTER_ASUS_RTN18U:
 		set_gpio(7, 1);	// fixup reset button
@@ -3413,38 +3366,7 @@ void start_sysinit(void)
 	insmod("dhd");
 #endif
 
-	if (getRouterBrand() == ROUTER_HUAWEI_WS880) {
-		// only after set up
-		// if (nvram_match("is_default", "0")) {
-			// diag blink WLAN & WPS leds
-			set_gpio(0, 0);
-			set_gpio(6, 0);
-			usleep(250000);
-			set_gpio(0, 1);	
-			usleep(250000);
-			set_gpio(0, 0);
-			set_gpio(6, 0);
-			usleep(250000);
-			set_gpio(6, 1);
-			usleep(250000);
-			set_gpio(0, 0);
-			set_gpio(6, 0);
-			usleep(250000);
-			set_gpio(0, 1);	
-			usleep(250000);
-			set_gpio(0, 0);
-			set_gpio(6, 0);
-			usleep(250000);
-			set_gpio(6, 1);
-			usleep(250000);
-			set_gpio(0, 0);
-			set_gpio(6, 0);
-			fprintf(stderr, "sysinit-northstar: insmod wl...\n");
-			insmod("wl");
-		//	}
-	} else {
-		insmod("wl");
-	}
+	insmod("wl");
 
 	/*
 	 * Set a sane date 
@@ -3532,7 +3454,7 @@ void start_overclocking(void)
 	if (set) {
 		cprintf("clock frequency adjusted from %d to %d, reboot needed\n", cclk, clk);
 		if (getRouterBrand() == ROUTER_HUAWEI_WS880) {
-			sprintf(clkfr, "%d,533", clk);
+			sprintf(clkfr, "%d,666", clk); // overclock memory too
 		} else {
 			sprintf(clkfr, "%d", clk);
 		}
