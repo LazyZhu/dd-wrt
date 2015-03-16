@@ -873,7 +873,7 @@ info.ap="Точка доступа";
 // ** index_heartbeat.asp **//
 idx_h.srv="Сервер Heart Beat";
 idx_h.con_strgy="Стратегия соединения";
-idx_h.max_idle="По запросу: макс.время бездействия";
+idx_h.max_idle="По запросу: макс. время бездействия";
 idx_h.alive="Постоянное: период повт. набора";
 idx_h.reconnect="Принудительное переподключение";
 
@@ -1141,9 +1141,9 @@ qos.prio_b="Основная масса";
 qos.legend3="Приоритеты сетевых адресов";
 qos.ipmask="IP/маска";
 qos.maxrate_b="Макс. (Кбит)";
-qos.maxuprate_b=" Макс. ИСХ";
-qos.maxdownrate_b="Макс. ВХОД";
-qos.maxlanrate_b="Макс. LAN";
+qos.maxuprate_b=" Макс. [⇈]";
+qos.maxdownrate_b="Макс. [⇊]";
+qos.maxlanrate_b="Макс. [LAN]";
 qos.maxrate_o="Макс. скорость";
 qos.legend4="Приоритеты MAC-адресов";
 qos.legend5="Приоритеты портов Ethernet";
@@ -1156,8 +1156,8 @@ qos.pktsyn="SYN";
 qos.pktfin="FIN";
 qos.enabledefaultlvls="Ограничить для каждого";
 qos.bandwidth="Ширина канала (Кбит)";
-qos.up="[ИСХ]";
-qos.down="[ВХОД]";
+qos.up="⇈";
+qos.down="⇊";
 //help container
 hqos.right1="";
 hqos.right2="Входящий поток:<br/>Установите значение 80%-100% (макс.) от вашего лимита скорости приема.<br/><br/>Исходящий поток:<br/>Установите значение 80%-95% (макс.) от вашего лимита скорости передачи.";
