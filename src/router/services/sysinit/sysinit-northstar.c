@@ -1772,7 +1772,7 @@ void start_sysinit(void)
 			set_regulation(1, "US", "0");
 		break;
 	case ROUTER_HUAWEI_WS880:
-		/*
+		/* force reset to defaults (upgrade from Tomato etc)
 		if (nvram_get("productid") != NULL || nvram_match("http_username", "admin")) {
 			int deadcount = 10;
 			while (deadcount--) {
@@ -1789,15 +1789,6 @@ void start_sysinit(void)
 			sysprintf("/sbin/erase nvram");
 			nvram_set("flash_active", "1");	// prevent recommit of value until reboot is done
 			sys_reboot();
-		}*/
-		if (!nvram_get("clkfreq") || nvram_match("clkfreq", "")) {
-			fprintf(stderr, "sysinit-northstar: fix clkfreq to 800,533\n");
-			nvram_set("clkfreq", "800,533");
-		}
-		if (!nvram_get("wan_devs") || nvram_match("wan_devs", "")) {
-			nvram_set("wandevs", "vlan2");
-			nvram_set("wan_ifname", "vlan2");
-			nvram_set("wan_ifnames", "vlan2");
 		}
 		// ALL leds OFF
 		set_gpio(14, 1);	// USB led
@@ -1806,20 +1797,26 @@ void start_sysinit(void)
 		set_gpio(0, 1);		// WLAN led
 		set_gpio(6, 1);		// WPS led
 		usleep(500000);
-		// ON
-		set_gpio(14, 0);	// USB led
-		set_gpio(1, 0);		// LAN led
-		set_gpio(12, 1);	// INTERNET led
-		set_gpio(0, 0);		// WLAN led
-		set_gpio(6, 0);		// WPS led
-		usleep(500000);
-		// buttons fixup
+		*/
+
+		// Buttons (fixup)
 		set_gpio(2, 1);		// fixup reset button
 		set_gpio(3, 1);		// fixup wps button
 		set_gpio(15, 1);	// fixup pwr button
 		// set_gpio(7, 1);	// USB pwr OFF?
 
-		// set MAC		
+		// PIN setup
+		char pin[10];
+		strcpy(pin, nvram_get("secret_code"));
+		if (!nvram_get("wl0_wpa_psk") || nvram_match("wl0_wpa_psk", "")) {
+			fprintf(stderr, "sysinit-northstar: set 2GHz Wi-Fi PIN\n");
+			nvram_set("wl0_wpa_psk", pin);
+		}
+		if (!nvram_get("wl1_wpa_psk") || nvram_match("wl1_wpa_psk", "")) {
+			fprintf(stderr, "sysinit-northstar: set 5GHz Wi-Fi PIN\n");
+			nvram_set("wl1_wpa_psk", pin);
+		}
+		// set MACs
 		char mac[20];
 		strcpy(mac, nvram_safe_get("et0macaddr"));
 		if (!sv_valid_hwaddr(nvram_safe_get("lan_hwaddr"))) {
@@ -1881,9 +1878,9 @@ void start_sysinit(void)
 				{ "0:pa2gw0a2", "0xfe65"},
 				{ "0:pa2gw1a2", "0x1e74"},
 				{ "0:pa2gw2a2", "0xf8b9"},
-				{ "0:maxp2ga0", "0x46"},
-				{ "0:maxp2ga1", "0x46"},
-				{ "0:maxp2ga2", "0x46"},
+				{ "0:maxp2ga0", "0x50"},
+				{ "0:maxp2ga1", "0x50"},
+				{ "0:maxp2ga2", "0x50"},
 				{ "0:cckbw202gpo", "0"},
 				{ "0:cckbw20ul2gpo", "0"},
 				{ "0:legofdmbw202gpo", "0x88888888"},
@@ -2034,40 +2031,27 @@ void start_sysinit(void)
 			nvram_set("wan_ifnames", "vlan2");
 			nvram_set("wan_ifname2", "vlan2");
 
-			// PIN
-			char pin[10];
-			strcpy(pin, nvram_safe_get("secret_code"));
-			nvram_set("wl_wpa_psk", pin);
-			nvram_set("wl0_wpa_psk", pin);
-			nvram_set("wl1_wpa_psk", pin);
-
 			// set country codes
 			set_regulation(0, "US", "0");
 			set_regulation(1, "US", "0");
 
-			// this avoid reset params to defaults (wlconf)
+			// this avoid reset params to defaults? (wlconf)
 			//nvram_set("wl0_ifname", "eth1");
 			//nvram_set("wl1_ifname", "eth2");
 
-			//nvram_set("wl0_unit", "0");
-			//nvram_set("wl0_ifname", "eth1");
 			//nvram_set("wl0_channel", "6");
 			//nvram_set("wl0_akm", "disabled");
 			//nvram_set("wl0_crypto", "off");
 			//nvram_set("wl0_security_mode", "disabled");
 			//nvram_set("wl0_txpwr", "100");
 			//nvram_set("wl0_wep", "disabled");
-			//nvram_set("wl0_infra", "1");
 
-			//nvram_set("wl1_unit", "1");
-			//nvram_set("wl1_ifname", "eth2");
 			//nvram_set("wl1_channel", "48");
 			//nvram_set("wl1_akm", "disabled");
 			//nvram_set("wl1_crypto", "off");
 			//nvram_set("wl1_security_mode", "disabled");
 			//nvram_set("wl1_txpwr", "100");
 			//nvram_set("wl1_wep", "disabled");
-			//nvram_set("wl1_infra", "1");
 
 			// commit defaults
 			fprintf(stderr, "sysinit-northstar: restore default nvram values for WS880 Wi-Fi\n");
