@@ -243,7 +243,7 @@ input.num { /* they need some air */
 	margin-top: 1px;
 	margin-bottom: 1px;
 }
-div#n_smbuser_share {
-	line-height: 2.2em;
+td#n_smbuser_shareaccess {
+	padding-top: 0.21em;
 }
 
