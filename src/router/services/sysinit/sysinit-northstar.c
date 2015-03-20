@@ -106,6 +106,9 @@ void start_sysinit(void)
 	/*
 	 * Setup console 
 	 */
+	if (getRouterBrand() == ROUTER_XIAOMI_R1D) {
+		fprintf(stderr, "sysinit-northstar: (1) It's Xiaomi R1D\n");
+	}
 	if (nvram_get("bootflags") == NULL) {
 		FILE *fp = fopen("/dev/mtdblock0", "rb");
 		if (fp) {
@@ -150,6 +153,10 @@ void start_sysinit(void)
 	*/
 	if (nvram_get("et_txq_thresh") == NULL) {
 		nvram_set("et_txq_thresh", "1024");
+	}
+
+	if (getRouterBrand() == ROUTER_XIAOMI_R1D) {
+		fprintf(stderr, "sysinit-northstar: (2) It's Xiaomi R1D\n");
 	}
 
 	switch (getRouterBrand()) {
@@ -1675,6 +1682,251 @@ void start_sysinit(void)
 		nvram_unset("et1macaddr");
 		set_gpio(6, 1);	//reset button
 		set_gpio(15, 1);
+		break;
+	case ROUTER_XIAOMI_R1D:
+		fprintf(stderr, "Found Xiaomi R1D");
+		// restore defaults
+		if (nvram_get("pci/1/1/venid") == NULL) {
+			// Wi-Fi MACs fix
+			if (!sv_valid_hwaddr(nvram_safe_get("pci/1/1/macaddr")) || !sv_valid_hwaddr(nvram_safe_get("pci/2/1/macaddr"))) {
+				char mac[20];
+				strcpy(mac, nvram_safe_get("et0macaddr"));
+				MAC_ADD(mac);
+				MAC_ADD(mac);
+				nvram_set("pci/1/1/macaddr", mac);
+				MAC_ADD(mac);
+				nvram_set("pci/2/1/macaddr", mac);
+			}
+			// 5GHz
+			struct nvram_param r1d_pci_1_1_params[] = {
+				{"aa5g", "7"},
+				{"aga0", "01"},
+				{"aga1", "01"},
+				{"aga2", "133"},
+				{"antswitch", "0"},
+				{"boardflags", "0x30000000"},
+				{"boardflags2", "0x300002"},
+				{"boardflags3", "0x0"},
+				{"boardvendor", "0x14e4"},
+			//	{"ccode", "CN"},
+				{"devid", "0x43b3"},
+				{"dot11agduphrpo", "0"},
+				{"dot11agduplrpo", "0"},
+				{"epagain5g", "0"},
+				{"femctrl", "3"},
+				{"gainctrlsph", "0"},
+			//	{"macaddr", "00:90:4C:0E:50:23"},
+				{"maxp5ga0", "0x5E,0x5E,0x5E,0x5E"},
+				{"maxp5ga1", "0x5E,0x5E,0x5E,0x5E"},
+				{"maxp5ga2", "0x5E,0x5E,0x5E,0x5E"},
+				{"mcsbw1605ghpo", "0"},
+				{"mcsbw1605glpo", "0"},
+				{"mcsbw1605gmpo", "0"},
+				{"mcsbw205ghpo", "0x55540000"},
+				{"mcsbw205glpo", "0x88642222"},
+				{"mcsbw205gmpo", "0x88642222"},
+				{"mcsbw405ghpo", "0x85542000"},
+				{"mcsbw405glpo", "0xa8842222"},
+				{"mcsbw405gmpo", "0xa8842222"},
+				{"mcsbw805ghpo", "0x85542000"},
+				{"mcsbw805glpo", "0xaa842222"},
+				{"mcsbw805gmpo", "0xaa842222"},
+				{"mcslr5ghpo", "0"},
+				{"mcslr5glpo", "0"},
+				{"mcslr5gmpo", "0"},
+				{"measpower", "0x7f"},
+				{"measpower1", "0x7f"},
+				{"measpower2", "0x7f"},
+				{"pa5ga0", "0xFF90,0x1E37,0xFCB8,0xFF38,0x189B,0xFD00,0xff33,0x1a66,0xfcc4,0xFF2F,0x1748,0xFD21"},
+				{"pa5ga1", "0xFF1B,0x18A2,0xFCB6,0xFF34,0x183F,0xFD12,0xff37,0x1aa1,0xfcc0,0xFF2F,0x1889,0xFCFB"},
+				{"pa5ga2", "0xff1d,0x1653,0xfd33,0xff38,0x1a2a,0xfcce,0xff35,0x1a93,0xfcc1,0xff3a,0x1abd,0xfcc0"},
+				{"papdcap5g", "0"},
+				{"pcieingress_war", "15"},
+				{"pdgain5g", "4"},
+				{"pdoffset40ma0", "0x1111"},
+				{"pdoffset40ma1", "0x1111"},
+				{"pdoffset40ma2", "0x1111"},
+				{"pdoffset80ma0", "0"},
+				{"pdoffset80ma1", "0"},
+				{"pdoffset80ma2", "0"},
+				{"phycal_tempdelta", "255"},
+				{"rawtempsense", "0x1ff"},
+				{"regrev", "35"},
+				{"rxchain", "7"},
+				{"rxgains5gelnagaina0", "1"},
+				{"rxgains5gelnagaina1", "1"},
+				{"rxgains5gelnagaina2", "1"},
+				{"rxgains5ghelnagaina0", "2"},
+				{"rxgains5ghelnagaina1", "2"},
+				{"rxgains5ghelnagaina2", "3"},
+				{"rxgains5ghtrelnabypa0", "1"},
+				{"rxgains5ghtrelnabypa1", "1"},
+				{"rxgains5ghtrelnabypa2", "1"},
+				{"rxgains5ghtrisoa0", "5"},
+				{"rxgains5ghtrisoa1", "4"},
+				{"rxgains5ghtrisoa2", "4"},
+				{"rxgains5gmelnagaina0", "2"},
+				{"rxgains5gmelnagaina1", "2"},
+				{"rxgains5gmelnagaina2", "3"},
+				{"rxgains5gmtrelnabypa0", "1"},
+				{"rxgains5gmtrelnabypa1", "1"},
+				{"rxgains5gmtrelnabypa2", "1"},
+				{"rxgains5gmtrisoa0", "5"},
+				{"rxgains5gmtrisoa1", "4"},
+				{"rxgains5gmtrisoa2", "4"},
+				{"rxgains5gtrelnabypa0", "1"},
+				{"rxgains5gtrelnabypa1", "1"},
+				{"rxgains5gtrelnabypa2", "1"},
+				{"rxgains5gtrisoa0", "7"},
+				{"rxgains5gtrisoa1", "6"},
+				{"rxgains5gtrisoa2", "5"},
+				{"sar5g", "15"},
+				{"sb20in40hrpo", "0"},
+				{"sb20in40lrpo", "0"},
+				{"sb20in80and160hr5ghpo", "0"},
+				{"sb20in80and160hr5glpo", "0"},
+				{"sb20in80and160hr5gmpo", "0"},
+				{"sb20in80and160lr5ghpo", "0"},
+				{"sb20in80and160lr5glpo", "0"},
+				{"sb20in80and160lr5gmpo", "0"},
+				{"sb40and80hr5ghpo", "0"},
+				{"sb40and80hr5glpo", "0"},
+				{"sb40and80hr5gmpo", "0"},
+				{"sb40and80lr5ghpo", "0"},
+				{"sb40and80lr5glpo", "0"},
+				{"sb40and80lr5gmpo", "0"},
+				{"sromrev", "11"},
+				{"subband5gver", "0x4"},
+				{"tempcorrx", "0x3f"},
+				{"tempoffset", "255"},
+				{"tempsense_option", "0x3"},
+				{"tempsense_slope", "0xff"},
+				{"temps_hysteresis", "15"},
+				{"temps_period", "15"},
+				{"tempthresh", "255"},
+				{"tssiposslope5g", "1"},
+				{"tworangetssi5g", "0"},
+				{"txchain", "7"},
+			//	{"venid", "0x14e4"},
+				{"xtalfreq", "0x40000"},
+				{0, 0}
+			};
+			extra_params = r1d_pci_1_1_params;
+			while (extra_params->name) {
+				nvram_nset(extra_params->value, "pci/1/1/%s", extra_params->name);
+				extra_params++;
+			}
+			// 2GHz
+			struct nvram_param r1d_pci_2_1_params[] = {
+				{"aa2g", "3"},
+				{"ag0", "2"},
+				{"ag1", "2"},
+				{"antswctl2g", "0"},
+				{"antswitch", "0"},
+				{"boardflags", "0x80001000"},
+				{"boardflags2", "0x0800"},
+				{"boardrev", "0x1301"},
+				{"bw40po", "0"},
+				{"bwduppo", "0"},
+				{"bxa2g", "0"},
+				{"cck2gpo", "0x8880"},
+			//	{"ccode", "CN"},
+				{"cddpo", "0"},
+				{"devid", "0x43a9"},
+				{"elna2g", "2"},
+				{"extpagain2g", "3"},
+				{"freqoffset_corr", "0x0"},
+				{"hw_iqcal_en", "0x0"},
+				{"iqcal_swp_dis", "0x0"},
+				{"itt2ga1", "32"},
+				{"ledbh0", "255"},
+				{"ledbh1", "255"},
+				{"ledbh2", "255"},
+				{"ledbh3", "131"},
+				{"leddc", "65535"},
+			//	{"macaddr", "00:90:4C:23:45:78"},
+				{"maxp2ga0", "0x2072"},
+				{"maxp2ga1", "0x2072"},
+				{"mcs2gpo0", "0x8888"},
+				{"mcs2gpo1", "0x8888"},
+				{"mcs2gpo2", "0x8888"},
+				{"mcs2gpo3", "0xddb8"},
+				{"mcs2gpo4", "0x8888"},
+				{"mcs2gpo5", "0xa988"},
+				{"mcs2gpo6", "0x8888"},
+				{"mcs2gpo7", "0xddc8"},
+				{"measpower", "0x0"},
+				{"measpower1", "0x0"},
+				{"measpower2", "0x0"},
+				{"ofdm2gpo", "0xaa888888"},
+				{"opo", "68"},
+				{"pa2gw0a0", "0xfe77"},
+				{"pa2gw0a1", "0xfe76"},
+				{"pa2gw1a0", "0x1c37"},
+				{"pa2gw1a1", "0x1c5c"},
+				{"pa2gw2a0", "0xf95d"},
+				{"pa2gw2a1", "0xf94f"},
+				{"pcieingress_war", "15"},
+				{"pdetrange2g", "3"},
+				{"phycal_tempdelta", "0"},
+				{"rawtempsense", "0x0"},
+				{"regrev", "28"},
+				{"rssisav2g", "0"},
+				{"rssismc2g", "0"},
+				{"rssismf2g", "0"},
+				{"rxchain", "3"},
+				{"rxpo2g", "0"},
+				{"sromrev", "8"},
+				{"stbcpo", "0"},
+				{"tempcorrx", "0x0"},
+				{"tempoffset", "0"},
+				{"tempsense_option", "0x0"},
+				{"tempsense_slope", "0x0"},
+				{"temps_hysteresis", "0"},
+				{"temps_period", "0"},
+				{"tempthresh", "120"},
+				{"triso2g", "4"},
+				{"tssipos2g", "1"},
+				{"txchain", "3"},
+				{0, 0}
+			};
+			extra_params = r1d_pci_2_1_params;
+			while (extra_params->name) {
+				nvram_nset(extra_params->value, "pci/2/1/%s", extra_params->name);
+				extra_params++;
+			}
+			//nvram_set("wl0_pcie_mrrs", "128");
+			//nvram_set("wl1_pcie_mrrs", "128");
+
+			// this is a check key
+			nvram_set("pci/1/1/venid", "0x14e4");
+			nvram_commit();
+		}
+		// LED
+		set_gpio(1, 0);		//power led red
+		sleep(500000);
+		set_gpio(1, 1);
+		set_gpio(2, 0);		//power led orange
+		sleep(500000);
+		set_gpio(2, 1);
+		set_gpio(3, 0);		//power led blue
+		sleep(500000);
+		set_gpio(3, 1);
+		// all colors off
+		set_gpio(1, 1);
+		set_gpio(2, 1);
+		set_gpio(3, 1);
+		set_gpio(11, 1);	//fixup reset button
+		// regulatory setup
+		if (nvram_match("regulation_domain", "US"))
+			set_regulation(0, "US", "0");
+			set_regulation(1, "US", "0");
+		// missing params
+		// boardflags=0x00000110
+		// boardflags2=0x00000000
+		// nvram_set("boardflags", "0x00000110");
+		// nvram_set("boardflags", "0x00000000");
+		nvram_commit();
 		break;
 	case ROUTER_ASUS_AC87U:
 		set_gpio(11, 1);	// fixup reset button

@@ -1271,6 +1271,19 @@ int internal_getRouterBrand()
 			}
 		}
 	}
+	// Xiaomi R1D: Avoid false R7000 ID
+	// boardnum=32
+	// boardrev=0x1301
+	// boardtype=0x0665
+	// boardflags=0x00000110
+	// boardflags2=0x00000000
+	// Original CFE have gpio0=usbport1
+	// Modified CFE adds model=R1D
+	if (nvram_match("model","R1D") || nvram_match("odmpid","R1D") || nvram_match("productid","R1D") ||
+	    (boardnum == 32 && nvram_match("boardtype", "0x0665") && nvram_match("boardrev", "0x1301") && nvram_match("gpio0", "usbport1"))) {
+		setRouter("Xiaomi MiWiFi (R1D)");
+		return ROUTER_XIAOMI_R1D;
+	}
 
 	if (boardnum == 32 && nvram_match("boardtype", "0x0665")
 	    && nvram_match("boardrev", "0x1301")) {
@@ -5849,11 +5862,11 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_HUAWEI_WS880:
 		usb_gpio = 0x10e;	// (-14) USB led
-		bridge_gpio = 0x101;    // ( -1) LAN led
+		bridge_gpio = 0x101;	// ( -1) LAN led //HW
 		diag_gpio = 0x106;	// ( -6) WPS led
 		connected_gpio = 0x00c;	// ( 12) INTERNET led
-		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio)
-		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio)
+		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio) //HW
+		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio) //HW
 		//usb_power = 0x007;	// (  7) USB power on/off !!! KERNEL POWER !!! enable this freeze router on boot with USB disabled
 		break;
 	case ROUTER_ASUS_AC87U:

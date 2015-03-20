@@ -29,10 +29,13 @@ EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
 cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_16m $DEVDIR/src/router/.config
 # STD (~30MB firmware)
 # cp -f $DEVDIR/src/router/configs/northstar/.config_ws880 $DEVDIR/src/router/.config
+# R1D (14.3MB MAX)
+# cp -f $DEVDIR/src/router/configs/northstar/.config_xiaomi_r1d $DEVDIR/src/router/.config
 echo "CONFIG_BUILD_HUAWEI=y" >> $DEVDIR/src/router/.config
 echo "CONFIG_USB_AUDIO=y" >> $DEVDIR/src/router/.config
 # Make fw for other brands too
 # (uncomment desired and check src/router/Makefile.northstar)
+#echo "CONFIG_BUILD_XIAOMI=y" >> $DEVDIR/src/router/.config
 #echo "CONFIG_BUILD_TPLINK=y" >> $DEVDIR/src/router/.config
 #echo "CONFIG_BUILD_DLINK=y" >> $DEVDIR/src/router/.config
 #echo "CONFIG_BUILD_ASUS=y" >> $DEVDIR/src/router/.config
@@ -97,9 +100,10 @@ echo "************************************"
 #aclocal
 #cd $DEVDIR/src/router/jansson
 #aclocal
-### glib2.0/gettext automake version build error fix
-#cd $DEVDIR/src/router/glib20/gettext
-#autoconf
+### glib2.0/gettext automake version build error fix (moved to rules/*.mk)
+### it still needs aclocal-1.13, link it in case yourth newer
+#sudo ln -s /usr/bin/automake /usr/bin/automake-1.13
+#sudo ln -s /usr/bin/aclocal /usr/bin/aclocal-1.13
 ### comgt compile fix
 #cd $DEVDIR/src/router/usb_modeswitch/libusb-compat
 #aclocal
@@ -163,6 +167,17 @@ make -f Makefile.northstar clean all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.
 #make -f Makefile.northstar all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutbuild.log
 
 # copy firmware to image dir
+if [ -e arm-uclibc/xiaomi-r1d-firmware.bin ]
+then
+   STAMP="`date +%Y-%m-%d_%H:%M`"
+   mkdir -p ../../image
+   cp arm-uclibc/xiaomi-r1d-firmware.bin ../../image/dd-wrt.v24-K3_Xiaomi_R1D_"$STAMP"_r"$REVISION$EXTENDNO".bin
+   echo ""
+   echo ""
+   echo "Image created: image/dd-wrt.v24-K3_Xiaomi_R1D_"$STAMP"_r"$REVISION$EXTENDNO".bin"
+fi
+
+# copy firmware to image dir
 if [ -e arm-uclibc/huawei_ws880-firmware.trx ]
 then
    STAMP="`date +%Y-%m-%d_%H:%M`"
@@ -171,12 +186,11 @@ then
    echo ""
    echo ""
    echo "Image created: dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx"
+fi
+
+   echo ""
+   echo ""
    echo "Have a look in the \"image\" directory"
-   echo "Others placed in src/router/arm-uclibc"
-else
-   echo ""
-   echo ""
-   echo "Whoops.. something went wrong, please check the logs output and consult the forums.."
-fi 
+   echo "and src/router/arm-uclibc directory"
 
 cd $DEVDIR

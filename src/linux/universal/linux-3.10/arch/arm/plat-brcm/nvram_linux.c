@@ -875,11 +875,12 @@ dev_nvram_init(void)
 		if (!IS_ERR(nvram_mtd_temp)) {
 			if (!strcmp(nvram_mtd_temp->name, "nvram_cfe")) {
 				nvram_mtd_cfe = nvram_mtd_temp;
-				printk(KERN_EMERG "found cfe nvram\n");
+				printk(KERN_EMERG "### found cfe nvram\n");
 				continue;
 			}
 			if (!strcmp(nvram_mtd_temp->name, "nvram") && nvram_mtd_temp->size >= NVRAM_SPACE) {
 				nvram_mtd = nvram_mtd_temp;
+				printk(KERN_EMERG "### found nvram\n");
 				continue;
 			}
 			put_mtd_device(nvram_mtd_temp);
@@ -887,7 +888,7 @@ dev_nvram_init(void)
 	}
 
 	if (nvram_mtd_cfe != NULL && remap_cfe) {
-		printk(KERN_INFO "check if nvram copy is required CFE Size is %d\n", NVRAM_SPACE);
+		printk(KERN_INFO "### check if nvram copy is required. CFE nvram size is %d\n", NVRAM_SPACE);
 		int len;
 		char *buf = vmalloc(NVRAM_SPACE);
 		if (buf == NULL) {
@@ -899,7 +900,7 @@ dev_nvram_init(void)
 		len = 0;
 		printk(KERN_INFO "nvram copy magic is %X\n", header->magic);
 		if (header->magic != NVRAM_MAGIC) {
-			printk(KERN_EMERG "copy cfe nvram to base nvram\n");
+			printk(KERN_EMERG "### copy cfe nvram to base nvram\n");
 			len = 0;
 			memset(buf, 0, NVRAM_SPACE);
 			mtd_read(nvram_mtd_cfe, nvram_mtd_cfe->erasesize - NVRAM_SPACE, NVRAM_SPACE, &len, buf + nvram_mtd->erasesize - NVRAM_SPACE);
@@ -923,7 +924,7 @@ dev_nvram_init(void)
 			schedule();
 			remove_wait_queue(&wait_q, &wait);
 			len = 0;
-			printk(KERN_INFO "remap nvram %d\n", header->len);
+			printk(KERN_INFO "### remap nvram, header->len %d\n", header->len);
 
 			src = (u32 *)buf + nvram_mtd->erasesize - NVRAM_SPACE;
 			dst = (u32 *)nvram_buf;

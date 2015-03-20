@@ -2340,6 +2340,22 @@ void start_restore_defaults(void)
 			set_gpio(6, 1);		// WPS led
 			usleep(500000);
 			break;
+		case ROUTER_XIAOMI_R1D:
+			// CFE fix
+			nvram_set("uart_en", "1");
+			nvram_set("boot_wait", "on");
+			nvram_set("wait_time", "10");
+			// optional (regional)
+			nvram_set("language", "russian");
+			nvram_set("router_style", "red");
+			nvram_set("router_style_dark", "1");
+			nvram_set("time_zone", "Europe/Moscow");
+			nvram_set("ntp_server", "ru.pool.ntp.org");
+			// for debug
+			nvram_set("service_debug", "1");
+			nvram_set("syslogd_enable", "1");
+			nvram_set("console_loglevel", "5");
+			cprintf("add defaults for Xiaomi R1D\n");
 		default:
 			if (nvram_match("boardnum", "WAP54GV3_8M_0614")) {
 				nvram_set("vlan0ports", "3 2 1 0 5*");
@@ -2518,6 +2534,14 @@ void start_restore_defaults(void)
 		    || nvram_match("vlan2ports", "")) {
 			nvram_set("vlan1ports", "4 3 2 1 5*");
 			nvram_set("vlan2ports", "0 5u");
+		}
+		break;
+	case ROUTER_XIAOMI_R1D:
+		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
+		    || !nvram_get("vlan2ports")
+		    || nvram_match("vlan2ports", "")) {
+			nvram_set("vlan1ports", "0 2 5*");
+			nvram_set("vlan2ports", "4 5u");
 		}
 		break;
 	case ROUTER_NETGEAR_R8000:

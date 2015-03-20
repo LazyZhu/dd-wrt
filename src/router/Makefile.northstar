@@ -155,6 +155,9 @@ else
 #	-touch $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
 endif
 endif
+ifeq ($(CONFIG_BUILD_XIAOMI),y)
+	cp $(LINUXDIR)/.config_xiaomi_r1d $(LINUXDIR)/.config
+endif
 ifeq ($(CONFIG_EOP_TUNNEL),y)
 	echo CONFIG_NET_ETHERIP=m >> $(LINUXDIR)/.config
 else
@@ -562,6 +565,19 @@ ifeq ($(CONFIG_DIST),"micro")
 	rm -rf $(TARGETDIR)/usr/share/pci.ids
 	rm -rf $(TARGETDIR)/usr/sbin/mkfs.jffs2
 endif
+ifeq ($(CONFIG_BUILD_XIAOMI),y) // we try to fit 14.3MB NOR
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/xfs
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/btrfs
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/udf
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/lib/raid6
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/cdrom
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/scsi/sr_mod.ko
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/nls/nls_cp936.ko
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/nls/nls_cp950.ko
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/nls/nls_cp932.ko
+	rm -rf $(TARGETDIR)/etc/cfe/cfe_600.bin
+	rm -rf $(TARGETDIR)/usr/share/pci.ids
+endif
 ifneq ($(CONFIG_DHDAP),y)
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/net/dhd
 endif
@@ -613,6 +629,12 @@ ifeq ($(CONFIG_BUILD_HUAWEI),y)
 	### Pack for Huawei WS880 ###
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r WS880,3.0.0.4,$(ARCH)-uclibc/huawei_ws880-firmware.trx
 endif ### $(CONFIG_BUILD_HUAWEI)
+
+ifeq ($(CONFIG_BUILD_XIAOMI),y)
+	### Pack for Xiaomi R1D ###
+	#   Max. size: 16384000 - BOOT (256K) - BOARD DATA (64K) - NVRAM (64K)
+	../../opt/tools/trx -m 15990384 -o $(ARCH)-uclibc/xiaomi-r1d-firmware.bin $(ARCH)-uclibc/vmlinuz.lzma -a 131072 $(ARCH)-uclibc/root.fs
+endif ### $(CONFIG_BUILD_XIAOMI)
 
 ifeq ($(CONFIG_BUILD_TPLINK),y)
 	### Pack for TP-Link ###
