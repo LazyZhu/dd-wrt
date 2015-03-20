@@ -178,11 +178,11 @@ then
 fi
 
 # copy firmware to image dir
-if [ -e arm-uclibc/huawei_ws880-firmware.trx ]
+if [ -e arm-uclibc/huawei-ws880-firmware.trx ]
 then
    STAMP="`date +%Y-%m-%d_%H:%M`"
    mkdir -p ../../image
-   cp arm-uclibc/huawei_ws880-firmware.trx ../../image/dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx
+   cp arm-uclibc/huawei-ws880-firmware.trx ../../image/dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx
    echo ""
    echo ""
    echo "Image created: dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx"
