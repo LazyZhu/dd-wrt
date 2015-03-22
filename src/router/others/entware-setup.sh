@@ -36,7 +36,7 @@ done
 
 if [ $i == "1" ]
 then
-  echo -e "$ERROR No ext2/ext3/jffs partition available. Exiting..."
+  echo -e "$ERROR No ext2/ext3/ext4/jffs partition available. Exiting..."
   exit 1
 fi
 
@@ -60,29 +60,73 @@ entFolder=$entPartition/entware
 
 if [ -d $entFolder ]
 then
-  echo -e "$WARNING Found previous installation, deleting..."
-  rm -fr $entFolder
+  echo -e "$WARNING Found previous installation, moving..."
+  mv $entFolder $entFolder-old_`date +\%F_\%H-\%M`
 fi
 echo -e $INFO Creating $entFolder folder...
 mkdir $entFolder
 
 if mount | grep 'opt' > /dev/null;
 then
-  echo -e "$WARNING Deleting old /opt mount..."
+  echo -e "$WARNING /opt already mounted! unmount..."
   /opt/etc/init.d/rc.unslung stop 2>/dev/null
-  sleep 5
+  sleep 1
   umount /opt
 fi
 echo -e $INFO Binding $entFolder to /opt...
   mount -o bind $entFolder /opt
 
 echo -e $INFO Creating /jffs scripts backup...
-tar -czf $entPartition/jffs_scripts_backup.tgz /jffs/etc/config/* >/dev/null
+tar -czf $entPartition/jffs_scripts_backup_`date +\%F_\%H-\%M`.tgz /jffs/etc/config/* >/dev/null
 
 echo -e "$INFO Modifying start scripts..."
-# can not exist after format
+# can not exist after format jffs
 mkdir -p /jffs/etc
 mkdir -p /jffs/etc/config
+# gids check install
+cat > /jffs/etc/config/S01-gids-check.startup << EOF
+#!/bin/sh
+while : ; do
+        # ShairPort
+        # If the audio group doesn't exist, add it (needed to alsalib read /opt/etc/asound.conf):
+        if ! grep "^audio:" /etc/group 1>/dev/null 2>&1; then
+                echo "audio:x:29:root,nobody" >>/etc/group 2>/dev/null
+        fi
+
+        # D-BUS
+        # If the netdev group doesn't exist, add it (exist in avahi-dbus.conf):
+        if ! grep "^netdev:" /etc/group 1>/dev/null 2>&1; then
+                echo "netdev:x:85:root,nobody" >>/etc/group 2>/dev/null
+        fi
+
+        # HFS Plus (OS X) native uid/gid
+        # If the hfs user doesn't exist, add it:
+        if ! grep "^hfs:" /etc/passwd 1>/dev/null 2>&1; then
+                echo "hfs:*:99:99:hfs:/var:/bin/false" >>/etc/passwd 2>/dev/null
+        fi
+
+        # If the hfs group doesn't exist, add it:
+        if ! grep "^hfs:" /etc/group 1>/dev/null 2>&1; then
+                echo "hfs:x:99:hfs,root,nobody" >>/etc/group 2>/dev/null
+        fi
+
+        # Avahi (unprivileged)
+        # If the nobody user doesn't exist, add it:
+        if ! grep "^nobody:" /etc/passwd 1>/dev/null 2>&1; then
+                echo "nobody:*:65534:65534:nobody:/var:/bin/false" >>/etc/passwd 2>/dev/null
+        fi
+
+        # If the nogroup group doesn't exist, add it:
+        if ! grep "^nogroup:" /etc/group 1>/dev/null 2>&1; then
+                echo "nogroup:x:65534:" >>/etc/group 2>/dev/null
+        fi
+
+        # check interval
+        sleep 30
+done&
+EOF
+chmod +x /jffs/etc/config/S01-gids-check.startup
+# entware startup install
 cat > /jffs/etc/config/S11-entware.startup << EOF
 #!/bin/sh
 
@@ -95,28 +139,15 @@ if [ -d /jffs/entware ]; then
     if ! cat /proc/mounts | grep opt > /dev/null; then
 	logger -s -p local0.notice -t entware.startup "### mount EntWARE from jffs partition"
 	mount -o bind /jffs/entware /opt
+	sleep 1
+	# Start ALL EntWARE services
+	logger -s -p local0.notice -t entware.startup "### start EntWARE services [JFFS]"
+	/opt/etc/init.d/rc.unslung start
     fi
 fi
-sleep 1
-# Start ALL EntWARE services
-logger -s -p local0.notice -t entware.startup "### start EntWARE services"
-/opt/etc/init.d/rc.unslung start
 EOF
 chmod +x /jffs/etc/config/S11-entware.startup
-
-cat > /jffs/etc/config/K11-entware.shutdown << EOF
-#!/bin/sh
-
-#
-# EntWARE SHUTDOWN
-#
-
-# Stop ALL EntWARE services
-logger -s -p local0.notice -t entware.shutdown "### shutdown EntWARE services"
-/opt/etc/init.d/rc.unslung stop
-EOF
-chmod +x /jffs/etc/config/K11-entware.shutdown
-
+# post-mount install
 cat > /jffs/etc/config/post-mount << EOF
 #!/bin/sh
 
@@ -124,7 +155,20 @@ cat > /jffs/etc/config/post-mount << EOF
 # POST-MOUNT
 #
 
-sleep 5
+sleep 1
+logger -s -p local0.notice -t post-mount "### checking filesystems..."
+for mountdev in \`/bin/mount | grep -E 'hfsplus' | grep ro | cut -d" " -f1\`
+do
+        logger -s -p local0.notice -t post-mount "### checking hfsplus at \$mountdev..."
+        # fsck_hfs -ay \$mountdev
+        fsck_hfs -fy \$mountdev
+        logger -s -p local0.notice -t post-mount "### remount hfsplus rw..."
+        mount -o remount,rw,force \$mountdev
+        # make it world writable
+        chmod 777 \`/bin/mount | grep \$mountdev | cut -d" " -f3\`
+done
+
+sleep 1
 logger -s -p local0.notice -t post-mount "### looking for available EntWARE partitions..."
 for mountpath in \`/bin/mount | grep -E 'ext2|ext3|ext4' | cut -d" " -f3\`
 do
@@ -134,6 +178,8 @@ do
         if ! cat /proc/mounts | grep opt > /dev/null; then
             mount -o bind \$mountpath/entware /opt
             sleep 1
+	    # Start ALL EntWARE services
+	    logger -s -p local0.notice -t post-mount "### start EntWARE services [USB]"
             /opt/etc/init.d/rc.unslung start
         else
             logger -s -p local0.notice -t post-mount "### /opt already mounted! skip EntWARE setup"
@@ -142,7 +188,7 @@ do
 done
 EOF
 chmod +x /jffs/etc/config/post-mount
-# announce mount script to dd-wrt
+# announce post-mount script to dd-wrt
 /usr/sbin/nvram set usb_runonmount=/jffs/etc/config/post-mount
 
 echo -e "$INFO Starting Entware deployment....\n"
