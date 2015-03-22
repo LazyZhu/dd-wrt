@@ -2541,7 +2541,7 @@ void start_restore_defaults(void)
 		    || !nvram_get("vlan2ports")
 		    || nvram_match("vlan2ports", "")) {
 			nvram_set("vlan1ports", "0 2 5*");
-			nvram_set("vlan2ports", "4 5u");
+			nvram_set("vlan2ports", "4 5");
 		}
 		break;
 	case ROUTER_NETGEAR_R8000:
