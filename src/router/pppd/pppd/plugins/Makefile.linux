@@ -10,8 +10,8 @@ MANDIR = $(DESTDIR)/share/man/man8
 LIBDIR = $(DESTDIR)/lib/pppd/$(VERSION)
 
 SUBDIRS := rp-pppoe pppoatm pppol2tp radius
-# Uncomment the next line to include the radius authentication plugin
-# SUBDIRS += radius
+# Uncomment the next line to include pptp plugin
+SUBDIRS += pptp-0.8.5
 PLUGINS := minconn.so passprompt.so passwordfd.so winbind.so
 
 # This setting should match the one in ../Makefile.linux
