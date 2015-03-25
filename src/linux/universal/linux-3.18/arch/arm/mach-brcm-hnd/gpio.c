@@ -227,12 +227,20 @@ static int __init gpio_init(void)
 		isac66 = 1;
 	}
 
-	if (nvram_match("model","RT-AC68U")) {
+	if (nvram_match("model","RT-AC68U") || (boardnum != 24) && nvram_match("boardtype", "0x0646") && (nvram_match("boardrev", "0x1100"))) {
 		printk(KERN_EMERG "Asus-RT-AC68U init\n");
 		isac68 = 1;
-	} else if ((boardnum != 24) && nvram_match("boardtype", "0x0646") && (nvram_match("boardrev", "0x1100"))) {
-		printk(KERN_EMERG "Asus-RT-AC68U init\n");
-		isac68 = 1;
+	}
+
+	if (nvram_match("model","WS880") || nvram_match("odmpid","WS880") || nvram_match("productid","WS880") ||
+	    (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1101"))) {
+		printk(KERN_EMERG "Huawei WS880 GPIO\n");
+		// ALL GPIO
+		// gpios = 0<<0 | 0<<1 | 1<<2 | 1<<3 | 0<<6 | 0<<7 | 1<<12 | 0<<14 | 1<<15 ;
+		// BUTTONS
+		// gpios = 1<<2 | 1<<3 | 1<<15;
+		// USB power
+		// gpios = 1<<7;
 	}
 
 	if ((boardnum == 24) && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1110") && !nvram_match("gpio6", "wps_led")) {

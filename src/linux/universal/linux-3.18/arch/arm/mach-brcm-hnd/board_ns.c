@@ -852,6 +852,13 @@ struct mtd_partition *init_nflash_mtd_partitions(hndnand_t * nfl, struct mtd_inf
 		bootossz = 0x4000000;
 	}
 
+	if (nvram_match("model","WS880") || nvram_match("odmpid","WS880") || nvram_match("productid","WS880") ||
+	    (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1101"))) {
+		printk(KERN_EMERG "Router model: Huawei WS880, 32M firmware space\n");
+		bootossz = 0x2000000; // 32M
+	//	bootossz = 0x4000000; // 64M
+	}
+
 	if (boardnum == 00 && nvram_match("boardtype", "0x0665")
 	    && nvram_match("boardrev", "0x1103")
 	    && nvram_match("melco_id", "RD_BB13049")) {
