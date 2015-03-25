@@ -15,27 +15,27 @@ if [ -z "$OPTIONS" ]; then
 else
    echo "$OPTIONS" >> /tmp/pptpd_client/options.vpn
 fi
-echo "$SEC"  >> /tmp/pptpd_client/options.vpn
+echo "$SEC" >> /tmp/pptpd_client/options.vpn
 echo -n "mtu " >> /tmp/pptpd_client/options.vpn
 echo "$MTU"  >> /tmp/pptpd_client/options.vpn
 echo -n "mru " >> /tmp/pptpd_client/options.vpn
-echo "$MRU"  >> /tmp/pptpd_client/options.vpn
-echo -n "user "  >> /tmp/pptpd_client/options.vpn
+echo "$MRU" >> /tmp/pptpd_client/options.vpn
+echo -n "user " >> /tmp/pptpd_client/options.vpn
 echo "$USER" >> /tmp/pptpd_client/options.vpn
-echo -n "password "  >> /tmp/pptpd_client/options.vpn
+echo -n "password " >> /tmp/pptpd_client/options.vpn
 echo "$PASS" >> /tmp/pptpd_client/options.vpn
-# for routing, nat, firewall rules in IP-scripts
+# for routing, nat firewall rules in IP-scripts
 echo "ip-up-script /tmp/pptpd_client/ip-up" >> /tmp/pptpd_client/options.vpn
 echo "ip-down-script /tmp/pptpd_client/ip-down" >> /tmp/pptpd_client/options.vpn
 echo "ipparam kelokepptpd" >> /tmp/pptpd_client/options.vpn
 # fix line endings
 sed -i s/\\r//g /tmp/pptpd_client/options.vpn
 # copy files and set permissions
-cp /etc/config/pptpd_client.vpn /tmp/pptpd_client/vpn
-chmod +x /tmp/pptpd_client/vpn
+cp /etc/config/pptpd_client.vpn /tmp/pptpd_client/vpnc
+chmod +x /tmp/pptpd_client/vpnc
 cp /etc/config/pptpd_client.ip-up /tmp/pptpd_client/ip-up
 chmod +x /tmp/pptpd_client/ip-up
 cp /etc/config/pptpd_client.ip-down /tmp/pptpd_client/ip-down
 chmod +x /tmp/pptpd_client/ip-down
 # start service
-pidof vpn || /tmp/pptpd_client/vpn start
+pidof vpnc || /tmp/pptpd_client/vpnc start

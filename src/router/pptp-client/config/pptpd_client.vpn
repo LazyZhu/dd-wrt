@@ -16,6 +16,8 @@ case $1 in
 ;;
 
  "go"  )
+  echo "Fixing config line endings"
+  sed -i s/\\r//g /tmp/pptpd_client/options.vpn
   echo "Waiting......."
   startservice pppmodules
   sleep 10
@@ -46,7 +48,7 @@ case $1 in
    sleep 1
    pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn
    echo "Connection dropped... "
-   sleep 2
+   sleep 30
   done;
  ;;
 
@@ -80,7 +82,7 @@ case $1 in
    sleep 1
    pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn debug nodetach
    echo "Connection dropped... "
-   sleep 2
+   sleep 30
   done;
  ;;
 

@@ -1,0 +1,37 @@
+#
+# VPN client default config options
+#
+defaultroute
+usepeerdns
+noauth
+### request IP from peer
+noipdefault
+### auth options (cisco doesn't like it)
+#refuse-eap
+#refuse-pap
+#refuse-chap
+#refuse-mschap
+### disable comp
+nopcomp
+noaccomp
+novj
+nobsdcomp
+nodeflate
+### no encryption mode
+#nomppe
+#nomppc
+#noccp
+###
+### with encryption
+#mppe required,stateless
+#mppc
+#require-mschap-v2
+### link check
+lcp-echo-adaptive
+lcp-echo-failure 20
+lcp-echo-interval 3
+### keep alive
+idle 0
+persist
+maxfail 0
+########################################

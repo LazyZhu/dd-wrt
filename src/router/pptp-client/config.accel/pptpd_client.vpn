@@ -1,0 +1,143 @@
+#!/bin/sh
+#######################################################################
+# VPN script Created by rcalvert                                      #
+# VPN Script and Related Scripts Modify by Cesar_G AKA Keloke         #
+# Module for DD-WRT created by Cesar_G AKA Keloke                     #
+#######################################################################
+
+RESP=0
+PPTPSERVER=$(nvram get pptpd_client_srvip)
+PPTPCONF="/tmp/pptpd_client/options.vpn"
+PIDFILE="/var/run/vpnc.pid"
+PPTPPID=`ps | grep "pptp_server $PPTPSERVER" | grep pppd | awk -F" " '{print $1}'`
+
+
+case $1 in
+ "start" )
+	echo "Launching VPN client..."
+	$0 go &
+	echo "VPN process launched"
+ ;;
+
+ "go" )
+#	echo "Load ppp modules..."
+	startservice pppmodules
+	insmod pptp 2>/dev/null
+#	echo "Waiting 5 sec......."
+	sleep 5
+	if [ -f "${PIDFILE}" ]; then
+	   PID="`cat ${PIDFILE}`"
+	   if egrep vpnc "/proc/${PID}/cmdline" 2>/dev/null; then
+#	    echo "Already active!"
+	    exit 16
+	   fi
+#	   echo "Removing stale PID file"
+	   rm -f "${PIDFILE}"
+	fi
+	echo -n $$ > "${PIDFILE}"
+#	echo "PID file created"
+	echo "Attempting initial connect..."
+	pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF nodetach
+	# nodetach needed for RET, otherwise it will be 0
+	RET=$?
+	echo "Connection dropped... Error code $RET."
+
+	while [ $RET ];
+	do
+	   PPTPPID=`ps | grep "pptp_server $PPTPSERVER" | grep pppd | awk -F" " '{print $1}'`
+	   echo "Attempting [re]connect... "
+	   for i in $PPTPPID; do
+		   kill $i;
+	   done
+	   sleep 2
+	   for i in $PPTPPID; do
+		   kill -9 $i 2>/dev/null;
+	   done
+	   sleep 1
+	   pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF nodetach
+	   RET=$?
+	   echo "Connection dropped... Error code $RET. Wait 30 sec"
+	   sleep 30
+	done;
+ ;;
+
+ "debug" )
+	echo "Load ppp modules..."
+	startservice pppmodules
+	insmod pptp 2>/dev/null
+	echo "Waiting 5 sec......."
+	sleep 5
+	if [ -f "${PIDFILE}" ]; then
+	   PID="`cat ${PIDFILE}`"
+	   if egrep vpnc "/proc/${PID}/cmdline" 2>/dev/null; then
+	    echo "Already active! Quit"
+	    exit 16
+	   fi
+	   echo "Removing stale PID file"
+	   rm -f "${PIDFILE}"
+	fi
+	echo -n $$ > "${PIDFILE}"
+	echo "PID file created"
+	echo "Attempting initial connect..."
+	pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF loglevel 2 debug dump nodetach
+	RET=$?
+	echo "Return code = $RET"
+
+	while [ $RET ];
+	do
+	   PPTPPID=`ps | grep "pptp_server $PPTPSERVER" | grep pppd | awk -F" " '{print $1}'`
+	   echo "Attempting [re]connect... "
+	   for i in $PPTPPID; do
+		   kill $i;
+	   done
+	   sleep 2
+	   for i in $PPTPPID; do
+		   kill -9 $i 2>/dev/null;
+	   done
+	   sleep 1
+	   pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF loglevel 2 debug dump nodetach
+	   RET=$?
+	   echo "Return code = $RET"
+	   echo "Connection dropped... Wait 30 sec"
+	   sleep 30
+	done;
+ ;;
+
+ "stop" )
+
+	VPNPID=`cat ${PIDFILE}`
+	echo "Killing VPN PID $VPNPID"
+	kill $VPNPID
+	sleep 2
+	kill -9 $VPNPID 2>/dev/null
+	rm -f "${PIDFILE}"
+
+	echo "Killing PPPD PID(s) $PPTPPID"
+	for i in $PPTPPID; do
+	   kill $i;
+	done
+	sleep 2
+	for i in $PPTPPID; do
+	   kill -9 $i 2>/dev/null;
+	done
+	sleep 2
+	# rm /tmp/pptpd_client/ -R
+	echo "Remove PPTP driver"
+	rmmod pptp 2>/dev/null
+	echo "VPN Client stopped"
+ ;;
+
+ * )
+	echo " "
+	echo "  PTPP VPN Client" 
+	echo "  ---------------" 
+	echo " " 
+	echo "   start  -  Starts the Client" 
+	echo "   stop   -  Stops the Client" 
+	echo "   go     -  Run the Client interactively" 
+	echo "   debug  -  Run the Client interactively (in full debug mode)" 
+	echo " " 
+ ;;
+esac
+
+return $RESP

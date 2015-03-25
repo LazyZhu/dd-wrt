@@ -5,6 +5,7 @@ pptp-client-clean:
 	$(MAKE) -C pptp-client clean
 
 pptp-client-install:
+ifneq ($(CONFIG_PPTP_PLUGIN),y)
 	install -D pptp-client/pptp $(INSTALLDIR)/pptp-client/usr/sbin/pptp
 ifneq ($(CONFIG_DIST),"micro")
 ifneq ($(CONFIG_DIST),"micro-special")
@@ -27,3 +28,13 @@ else
 endif
 endif
 endif
+else #ifneq ($(CONFIG_PPTP_PLUGIN),y)
+	install -D pptp-client/config.accel/pptpd_client.ip-up $(INSTALLDIR)/pptp-client/etc/config/pptpd_client.ip-up
+	install -D pptp-client/config.accel/pptpd_client.ip-down $(INSTALLDIR)/pptp-client/etc/config/pptpd_client.ip-down
+	install -D pptp-client/config.accel/pptpd_client.nvramconfig $(INSTALLDIR)/pptp-client/etc/config/pptpd_client.nvramconfig
+	install -D pptp-client/config.accel/pptpd_client.options $(INSTALLDIR)/pptp-client/etc/config/pptpd_client.options
+	install -D pptp-client/config.accel/pptpd_client.sh $(INSTALLDIR)/pptp-client/etc/config/pptpd_client.sh
+	install -D pptp-client/config.accel/pptpd_client.startup $(INSTALLDIR)/pptp-client/etc/config/pptpd_client.startup
+	install -D pptp-client/config.accel/pptpd_client.vpn $(INSTALLDIR)/pptp-client/etc/config/pptpd_client.vpn
+endif #ifneq ($(CONFIG_PPTP_PLUGIN),y)
+

@@ -77,6 +77,10 @@ static void create_pptp_config(char *servername, char *username)
 	// system routing tables, using the peer as the gateway
 	fprintf(fp, "usepeerdns\n");	// Ask the peer for up to 2 DNS
 	// server addresses
+#ifdef HAVE_PPTP_PLUGIN
+	fprintf(fp, "plugin \"pptp.so\"\n"
+		"pptp_server %s\n", servername);
+#else
 	fprintf(fp, "pty 'pptp %s --localbind %s --nolaunchpppd", servername, nvram_safe_get("wan_ipaddr"));
 
 	if (nvram_match("pptp_reorder", "0"))
@@ -88,32 +92,33 @@ static void create_pptp_config(char *servername, char *username)
 		fprintf(fp, " --sync'\nsync\n");
 	else
 		fprintf(fp, "'\n");
-
+#endif
 	fprintf(fp, "user '%s'\n", username);
+	fprintf(fp, "defaultroute\n");	// Add a default route to the 
+	// system routing tables, using the peer as the gateway
+	fprintf(fp, "usepeerdns\n");	// Ask the peer for up to 2 DNS
 	// fprintf(fp, "persist\n"); // Do not exit after a connection is terminated.
 
 	if (nvram_match("mtu_enable", "1"))
-		fprintf(fp, "mtu %s\n", nvram_safe_get("wan_mtu"));
+		fprintf(fp, "mtu %s\n" "mru %s\n", nvram_safe_get("wan_mtu"), nvram_safe_get("wan_mtu"));
 
 	if (nvram_match("ppp_demand", "1")) {	// demand mode
-		fprintf(fp, "idle %d\n", nvram_match("ppp_demand", "1") ? atoi(nvram_safe_get("ppp_idletime")) * 60 : 0);
 		fprintf(fp, "demand\n");	// Dial on demand
-		fprintf(fp, "persist\n");	// Do not exit after a connection is
-		// terminated.
-		fprintf(fp, "%s:%s\n", PPP_PSEUDO_IP, PPP_PSEUDO_GW);	// <local 
-		// IP>:<remote 
-		// IP>
+		fprintf(fp, "idle %d\n", nvram_match("ppp_demand", "1") ? atoi(nvram_safe_get("ppp_idletime")) * 60 : 0);
+		fprintf(fp, "persist\n");	// Do not exit after a connection is terminated.
+		fprintf(fp, "%s:%s\n", PPP_PSEUDO_IP, PPP_PSEUDO_GW);	// <local IP>:<remote IP>
 		fprintf(fp, "ipcp-accept-remote\n");
 		fprintf(fp, "ipcp-accept-local\n");
-		fprintf(fp, "connect true\n");
+		fprintf(fp, "connect /bin/true\n");
 		fprintf(fp, "noipdefault\n");	// Disables the default
 		// behaviour when no local IP 
 		// address is specified
 		fprintf(fp, "ktune\n");	// Set /proc/sys/net/ipv4/ip_dynaddr
-		// to 1 in demand mode if the local
-		// address changes
+		// to 1 in demand mode if the local address changes
 	} else {		// keepalive mode
-		start_redial();
+		fprintf(fp, "lcp-echo-failure 20\n");	// stale connection detection (1m)
+		fprintf(fp, "lcp-echo-interval 3\n");	// echo-request frame to the peer
+		start_redial();	// redial service
 	}
 	if (nvram_match("pptp_encrypt", "0")) {
 		fprintf(fp, "nomppe\n");	// Disable mppe negotiation
@@ -125,13 +130,13 @@ static void create_pptp_config(char *servername, char *username)
 	fprintf(fp, "default-asyncmap\n");	// Disable asyncmap negotiation
 	fprintf(fp, "nopcomp\n");	// Disable protocol field compression
 	fprintf(fp, "noaccomp\n");	// Disable Address/Control compression
-	fprintf(fp, "novj\n");	// Disable Van Jacobson style TCP/IP header compression
+	fprintf(fp, "novj\n");		// Disable Van Jacobson style TCP/IP header compression
 	fprintf(fp, "nobsdcomp\n");	// Disables BSD-Compress compression
 	fprintf(fp, "nodeflate\n");	// Disables Deflate compression
-	fprintf(fp, "lcp-echo-failure 20\n");
-	fprintf(fp, "lcp-echo-interval 3\n");	// echo-request frame to the peer
 	fprintf(fp, "noipdefault\n");
-	fprintf(fp, "lock\n");
+#ifndef HAVE_PPTP_PLUGIN
+	fprintf(fp, "lock\n");		// Only for userspace mode
+#endif
 	fprintf(fp, "noauth\n");
 //	fprintf(fp, "debug\n" "logfd 2\n");
 
@@ -146,7 +151,7 @@ void start_pptp(int status)
 {
 	int ret;
 	FILE *fp;
-	char *pptp_argv[] = { "pppd", "file",  "/tmp/ppp/options.pptp",
+	char *pptp_argv[] = { "pppd", "file", "/tmp/ppp/options.pptp",
 		NULL
 	};
 	char username[80], passwd[80];
@@ -162,6 +167,10 @@ void start_pptp(int status)
 
 	if (status != REDIAL) {
 		start_pppmodules();
+#ifdef HAVE_PPTP_PLUGIN
+//		dd_syslog(LOG_INFO, "start_ppptp: loading PPTP kernel driver\n");
+		insmod("pptp");
+#endif
 		create_pptp_config(nvram_safe_get("pptp_server_name"), username);
 		/*
 		 * Generate pap-secrets file 
@@ -287,8 +296,12 @@ void stop_pptp(void)
 	stop_process("pptp", "PPTP daemon");
 	stop_process("listen", "activity daemon");
 
+#ifdef HAVE_PPTP_PLUGIN
+//		dd_syslog(LOG_INFO, "stop_ppptp: removing PPTP kernel driver\n");
+		rmmod("pptp");
+#endif
 	cprintf("done\n");
 	return;
 }
 
-#endif
+#endif // ifdef HAVE_PPTP

@@ -7,6 +7,7 @@ pppd-symlinks:
 	ln -s Makefile.linux pppd/plugins/radius/Makefile ; \
 	ln -s Makefile.linux pppd/plugins/rp-pppoe/Makefile ; \
 	ln -s Makefile.linux pppd/plugins/pppoatm/Makefile ; \
+	ln -s Makefile.linux pppd/plugins/pptp-0.8.5/Makefile ; \
 	ln -s Makefile.linux pppdump/Makefile ; \
 	ln -s Makefile.linux pppstats/Makefile ; \
 	)
@@ -30,6 +31,9 @@ endif
 	$(MAKE) -j 4 -C pppd/pppd/plugins/rp-pppoe
 ifeq ($(CONFIG_PPTP_ACCEL),y)
 	$(MAKE) -j 4 -C pppd/pppd/plugins/pptp
+#	cd $(TOP)/accel-pptp/pppd_plugin && ./configure --host=$(ARCH)-linux CC="$(CC)" CFLAGS="$(COPTS) $(MIPS16_OPT) -I$(TOP)/pppd -I$(TOP)/pppd/include" KDIR="$(TOP)/kernel_headers/$(KERNELRELEASE)"
+#	cd $(TOP)
+#	$(MAKE) -j 4 -C accel-pptp/pppd_plugin
 endif
 ifeq ($(CONFIG_RADIUSPLUGIN),y)
 	$(MAKE) -j 4 -C pppd/pppd/plugins/radius
@@ -40,13 +44,22 @@ endif
 ifeq ($(CONFIG_L2TP),y)
 	$(MAKE) -j 4 -C pppd/pppd/plugins/pppol2tp
 endif
-
+ifeq ($(CONFIG_PPTP_PLUGIN),y)
+	$(MAKE) -j 4 -C pppd/pppd/plugins/pptp-0.8.5
+endif
 
 pppd-clean pppd-distclean: pppd-symlinks
 	$(MAKE) -C pppd/pppd/plugins/rp-pppoe clean
 	$(MAKE) -C pppd/pppd/plugins/pppoatm clean
 	$(MAKE) -C pppd/pppd/plugins/radius clean
 	$(MAKE) -C pppd/pppd/plugins/pppol2tp clean
+ifeq ($(CONFIG_PPTP_ACCEL),y)
+	$(MAKE) -C pppd/pppd/plugins/pptp clean
+#	$(MAKE) -C accel-pptp/pppd_plugin clean
+endif
+ifeq ($(CONFIG_PPTP_PLUGIN),y)
+	$(MAKE) -C pppd/pppd/plugins/pptp-0.8.5 clean
+endif
 	$(MAKE) -C pppd/chat clean
 	$(MAKE) HAVE_INET6=y  -C pppd/pppd clean
 
@@ -58,16 +71,17 @@ endif
 	install -D pppd/pppd/plugins/rp-pppoe/rp-pppoe.so $(INSTALLDIR)/pppd/usr/lib/rp-pppoe.so
 ifeq ($(CONFIG_PPTP_ACCEL),y)
 	install -D pppd/pppd/plugins/pptp/pptp.so $(INSTALLDIR)/pppd/usr/lib/pptp.so
+#	install -D accel-pptp/pppd_plugin/src/.libs/pptp.so $(INSTALLDIR)/pppd/usr/lib/pptp.so
 endif
-
-
 ifeq ($(CONFIG_PPPOATM),y)
 	install -D pppd/pppd/plugins/pppoatm/pppoatm.so $(INSTALLDIR)/pppd/usr/lib/pppoatm.so
 endif
 ifeq ($(CONFIG_L2TP),y)
 	install -D pppd/pppd/plugins/pppol2tp/pppol2tp.so $(INSTALLDIR)/pppd/usr/lib/pppol2tp.so
 endif
-
+ifeq ($(CONFIG_PPTP_PLUGIN),y)
+	install -D pppd/pppd/plugins/pptp-0.8.5/pptp.so $(INSTALLDIR)/pppd/usr/lib/pptp.so
+endif
 ifeq ($(CONFIG_PPPSTATS),y)
 	install -D pppd/pppstats/pppstats $(INSTALLDIR)/pppd/usr/sbin/pppstats
 else

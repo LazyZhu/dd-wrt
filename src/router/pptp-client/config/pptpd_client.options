@@ -4,24 +4,25 @@
 #dump
 ###
 defaultroute
+usepeerdns
 lock
 noauth
 nodetach
+### auth options
 #refuse-eap
 refuse-pap
 refuse-chap
 refuse-mschap
+### disable comp.
 nobsdcomp
 nodeflate
 mppc
-#lcp-echo-adaptive
-lcp-echo-failure 30
-lcp-echo-interval 2
-persist	#dont close session
-maxfail 0 #forever try to connect
-usepeerdns
+### stale check
+lcp-echo-adaptive
+lcp-echo-failure 20
+lcp-echo-interval 3
+### keep alive
 idle 0
-ip-up-script /tmp/pptpd_client/ip-up
-ip-down-script /tmp/pptpd_client/ip-down
-ipparam kelokepptpd
+persist
+maxfail 0
 ###
