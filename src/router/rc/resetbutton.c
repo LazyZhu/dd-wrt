@@ -697,9 +697,10 @@ int getbuttonstate()
 #endif // defined(HAVE_GATEWORX)
 ////////////////////
 
-static int mode = 0;		/* mode 1 : pushed */
+static int mode = 0;	/* mode 1 : pushed */
 static int ses_mode = 0;	/* mode 1 : pushed */
 static int wifi_mode = 0;	/* mode 1 : pushed */
+
 static int count = 0;
 
 #ifdef HAVE_RADIOOFF
@@ -1370,6 +1371,7 @@ void period_check(int sig)
 		runStartup("/jffs/etc/config", ".sesbutton");	// if available
 		runStartup("/mmc/etc/config", ".sesbutton");	// if available
 		runStartup("/tmp/etc/config", ".sesbutton");	// if available
+		// USB unmount
 		if (nvram_match("usb_ses_umount", "1")) {
 			led_control(LED_DIAG, LED_FLASH);
 			runStartup("/etc/config", ".umount");
@@ -1378,7 +1380,7 @@ void period_check(int sig)
 			sleep(1);
 			led_control(LED_DIAG, LED_FLASH);
 		}
-
+		// Radio On/Off
 		if (nvram_match("radiooff_button", "1")) {
 			led_control(LED_SES, LED_FLASH);	// when pressed, blink white
 			switch (ses_mode) {
@@ -1399,7 +1401,7 @@ void period_check(int sig)
 				break;
 			case 0:
 
-				// (AOSS) led
+				// SES (AOSS) led
 #ifdef HAVE_RADIOOFF
 #ifndef HAVE_BUFFALO
 				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning radio(s) off\n");
@@ -1418,9 +1420,65 @@ void period_check(int sig)
 		else if (nvram_match("radiooff_button", "2")) {
 			sysprintf("startstop aoss");
 		}
-#else
 #endif
-///////// WI-FI button
+#ifdef HAVE_RADIOOFF
+		// Stealth Mode
+		if (nvram_match("radiooff_stealthswitch", "1")) {
+			fprintf(stderr, "\n############################################\n");
+			int str_mode = nvram_match("stealthmode", "1") ? 0 : 1; // switch mode on press
+			led_control(LED_SES, LED_FLASH);	// when pressed, blink white
+			switch (str_mode) {
+			case 0:
+				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning on LED control\n");
+				fprintf(stderr, "### SES / AOSS / EZ-setup button: set stealthmode = 0\n");
+				nvram_set("stealthmode", "0");
+				break;
+			case 1:
+				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning off LEDS\n");
+				fprintf(stderr, "# LED_POWER\n");
+				led_control(LED_POWER, LED_OFF);
+				fprintf(stderr, "# LED_DIAG\n");
+				led_control(LED_DIAG, LED_OFF);
+				fprintf(stderr, "# LED_DIAG_DISABLED\n");
+				led_control(LED_DIAG_DISABLED, LED_OFF);
+				fprintf(stderr, "# LED_CONNECTED\n");
+				led_control(LED_CONNECTED, LED_OFF);
+				fprintf(stderr, "# LED_DISCONNECTED\n");
+				led_control(LED_DISCONNECTED, LED_OFF);
+				fprintf(stderr, "# LED_BRIDGE\n");
+				led_control(LED_BRIDGE, LED_OFF);
+				fprintf(stderr, "# LED_DMZ\n");
+				led_control(LED_DMZ, LED_OFF);
+				fprintf(stderr, "# LED_VPN\n");
+				led_control(LED_VPN, LED_OFF);
+				fprintf(stderr, "# LED_SES\n");
+				led_control(LED_SES, LED_OFF);
+				fprintf(stderr, "# LED_SES2\n");
+				led_control(LED_SES2, LED_OFF);
+				fprintf(stderr, "# LED_USB\n");
+				led_control(LED_USB, LED_OFF);
+				fprintf(stderr, "# LED_USB1\n");
+				led_control(LED_USB1, LED_OFF);
+				fprintf(stderr, "# LED_SEC0\n");
+				led_control(LED_SEC0, LED_OFF);
+				fprintf(stderr, "# LED_SEC1\n");
+				led_control(LED_SEC1, LED_OFF);
+				fprintf(stderr, "# LED_WLAN\n");
+				led_control(LED_WLAN, LED_OFF);
+				fprintf(stderr, "# LED_WLAN0\n");
+				led_control(LED_WLAN0, LED_OFF);
+				fprintf(stderr, "# LED_WLAN1\n");
+				led_control(LED_WLAN1, LED_OFF);
+				fprintf(stderr, "# LED_WLAN2\n");
+				led_control(LED_WLAN2, LED_OFF);
+				fprintf(stderr, "### SES / AOSS / EZ-setup button: set stealthmode = 1\n");
+				nvram_set("stealthmode", "1");
+				break;
+			}
+			fprintf(stderr, "############################################\n\n");
+		}
+#endif
+///////// Wi-Fi button
 	} else if ((wifigpio != 0xfff)
 		   && (((wifigpio & 0x100) == 0 && (val & pushwifi))
 		       || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
@@ -1429,14 +1487,14 @@ void period_check(int sig)
 		case 1:
 			// (DIAG) led
 			led_control(LED_DIAG, LED_FLASH);
-			dd_syslog(LOG_DEBUG, "Wifi button: turning radio(s) on\n");
+			dd_syslog(LOG_DEBUG, "WiFi button: turning radio(s) on\n");
 			sysprintf("startstop radio_on");
 			wifi_mode = 0;
 			break;
 		case 0:
 			// (DIAG) led
 			led_control(LED_DIAG, LED_FLASH);
-			dd_syslog(LOG_DEBUG, "Wifi button: turning radio(s) off\n");
+			dd_syslog(LOG_DEBUG, "WiFi button: turning radio(s) off\n");
 			sysprintf("startstop radio_off");
 			wifi_mode = 1;
 			break;

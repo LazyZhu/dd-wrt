@@ -2016,16 +2016,21 @@ static void do_syslog(struct mime_handler *handler, char *url, webs_t stream, ch
 		return;
 
 	websWrite(stream,
-		  "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
-		  "<html>\n" "<head>\n" "<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=UTF-8\" />\n");
-	websWrite(stream, "<style type=\"text/css\">\n body { font-size: small; } \n</style>\n</head>\n");
-	websWrite(stream, "<body>\n<fieldset><legend>System Log</legend>");
+		"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
+		"<html>\n" "<head>\n" "<meta http-equiv=\"Content-Type\" content=\"application/xhtml+xml; charset=UTF-8\" />\n");
+	websWrite(stream," <style type=\"text/css\">\n");
+	websWrite(stream," * {font-family:Tahoma, Arial, Helvetica, sans-serif;}\n");
+	websWrite(stream," body {margin:0; padding:0;}\n");
+	websWrite(stream," </style>\n");
+	websWrite(stream,"</head>\n");
+	websWrite(stream,
+		"<body>\n<fieldset style=\"color:#666; border-radius:6px; border:1px solid #333;\"><legend style=\"font-weight:bold\;  font-size:11px;\">%s</legend>", live_translate("service.syslog_legend"));
 
 	if (nvram_match("syslogd_enable", "1")) {
 		FILE *fp = fopen(filename, "r");
 		if (fp != NULL) {
 			char line[1024];
-			websWrite(stream, "<div style=\"height:740px; overflow-y:auto;\"><table>");
+			websWrite(stream, "<div style=\"height:740px; overflow-y:auto; font-size:12px; font-family:Tahoma, Andale Mono, monospace;\"><table>");
 			while (fgets(line, sizeof line, fp) != NULL) {
 				count++;
 				if (offset < count && ((offset + 50) > count)) {	// show 100 lines

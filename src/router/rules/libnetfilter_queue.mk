@@ -1,7 +1,7 @@
 libnetfilter_queue-configure: libnfnetlink-configure libnfnetlink
 	export LIBNFNETLINK_CFLAGS="-I$(TOP)/libnfnetlink/include" ;\
 	export LIBNFNETLINK_LIBS="-L$(TOP)/libnfnetlink/src/.libs" ; \
-	cd libnetfilter_queue && ./configure \
+	cd libnetfilter_queue && aclocal && autoreconf -ivf &&./configure \
 		--build=$(ARCH)-linux \
 		--host=$(ARCH)-linux-gnu \
 		--libdir=$(TOP)/libnetfilter_queue/src/.libs \

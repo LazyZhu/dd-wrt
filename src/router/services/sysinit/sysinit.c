@@ -2340,6 +2340,22 @@ void start_restore_defaults(void)
 			set_gpio(6, 1);		// WPS led
 			usleep(500000);
 			break;
+		case ROUTER_XIAOMI_R1D:
+			// CFE fix
+			nvram_set("uart_en", "1");
+			nvram_set("boot_wait", "on");
+			nvram_set("wait_time", "10");
+			// optional (regional)
+			nvram_set("language", "russian");
+			nvram_set("router_style", "red");
+			nvram_set("router_style_dark", "1");
+			nvram_set("time_zone", "Europe/Moscow");
+			nvram_set("ntp_server", "ru.pool.ntp.org");
+			// for debug
+			nvram_set("service_debug", "1");
+			nvram_set("syslogd_enable", "1");
+			nvram_set("console_loglevel", "5");
+			cprintf("add defaults for Xiaomi R1D\n");
 		default:
 			if (nvram_match("boardnum", "WAP54GV3_8M_0614")) {
 				nvram_set("vlan0ports", "3 2 1 0 5*");
@@ -2518,6 +2534,14 @@ void start_restore_defaults(void)
 		    || nvram_match("vlan2ports", "")) {
 			nvram_set("vlan1ports", "4 3 2 1 5*");
 			nvram_set("vlan2ports", "0 5u");
+		}
+		break;
+	case ROUTER_XIAOMI_R1D:
+		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
+		    || !nvram_get("vlan2ports")
+		    || nvram_match("vlan2ports", "")) {
+			nvram_set("vlan1ports", "0 2 5*");
+			nvram_set("vlan2ports", "4 5");
 		}
 		break;
 	case ROUTER_NETGEAR_R8000:
@@ -2848,6 +2872,12 @@ void start_drivers(void)
 			cprintf("loading printer\n");
 			insmod("printer usblp");
 		}
+#ifdef HAVE_USBAUDIO
+		if (nvram_match("usb_audio", "1")) {
+			cprintf("loading usb audio drivers\n");
+			insmod("soundcore.ko snd.ko snd-timer.ko snd-page-alloc.ko snd-hwdep.ko snd-pcm.ko snd-seq-device.ko snd-seq.ko snd-seq-dummy.ko snd-seq-midi-event.ko snd-rawmidi.ko snd-seq-midi.ko snd-mixer-oss.ko snd-pcm-oss.ko snd-usbmidi-lib.ko snd-usb-audio.ko");
+		}
+#endif
 #ifdef HAVE_USBIP
 		if (nvram_match("usb_ip", "1")) {
 			cprintf("loading usb over ip drivers\n");
@@ -2855,8 +2885,7 @@ void start_drivers(void)
 			eval("usbipd", "-D");
 		}
 #endif
-
-//ahci
+		//ahci
 		insmod("libata libahci ahci ahci_platforms ahci_imx mmc_core mmc_block sdhci sdhci-pltfm sdhci-esdhc-imx");
 
 		mount("devpts", "/proc/bus/usb", "usbfs", MS_MGC_VAL, NULL);
@@ -2869,44 +2898,31 @@ void start_drivers(void)
 		eval("stopservice", "samba3");
 		eval("stopservice", "ftpsrv");
 		sysprintf("umount /%s", nvram_default_get("usb_mntpoint", "mnt"));
-		rmmod("usblp");
-		rmmod("printer");
-		rmmod("usb-storage");
-		rmmod("sr_mod");
-		rmmod("cdrom");
-		rmmod("sd_mod");
-		rmmod("scsi_wait_scan");
-		rmmod("scsi_mod");
 
-		rmmod("usbmisc_imx");
-		rmmod("ci13xxx_imx");
-		rmmod("ci_hdrc");
-		rmmod("phy-mxs-usb");
-		rmmod("fsl-mph-dr-of");
-
-		rmmod("usb-libusual");
-		rmmod("dwc_otg");	// usb
-		rmmod("xhci-hcd");
-
-		rmmod("usb-ohci");
-		rmmod("ohci-hcd");
-		rmmod("uhci-hcd");
-		rmmod("usb-uhci");
-		rmmod("ehci-pci");
-		rmmod("ehci-platform");
-		rmmod("ehci-hcd");
-		rmmod("fsl-mph-dr-of");
-
-		rmmod("usbcore");
-		rmmod("usb-common");
-
-/* unload filesystems */
-/* xfs */
+		//ahci
+		rmmod("sdhci-esdhc-imx sdhci-pltfm mmc_block sdhci ahci_imx mmc_core ahci_platforms ahci libahci libata");
+#ifdef HAVE_USBIP
+		rmmod("usbip-host usbip-core usbip usbip_common_mod");
+#endif
+#ifdef HAVE_USBAUDIO
+		rmmod("snd-usb-audio.ko snd-usbmidi-lib.ko snd-pcm-oss.ko snd-mixer-oss.ko snd-seq-midi.ko snd-rawmidi.ko snd-seq-midi-event.ko snd-seq-dummy.ko snd-seq.ko snd-seq-device.ko snd-pcm.ko snd-hwdep.ko snd-page-alloc.ko snd-timer.ko snd.ko soundcore.ko");
+#endif
+		// printer
+		rmmod("usblp printer");
+		// storage
+		rmmod("usb-storage sr_mod cdrom sd_mod scsi_wait_scan scsi_mod");
+		// common
+		rmmod("usbmisc_imx ci13xxx_imx ci_hdrc phy-mxs-usb fsl-mph-dr-of");
+		rmmod("usb-libusual dwc_otg");
+		// core
+		rmmod("xhci-hcd ohci-hcd usb-ohci uhci-hcd usb-uhci");
+		rmmod("ehci-pci ehci-platform ehci-hcd");
+		rmmod("usbcore usb-common");
+		/* unload filesystems */
+		/* xfs */
 		rmmod("xfs");
-/* fat */
-		rmmod("msdos");
-		rmmod("vfat");
-		rmmod("fat");
+		/* fat */
+		rmmod("msdos vfat fat");
 		rmmod("nls_utf8");
 		rmmod("nls_iso8859-2");
 		rmmod("nls_iso8859-1");
@@ -2915,16 +2931,15 @@ void start_drivers(void)
 		rmmod("nls_cp936");
 		rmmod("nls_cp950");
 		rmmod("nls_base");
-//
-/* ext3 */
+		/* ext3 */
 #ifdef HAVE_USB_ADVANCED
 		rmmod("ext3");
 		rmmod("jbd");
 #endif
-/* ext2 */
+		/* ext2 */
 		rmmod("ext2");
 		rmmod("mbcache");
-/* ntfs-3g */
+		/* ntfs-3g */
 #ifdef HAVE_NTFS3G
 		rmmod("fuse");
 #endif

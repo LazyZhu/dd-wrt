@@ -155,6 +155,9 @@ else
 #	-touch $(LINUXDIR)/brcm/$(ARCH)/wl/clm/src/wlc_clm_data.c
 endif
 endif
+ifeq ($(CONFIG_BUILD_XIAOMI),y)
+	cp $(LINUXDIR)/.config_xiaomi_r1d $(LINUXDIR)/.config
+endif
 ifeq ($(CONFIG_EOP_TUNNEL),y)
 	echo CONFIG_NET_ETHERIP=m >> $(LINUXDIR)/.config
 else
@@ -169,6 +172,53 @@ ifeq ($(CONFIG_SWAP),y)
 	sed -i 's/\# CONFIG_SWAP is not set/CONFIG_SWAP=y/g' $(LINUXDIR)/.config
 else
 	sed -i 's/\CONFIG_SWAP=y/# CONFIG_SWAP is not set/g' $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_USB_AUDIO),y)
+	sed -i 's/\# CONFIG_SOUND is not set/CONFIG_SOUND=m/g' $(LINUXDIR)/.config
+	sed -i '/CONFIG_SOUND=m/a \
+	CONFIG_SOUND_OSS_CORE=y \
+	CONFIG_SOUND_OSS_CORE_PRECLAIM=y \
+	CONFIG_SND=m \
+	CONFIG_SND_TIMER=m \
+	CONFIG_SND_PCM=m \
+	CONFIG_SND_HWDEP=m \
+	CONFIG_SND_RAWMIDI=m \
+	CONFIG_SND_SEQUENCER=m \
+	CONFIG_SND_SEQ_DUMMY=m \
+	CONFIG_SND_OSSEMUL=y \
+	CONFIG_SND_MIXER_OSS=m \
+	CONFIG_SND_PCM_OSS=m \
+	CONFIG_SND_PCM_OSS_PLUGINS=y \
+	CONFIG_SND_SEQUENCER_OSS=y \
+	\# CONFIG_SND_HRTIMER is not set \
+	\# CONFIG_SND_DYNAMIC_MINORS is not set \
+	CONFIG_SND_SUPPORT_OLD_API=y \
+	CONFIG_SND_VERBOSE_PROCFS=y \
+	\# CONFIG_SND_VERBOSE_PRINTK is not set \
+	\# CONFIG_SND_DEBUG is not set \
+	CONFIG_SND_RAWMIDI_SEQ=m \
+	\# CONFIG_SND_OPL3_LIB_SEQ is not set \
+	\# CONFIG_SND_OPL4_LIB_SEQ is not set \
+	\# CONFIG_SND_SBAWE_SEQ is not set \
+	\# CONFIG_SND_EMU10K1_SEQ is not set \
+	CONFIG_SND_DRIVERS=y \
+	\# CONFIG_SND_DUMMY is not set \
+	\# CONFIG_SND_ALOOP is not set \
+	\# CONFIG_SND_VIRMIDI is not set \
+	\# CONFIG_SND_MTPAV is not set \
+	\# CONFIG_SND_SERIAL_U16550 is not set \
+	\# CONFIG_SND_MPU401 is not set \
+	\# CONFIG_SND_PCI is not set \
+	\# CONFIG_SND_ARM is not set \
+	CONFIG_SND_USB=y \
+	CONFIG_SND_USB_AUDIO=m \
+	\# CONFIG_SND_USB_UA101 is not set \
+	\# CONFIG_SND_USB_CAIAQ is not set \
+	\# CONFIG_SND_USB_6FIRE is not set \
+	\# CONFIG_SND_SOC is not set \
+	\# CONFIG_SOUND_PRIME is not set \
+	\# CONFIG_LINE6_USB is not set \
+	' $(LINUXDIR)/.config
 endif
 	$(MAKE) -C $(LINUXDIR) oldconfig	
 
@@ -515,6 +565,19 @@ ifeq ($(CONFIG_DIST),"micro")
 	rm -rf $(TARGETDIR)/usr/share/pci.ids
 	rm -rf $(TARGETDIR)/usr/sbin/mkfs.jffs2
 endif
+ifeq ($(CONFIG_BUILD_XIAOMI),y) // we try to fit 14.3MB NOR
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/xfs
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/btrfs
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/udf
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/lib/raid6
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/cdrom
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/scsi/sr_mod.ko
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/nls/nls_cp936.ko
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/nls/nls_cp950.ko
+	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/nls/nls_cp932.ko
+	rm -rf $(TARGETDIR)/etc/cfe/cfe_600.bin
+	rm -rf $(TARGETDIR)/usr/share/pci.ids
+endif
 ifneq ($(CONFIG_DHDAP),y)
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/drivers/net/dhd
 endif
@@ -562,14 +625,23 @@ endif
 
 	../../opt/tools/trx -m 40000000 -o $(ARCH)-uclibc/northstar-firmware-squashfs.bin $(ARCH)-uclibc/vmlinuz.lzma -a 131072 $(ARCH)-uclibc/root.fs
 
+ifeq ($(CONFIG_BUILD_HUAWEI),y)
 	### Pack for Huawei WS880 ###
-	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r WS880,3.0.0.4,$(ARCH)-uclibc/huawei_ws880-firmware.trx
+	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/huawei-ws880-firmware.trx
+endif ### $(CONFIG_BUILD_HUAWEI)
 
-ifeq ($(CONFIG_BUILD_ALL),y)
+ifeq ($(CONFIG_BUILD_XIAOMI),y)
+	### Pack for Xiaomi R1D ###
+	#   Max. size: 16384000 - BOOT (256K) - BOARD DATA (64K) - NVRAM (64K)
+	../../opt/tools/trx -m 15990384 -o $(ARCH)-uclibc/xiaomi-r1d-firmware.bin $(ARCH)-uclibc/vmlinuz.lzma -a 131072 $(ARCH)-uclibc/root.fs
+endif ### $(CONFIG_BUILD_XIAOMI)
 
+ifeq ($(CONFIG_BUILD_TPLINK),y)
 	### Pack for TP-Link ###
 	cd tools/tplink && ./mktplinkfw3 -B CPE510 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc9.bin
+endif ### $(CONFIG_BUILD_TPLINK)
 
+ifeq ($(CONFIG_BUILD_DLINK),y)
 	### Pack for D-Link ###
 	./tools/seama/packimgs -b 64 -o $(ARCH)-uclibc/raw-dir868.img -i $(ARCH)-uclibc/vmlinuz.lzma -i $(ARCH)-uclibc/root.fs
 	./tools/seama/seama -i $(ARCH)-uclibc/raw-dir868.img -m dev=/dev/mtdblock/7 -m type=firmware 
@@ -577,17 +649,23 @@ ifeq ($(CONFIG_BUILD_ALL),y)
 	./tools/seama/seama -d $(ARCH)-uclibc/web-dir868.img
 	dd if=$(ARCH)-uclibc/web-dir868.img of=$(ARCH)-uclibc/webflash-dir868.img skip=48 iflag=skip_bytes 
 	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dir868.trx $(ARCH)-uclibc/webflash-dir868.img
-	
+endif ### $(CONFIG_BUILD_DLINK)
+
+ifeq ($(CONFIG_BUILD_ASUS),y)
 	### Pack for Asus ###
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC56U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac56u-firmware.trx
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC68U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac68u-firmware.trx
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC87U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac87u-firmware.trx
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-N18U,3.0.0.4,$(ARCH)-uclibc/asus_rt-n18u-firmware.trx
+endif ### $(CONFIG_BUILD_ASUS)
 
+ifeq ($(CONFIG_BUILD_BUFFALO),y)
 	### Pack for Buffalo ###
 	dd if=$(ARCH)-uclibc/northstar-firmware-squashfs.bin of=$(ARCH)-uclibc/buffalo.trx bs=131072 conv=sync
 	cd $(ARCH)-uclibc && ../tools/bufenc/makefw.sh buffalo
+endif ### $(CONFIG_BUILD_BUFFALO)
 
+ifeq ($(CONFIG_BUILD_NETGEAR),y)
 	### Pack for Netgear ###
 	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin $(ARCH)-uclibc/netgear.trx
 ifeq ($(CONFIG_DHDAP),y)
@@ -602,7 +680,9 @@ else
 	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r7000.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r7000.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R7000.chk
 endif
 	-$(MAKE) -f Makefile.northstar validate MAXIMUM_SIZE=7470000 EX_PATH=$(ARCH)-uclibc/K3_EX6200.chk
+endif ### $(CONFIG_BUILD_NETGEAR)
 
+ifeq ($(CONFIG_BUILD_TRENDNET),y)
 	### Pack for Trendnet ###
 	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/tnet818.trx
 	./tools/trendnet/auto_add_header_818 $(ARCH)-uclibc/tnet818.trx
@@ -612,8 +692,7 @@ endif
 
 	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/tnet811.trx
 	./tools/trendnet/auto_add_header_811 $(ARCH)-uclibc/tnet811.trx
-
-endif ### $(CONFIG_BUILD_ALL) ###
+endif ### $(CONFIG_BUILD_TRENDNET)
 
 include rules/all.mk
 

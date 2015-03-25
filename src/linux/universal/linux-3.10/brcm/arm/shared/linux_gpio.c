@@ -127,7 +127,7 @@ gpio_init(void)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
 	gpiodev_class = class_create(THIS_MODULE, "gpio");
 	if (IS_ERR(gpiodev_class)) {
-		printk("Error creating gpio class\n");
+		printk("linux_gpio: error creating gpio class\n");
 		return -1;
 	}
 

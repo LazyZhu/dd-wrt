@@ -794,6 +794,7 @@ usb.usb_ehci="USB 2.0 Support";
 usb.usb_storage="USB Storage Support";
 usb.usb_ip="USB Over IP";
 usb.usb_printer="USB Printer Support";
+usb.usb_audio="USB Audio Support";
 usb.usb_automnt="Automatic Drive Mount";
 usb.usb_mntpoint="Disk Mount Point";
 usb.usb_runonmount="Run-on-mount Script Name";
@@ -862,7 +863,7 @@ privoxy.whitel="Whitelist";
 privoxy.custom="Custom Configuration";
 
 var hprivoxy=new Object();
-hprivoxy.right2="Enable privoxy and configure your clients proxy settings. Proxy IP = <b>Router IP</b> Proxy Port = <b>8118</b>";
+hprivoxy.right2="Enable privoxy and configure your clients proxy settings.<br/><br/>Proxy IP = <b>Router IP</b><br/>Proxy Port = <b>8118</b>";
 
 //help page
 hprivoxy.page1="<dd>Privoxy enables you to filter common ads. <br/><ul><br/></ul></dd>";
@@ -1754,10 +1755,12 @@ service.ssh_forwarding="SSH TCP Forwarding";
 //radiooff.webservices
 service.radiooff_legend="SES / AOSS / EZ-SETUP / WPS Button";
 service.radiooff_legend_aoss="AOSS Button Function";
-service.radiooff_srv="Turning off radio";
+service.radiooff_srv="Turning Off Radio";
 service.radiooff_srv_aoss="AOSS";
 service.radiooff_srv_disabled="Unused";
-service.radiooff_bootoff="Turn radio off at boot";
+service.radiooff_bootoff="Turn Radio Off at Boot";
+service.radiooff_stealthswitch="Turning Off LEDs";
+service.stealthmode="Stealth Mode";
 
 //ses.webservices ====> might replace the above radiooff_button
 service.ses_legend="SES / AOSS / EZ-SETUP / WPS Button";

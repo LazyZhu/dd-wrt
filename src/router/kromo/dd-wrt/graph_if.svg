@@ -146,7 +146,7 @@ function init(evt) {
 function do_translation() {
 	SVGDoc.getElementById('graph_in_lbl').firstChild.data = status_band.strin;
 	SVGDoc.getElementById('graph_out_lbl').firstChild.data = status_band.strout;
-	SVGDoc.getElementById('switch_unit').firstChild.data = status_band.chg_unit + unit + '/s';
+	SVGDoc.getElementById('switch_unit').firstChild.data = status_band.chg_unit + unit + "/" + share.secs;
 	SVGDoc.getElementById('switch_scale').firstChild.data = status_band.chg_scale + ' (' + scale_type + ')';
 	SVGDoc.getElementById('error').firstChild.data = status_band.chg_error;
 	SVGDoc.getElementById('collect_initial').firstChild.data = status_band.chg_collect_initial;
@@ -154,7 +154,7 @@ function do_translation() {
 
 function switch_unit(event) {
 	unit = (unit == 'bits') ? share.bytes : 'bits'; 
-	SVGDoc.getElementById('switch_unit').firstChild.data = status_band.chg_unit + unit + '/s';
+	SVGDoc.getElementById('switch_unit').firstChild.data = status_band.chg_unit + unit + "/" + share.secs;
 }
 
 function switch_scale(event) {
@@ -323,10 +323,10 @@ function formatSpeedBits(speed) {
 
 function formatSpeedBytes(speed) {
 	// format speed in bytes/sec, input:  bytes/sec
-	if (speed < 1048576) return Math.round(speed / 10.24)/100 + " " + share.kbytes + "/s";
-	if (speed < 1073741824) return Math.round(speed / 10485.76)/100 + " " + share.mbytes + "/s";
+	if (speed < 1048576) return Math.round(speed / 10.24)/100 + " " + share.kbytes + "/" + share.secs;
+	if (speed < 1073741824) return Math.round(speed / 10485.76)/100 + " " + share.mbytes + "/" + share.secs;
 	// else
-	return Math.round(speed / 10737418.24)/100 + " " + share.mbytes + "/s";  // wow!
+	return Math.round(speed / 10737418.24)/100 + " " + share.mbytes + "/" + share.secs;  // wow!
 }
 
 ]]>

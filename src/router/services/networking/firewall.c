@@ -781,9 +781,10 @@ static int wanactive(void)
 static void nat_postrouting(void)
 {
 #ifdef HAVE_PPPOESERVER
-	if (nvram_match("pppoeserver_enabled", "1")
-	    && wanactive())
-		save2file("-A POSTROUTING -s %s/%s -j SNAT --to-source=%s\n", nvram_safe_get("pppoeserver_remotenet"), nvram_safe_get("pppoeserver_remotemask"), wanaddr);
+//	if (nvram_match("pppoeserver_enabled", "1")
+//	    && wanactive())
+// BUG: http://svn.dd-wrt.com/ticket/4033
+//		save2file("-A POSTROUTING -s %s/%s -j SNAT --to-source=%s\n", nvram_safe_get("pppoeserver_remotenet"), nvram_safe_get("pppoeserver_remotemask"), wanaddr);
 #endif
 	if (has_gateway()) {
 

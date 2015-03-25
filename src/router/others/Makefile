@@ -54,6 +54,10 @@ install:
 ifdef CONFIG_NORTHSTAR
 	install -d $(INSTALLDIR)/etc/cfe
 	install cfe/cfe_600.bin $(INSTALLDIR)/etc/cfe
+ifdef CONFIG_USB_ADVANCED
+	install fsck_hfs.arm $(INSTALLDIR)/usr/sbin/fsck_hfs
+	install newfs_hfs.arm $(INSTALLDIR)/usr/sbin/newfs_hfs
+endif
 endif
 ifdef CONFIG_MT7612
 	install -d $(INSTALLDIR)/etc/wlan
@@ -148,7 +152,9 @@ else
 endif
 	install init.d/rcS $(INSTALLDIR)/etc/init.d
 	install init.d/S01dummy $(INSTALLDIR)/etc/init.d
+ifdef CONFIG_NORTHSTAR
 	install entware-setup.sh $(INSTALLDIR)/usr/sbin/entware-setup.sh
+endif
 #install nvram/nvram $(INSTALLDIR)/etc/nvram
 	ln -sf /tmp/resolv.conf $(INSTALLDIR)/etc/resolv.conf
 	ln -sf /tmp/hosts $(INSTALLDIR)/etc/hosts

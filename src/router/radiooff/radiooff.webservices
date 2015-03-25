@@ -12,5 +12,17 @@
 		<input class="spaceradio" type="radio" value="1" name="radiooff_boot_off" <% nvram_checked("radiooff_boot_off","1"); %> /><% tran("share.enable"); %>&nbsp;
 		<input class="spaceradio" type="radio" value="0" name="radiooff_boot_off" <% nvram_checked("radiooff_boot_off","0"); %> /><% tran("share.disable"); %>
 	</div>
-  </div>		
+  </div>
+	<div class="setting">
+		<div class="label"><% tran("service.radiooff_stealthswitch"); %></div>
+		<input class="spaceradio" type="radio" value="1" name="radiooff_stealthswitch" <% nvram_checked("radiooff_stealthswitch","1"); %> onclick="show_layer_ext(this, 'idstealthmode', true)" /><% tran("share.enable"); %>&nbsp;
+		<input class="spaceradio" type="radio" value="0" name="radiooff_stealthswitch" <% nvram_checked("radiooff_stealthswitch","0"); %> onclick="show_layer_ext(this, 'idstealthmode', false)" /><% tran("share.disable"); %>
+	</div>
+  <div id="idstealthmode">
+	<div class="setting">
+		<div class="label"><% tran("service.stealthmode"); %></div>
+		<input class="spaceradio" type="radio" value="1" name="stealthmode" <% nvram_checked("stealthmode","1"); %> /><% tran("share.enabled"); %>&nbsp;
+		<input class="spaceradio" type="radio" value="0" name="stealthmode" <% nvram_checked("stealthmode","0"); %> /><% tran("share.disabled"); %>
+	</div>
+  </div>
 </fieldset><br/>

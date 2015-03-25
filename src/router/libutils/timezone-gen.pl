@@ -31,7 +31,7 @@ while (@dirs) {
 
     opendir( my $top, $dir );
     while ( my $file = readdir($top) ) {
-        next if ( $file eq "." || $file eq ".." );
+        next if ( $file eq "." || $file eq ".." || $file eq "Etc" );
 	# START FILTERS
 	next if ( $file eq "CET" );
 	next if ( $file eq "CST6CDT" );

@@ -3453,6 +3453,9 @@ struct nvram_param srouter_defaults[] = {
 #ifdef HAVE_USBIP
 	{"usb_ip", "0"},
 #endif
+#ifdef HAVE_USBAUDIO
+	{"usb_audio", "0"},
+#endif
 #ifdef HAVE_FREECWMP
 #ifdef HAVE_ETISALAT
 	{"freecwmp_enable", "1"},

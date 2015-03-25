@@ -1271,6 +1271,19 @@ int internal_getRouterBrand()
 			}
 		}
 	}
+	// Xiaomi R1D: Avoid false R7000 ID
+	// boardnum=32
+	// boardrev=0x1301
+	// boardtype=0x0665
+	// boardflags=0x00000110
+	// boardflags2=0x00000000
+	// Original CFE have gpio0=usbport1
+	// Modified CFE adds model=R1D
+	if (nvram_match("model","R1D") || nvram_match("odmpid","R1D") || nvram_match("productid","R1D") ||
+	    (boardnum == 32 && nvram_match("boardtype", "0x0665") && nvram_match("boardrev", "0x1301") && nvram_match("gpio0", "usbport1"))) {
+		setRouter("Xiaomi MiWiFi (R1D)");
+		return ROUTER_XIAOMI_R1D;
+	}
 
 	if (boardnum == 32 && nvram_match("boardtype", "0x0665")
 	    && nvram_match("boardrev", "0x1301")) {
@@ -4784,22 +4797,23 @@ int led_control(int type, int act)
 	int disconnected_gpio = 0x0ff;
 	int bridge_gpio = 0x0ff;
 	int vpn_gpio = 0x0ff;
-	int ses_gpio = 0x0ff;	// use for SES1 (Linksys), AOSS (Buffalo)
+	int ses_gpio = 0x0ff;		// use for SES1 (Linksys), AOSS (Buffalo)
 	int ses2_gpio = 0x0ff;
-	int wlan_gpio = 0x0ff;	// wlan button led R7000
+	int wlan_gpio = 0x0ff;		// wlan button led R7000
 	int wlan0_gpio = 0x0ff;	// use this only if wlan led is not controlled by hardware!
 	int wlan1_gpio = 0x0ff;
 	int wlan2_gpio = 0x0ff;
 	int usb_gpio = 0x0ff;
 	int usb_gpio1 = 0x0ff;
-	int sec0_gpio = 0x0ff;	// security leds, wrt600n
+	int sec0_gpio = 0x0ff;		// security leds, wrt600n
 	int sec1_gpio = 0x0ff;
 	int usb_power = 0x0ff;
 	int usb_power1 = 0x0ff;
 	int v1func = 0;
 	int connblue = nvram_match("connblue", "1") ? 1 : 0;
 
-	switch (getRouterBrand())	// gpio definitions here: 0xYZ,
+	switch (getRouterBrand())
+		// gpio definitions here: 0xYZ,
 		// Y=0:normal, Y=1:inverted, Z:gpio
 		// number (f=disabled)
 	{
@@ -4926,7 +4940,7 @@ int led_control(int type, int act)
 		disconnected_gpio = 0x106;
 		ses_gpio = 0x104;
 		usb_gpio = 0x100;
-//              wlan0_gpio = 0x0ff; //correct states missing
+//              wlan0_gpio = 0x0ff; // correct states missing
 #endif
 #ifdef HAVE_WNDR3700
 		power_gpio = 0x102;
@@ -5232,8 +5246,8 @@ int led_control(int type, int act)
 		power_gpio = 0x122;
 		diag_gpio = 0x121;
 		connected_gpio = 0x107;
-		usb_power = 0x024;	// enable usb port 
-		ses_gpio = 0x105;	//correct state missing
+		usb_power = 0x024;	// enable usb port
+		ses_gpio = 0x105;	// correct state missing
 		usb_gpio = 0x108;
 //              sec0_gpio = 0x104;
 		break;
@@ -5449,8 +5463,8 @@ int led_control(int type, int act)
 	case ROUTER_BUFFALO_WZR600DHP2:
 //              usb_power = 0x009;      // USB 2.0 ehci port
 		usb_power1 = 0x10a;	// USB 3.0 xhci port
-//              wlan0_gpio = 0x028; // wireless orange
-//              wlan1_gpio = 0x029; // wireless blue
+//              wlan0_gpio = 0x028;	// wireless orange
+//              wlan1_gpio = 0x029;	// wireless blue
 		connected_gpio = 0x02a;	// connected blue
 		sec0_gpio = 0x02b;
 		sec1_gpio = 0x02c;
@@ -5465,8 +5479,8 @@ int led_control(int type, int act)
 	case ROUTER_BUFFALO_WXR1900DHP:
 		usb_power = 0x00d;	// USB 2.0 ehci port
 		usb_power1 = 0x00e;	// USB 3.0 xhci port
-//              wlan0_gpio = 0x028; // wireless orange
-//              wlan1_gpio = 0x029; // wireless blue
+//              wlan0_gpio = 0x028;	// wireless orange
+//              wlan1_gpio = 0x029;	// wireless blue
 		connected_gpio = 0x009;	// connected blue
 		disconnected_gpio = 0x00a;	// connected blue
 		sec0_gpio = 0x00b;
@@ -5481,8 +5495,8 @@ int led_control(int type, int act)
 	case ROUTER_BUFFALO_WZR1750:
 		usb_power = 0x009;	// USB 2.0 ehci port
 		usb_power1 = 0x10a;	// USB 3.0 xhci port
-//              wlan0_gpio = 0x028; // wireless orange
-//              wlan1_gpio = 0x029; // wireless blue
+//              wlan0_gpio = 0x028;	// wireless orange
+//              wlan1_gpio = 0x029;	// wireless blue
 		connected_gpio = 0x02a;	// connected blue
 		sec0_gpio = 0x02b;
 		sec1_gpio = 0x02c;
@@ -5620,10 +5634,10 @@ int led_control(int type, int act)
 	case ROUTER_WRT300NV11:
 		ses_gpio = 0x105;
 		sec0_gpio = 0x103;
-		// diag_gpio = 0x11; //power led blink / off to indicate fac.def.
+		// diag_gpio = 0x11;	// power led blink / off to indicate fac.def.
 		break;
 	case ROUTER_WRT310N:
-		connected_gpio = 0x103;	//ses orange
+		connected_gpio = 0x103;	// ses orange
 		power_gpio = 0x001;
 		diag_gpio = 0x101;	// power led blink / off to indicate fac.def.
 		ses_gpio = 0x109;	// ses blue
@@ -5636,13 +5650,13 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_WRT160N:
 		power_gpio = 0x001;
-		diag_gpio = 0x101;	// power led blink / off to indicate fac.def. 
+		diag_gpio = 0x101;	// power led blink / off to indicate fac.def.
 		connected_gpio = 0x103;	// ses orange
 		ses_gpio = 0x105;	// ses blue
 		break;
 	case ROUTER_WRT160NV3:
 		power_gpio = 0x001;
-		diag_gpio = 0x101;	// power led blink / off to indicate fac.def. 
+		diag_gpio = 0x101;	// power led blink / off to indicate fac.def.
 		connected_gpio = 0x102;	// ses orange
 		ses_gpio = 0x104;	// ses blue
 		break;
@@ -5656,7 +5670,7 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_LINKSYS_E1000V2:
 		power_gpio = 0x106;
-		diag_gpio = 0x006;	// power led blink / off to indicate fac.def. 
+		diag_gpio = 0x006;	// power led blink / off to indicate fac.def.
 		connected_gpio = 0x007;	// ses orange
 		ses_gpio = 0x008;	// ses blue
 		break;
@@ -5666,22 +5680,22 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_LINKSYS_E3200:
 		power_gpio = 0x103;
-		diag_gpio = 0x003;	// power led blink / off to indicate fac.def. 
+		diag_gpio = 0x003;	// power led blink / off to indicate fac.def.
 		break;
 	case ROUTER_LINKSYS_E4200:
 		power_gpio = 0x105;	// white LED1
-		diag_gpio = 0x103;	// power led blink / off to indicate fac.def. 
+		diag_gpio = 0x103;	// power led blink / off to indicate fac.def.
 //              connected_gpio = 0x103; // white LED2
 		break;
 	case ROUTER_LINKSYS_EA6500:
-		diag_gpio = 0x101;	// white led blink / off to indicate fac.def. 
+		diag_gpio = 0x101;	// white led blink / off to indicate fac.def.
 		break;
 	case ROUTER_LINKSYS_EA6500V2:
 	case ROUTER_LINKSYS_EA6700:
 	case ROUTER_LINKSYS_EA6900:
-		usb_power = 0x009;	//usb power on/off
-		usb_power1 = 0x00a;	//usb power on/off
-		diag_gpio = 0x106;	// white led blink / off to indicate fac.def. 
+		usb_power = 0x009;	// usb power on/off
+		usb_power1 = 0x00a;	// usb power on/off
+		diag_gpio = 0x106;	// white led blink / off to indicate fac.def.
 		connected_gpio = 0x008;
 		break;
 	case ROUTER_ASUS_WL500G:
@@ -5753,25 +5767,25 @@ int led_control(int type, int act)
 		diag_gpio = 0x001;	// power led blink /off to indicate factory defaults
 		break;
 	case ROUTER_NETGEAR_WNR3500L:
-		power_gpio = 0x003;	//power led green
+		power_gpio = 0x003;	// power led green
 		diag_gpio = 0x007;	// power led amber
 		ses_gpio = 0x001;	// WPS led green
-		connected_gpio = 0x002;	//wan led green
+		connected_gpio = 0x002;	// wan led green
 		break;
 	case ROUTER_NETGEAR_WNDR3400:
-		power_gpio = 0x003;	//power led green
+		power_gpio = 0x003;	// power led green
 		diag_gpio = 0x007;	// power led amber
-		connected_gpio = 0x001;	//wan led green
-		usb_gpio = 0x102;	//usb led green
+		connected_gpio = 0x001;	// wan led green
+		usb_gpio = 0x102;	// usb led green
 		wlan1_gpio = 0x000;	// radio 1 led blue
 		break;
 	case ROUTER_NETGEAR_WNDR4000:
-		power_gpio = 0x000;	//power led green
+		power_gpio = 0x000;	// power led green
 		diag_gpio = 0x001;	// power led amber
-		connected_gpio = 0x002;	//wan led green
-		wlan0_gpio = 0x003;	//radio 0 led green
+		connected_gpio = 0x002;	// wan led green
+		wlan0_gpio = 0x003;	// radio 0 led green
 		wlan1_gpio = 0x004;	// radio 1 led blue
-		usb_gpio = 0x005;	//usb led green
+		usb_gpio = 0x005;	// usb led green
 		ses_gpio = 0x106;	// WPS led green - inverse
 		ses2_gpio = 0x107;	// WLAN led green - inverse
 		break;
@@ -5782,7 +5796,6 @@ int led_control(int type, int act)
 		power_gpio = 0x102;
 		diag_gpio = 0x100;
 		break;
-
 	case ROUTER_DLINK_DIR880:
 		connected_gpio = 0x103;
 		disconnected_gpio = 0x101;
@@ -5796,7 +5809,6 @@ int led_control(int type, int act)
 		usb_power = 0x009;
 		usb_power1 = 0x00a;
 		break;
-
 	case ROUTER_DLINK_DIR890:
 		usb_power = 0x015;
 		usb_power1 = 0x012;
@@ -5819,7 +5831,7 @@ int led_control(int type, int act)
 		wlan1_gpio = 0x102;
 		break;
 	case ROUTER_ASUS_RTN18U:
-		usb_power = 0x00d;	//usb power on/off
+		usb_power = 0x00d;	// usb power on/off
 		usb_gpio = 0x103;
 		usb_gpio1 = 0x10e;
 		power_gpio = 0x100;
@@ -5841,8 +5853,8 @@ int led_control(int type, int act)
 	case ROUTER_ASUS_AC56U:
 		wlan1_gpio = 0x106;
 		power_gpio = 0x103;
-		usb_power = 0x009;	//usb power on/off
-		usb_power1 = 0x00a;	//usb power on/off
+		usb_power = 0x009;	// usb power on/off
+		usb_power1 = 0x00a;	// usb power on/off
 		usb_gpio = 0x10e;
 		diag_gpio = 0x003;
 		connected_gpio = 0x101;
@@ -5850,14 +5862,12 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_HUAWEI_WS880:
 		usb_gpio = 0x10e;	// (-14) USB led
-		bridge_gpio = 0x101;    // ( -1) LAN led
-		//diag_gpio = 0x101;	// ( -1) LAN led
+		bridge_gpio = 0x101;	// ( -1) LAN led //HW
 		diag_gpio = 0x106;	// ( -6) WPS led
 		connected_gpio = 0x00c;	// ( 12) INTERNET led
-		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio)
-		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio)
-		//wlan1_gpio = 0x106;	// ( -6) WPS led  (5GHz Radio)
-		usb_power = 0x007;	// (  7) USB power on/off
+		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio) //HW
+		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio) //HW
+		//usb_power = 0x007;	// (  7) USB power on/off !!! KERNEL POWER !!! enable this freeze router on boot with USB disabled
 		break;
 	case ROUTER_ASUS_AC87U:
 		usb_power = 0x009;
@@ -5895,59 +5905,59 @@ int led_control(int type, int act)
 		//usb_power = 0x000;    // usb enable
 		break;
 	case ROUTER_NETGEAR_R6300:
-		usb_gpio = 0x108;	//usb led
-		usb_power = 0x000;	//usb power on/off
-		connected_gpio = 0x10f;	//green led
-		power_gpio = 0x102;	//power orange led
-		diag_gpio = 0x103;	//power led orange
-		//diag_gpio_disabled=0x009;//netgear logo led r
-		//emblem0_gpio = 0x101;   // NETGEAR Emblem l     
+		usb_gpio = 0x108;	// usb led
+		usb_power = 0x000;	// usb power on/off
+		connected_gpio = 0x10f;	// green led
+		power_gpio = 0x102;	// power orange led
+		diag_gpio = 0x103;	// power led orange
+		//diag_gpio_disabled=0x009;// netgear logo led r
+		//emblem0_gpio = 0x101;   // NETGEAR Emblem l
 		//emblem1_gpio = 0x109;   // NETGEAR Emblem r
 		wlan0_gpio = 0x10b;	// radio led blue
 		break;
 	case ROUTER_NETGEAR_R6300V2:
 		power_gpio = 0x102;	// power led green
 		//diag_gpio = 0x103;    // power led orange
-		diag_gpio = 0x101;	// Netgear logo 
+		diag_gpio = 0x101;	// Netgear logo
 		connected_gpio = 0x10a;	// wan led green - hw controlled
 		wlan0_gpio = 0x10b;	// radio led blue
-		usb_gpio = 0x108;	// usb led 
+		usb_gpio = 0x108;	// usb led
 		//usb_power = 0x000;    // usb enable
 		break;
 	case ROUTER_NETGEAR_R7000:
-		power_gpio = 0x102;	// power led 
-		diag_gpio = 0x103;	// power led orange     
+		power_gpio = 0x102;	// power led
+		diag_gpio = 0x103;	// power led orange
 		connected_gpio = 0x109;	// wan led
 		usb_power = 0x000;	// usb enable
-		wlan0_gpio = 0x10d;	// radio 0 
-		wlan1_gpio = 0x10c;	// radio 1 
+		wlan0_gpio = 0x10d;	// radio 0
+		wlan1_gpio = 0x10c;	// radio 1
 		ses_gpio = 0x10e;	// wps led
 		//wlan_gpio = 0x10f;    // wifi button led
-		usb_gpio = 0x111;	//usb1 
-		usb_gpio1 = 0x112;	//usb2 
+		usb_gpio = 0x111;	// usb1 
+		usb_gpio1 = 0x112;	// usb2 
 		break;
 	case ROUTER_NETGEAR_R8000:
-		power_gpio = 0x102;	// power led 
-		diag_gpio = 0x103;	// power led orange     
+		power_gpio = 0x102;	// power led
+		diag_gpio = 0x103;	// power led orange
 		connected_gpio = 0x109;	// wan led green
 		usb_power = 0x000;	// usb enable
-		wlan0_gpio = 0x10d;	// radio 0 
-		wlan1_gpio = 0x10c;	// radio 5G-1 
+		wlan0_gpio = 0x10d;	// radio 0
+		wlan1_gpio = 0x10c;	// radio 5G-1
 		wlan2_gpio = 0x110;	// radio 5G-2
 		ses_gpio = 0x10e;	// wps led
 		wlan_gpio = 0x10f;	// wifi button led
-		usb_gpio = 0x111;	//usb1 
-		usb_gpio1 = 0x112;	//usb2 
+		usb_gpio = 0x111;	// usb1
+		usb_gpio1 = 0x112;	// usb2
 		break;
 	case ROUTER_NETGEAR_WNDR4500:
 	case ROUTER_NETGEAR_WNDR4500V2:
-		power_gpio = 0x102;	//power led green
+		power_gpio = 0x102;	// power led green
 		diag_gpio = 0x103;	// power led amber
-		connected_gpio = 0x10f;	//wan led green
-		wlan0_gpio = 0x109;	//radio 0 led green
+		connected_gpio = 0x10f;	// wan led green
+		wlan0_gpio = 0x109;	// radio 0 led green
 		wlan1_gpio = 0x10b;	// radio 1 led blue
-		usb_gpio = 0x108;	//usb led green
-		usb_gpio1 = 0x10e;	//usb1 led green
+		usb_gpio = 0x108;	// usb led green
+		usb_gpio1 = 0x10e;	// usb1 led green
 		break;
 	case ROUTER_ASUS_RTN66:
 	case ROUTER_ASUS_AC66U:
@@ -5956,16 +5966,15 @@ int led_control(int type, int act)
 		usb_gpio = 0x10f;
 		break;
 	case ROUTER_NETGEAR_WNR2000V2:
-
 		//power_gpio = ??;
 		diag_gpio = 0x002;
-		ses_gpio = 0x007;	//WPS led
+		ses_gpio = 0x007;	// WPS led
 		connected_gpio = 0x006;
 		break;
 	case ROUTER_WRT320N:
-		power_gpio = 0x002;	//power/diag (disabled=blink)
+		power_gpio = 0x002;	// power/diag (disabled=blink)
 		ses_gpio = 0x103;	// ses blue
-		connected_gpio = 0x104;	//ses orange
+		connected_gpio = 0x104;	// ses orange
 		break;
 	case ROUTER_ASUS_RTN12:
 		power_gpio = 0x102;
@@ -5973,7 +5982,7 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_BOARD_NEPTUNE:
 //              usb_gpio = 0x108;
-		// 0x10c //unknown gpio label, use as diag
+		// 0x10c // unknown gpio label, use as diag
 		diag_gpio = 0x10c;
 		break;
 	case ROUTER_ASUS_RTN10U:
@@ -6008,8 +6017,8 @@ int led_control(int type, int act)
 		connected_gpio = 0x100;
 		sec0_gpio = 0x103;
 		break;
-#endif
-	}
+#endif // end ifndef HAVE_BUFFALO
+	} // end switch (getRouterBrand())
 	if (type == LED_DIAG && v1func == 1) {
 		if (act == LED_ON)
 			C_led(1);
@@ -6090,6 +6099,12 @@ int led_control(int type, int act)
 		use_gpio = sec1_gpio;
 		break;
 	}
+	/* StealtMode */
+	int stealth_mode = nvram_match("stealthmode", "1") ? 1 : 0;
+	if (stealth_mode == 1) {
+		use_gpio = 0x0ff; // disable led control		
+	}
+
 	if ((use_gpio & 0x0ff) != 0x0ff) {
 		gpio_value = use_gpio & 0x0ff;
 		enable = (use_gpio & 0x100) == 0 ? 1 : 0;
@@ -6097,14 +6112,20 @@ int led_control(int type, int act)
 		int setin = (use_gpio & 0x200) == 0 ? 0 : 1;
 		switch (act) {
 		case LED_ON:
+			//fprintf(stderr, "led_control: LED_ON, gpiovalue=0x%x, enable=%d\n", gpio_value, enable);
+			//dd_syslog(LOG_DEBUG, "led_control: LED_ON, gpiovalue=0x%x, enable=%d", gpio_value, enable);
 			set_gpio(gpio_value, enable);
 			if (setin)
 				get_gpio(gpio_value);
 			break;
 		case LED_OFF:
+			//fprintf(stderr, "led_control: LED_OFF, gpiovalue=0x%x, disable=%d\n", gpio_value, disable);
+			//dd_syslog(LOG_DEBUG, "led_control: LED_OFF, gpiovalue=0x%x, disable=%d", gpio_value, disable);
 			set_gpio(gpio_value, disable);
 			break;
 		case LED_FLASH:	// will lit the led for 1 sec.
+			//fprintf(stderr, "led_control: LED_FLASH, gpiovalue=0x%x, enable=%d, disable=%d\n", gpio_value, enable, disable);
+			//dd_syslog(LOG_DEBUG, "led_control: LED_FLASH, gpiovalue=0x%x, enable=%d, disable=%d", gpio_value, enable, disable);
 			set_gpio(gpio_value, enable);
 			sleep(1);
 			set_gpio(gpio_value, disable);

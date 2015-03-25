@@ -698,6 +698,8 @@
 
 #define ROUTER_HUAWEI_WS880 0xe912 // RESET GPIO 2 (see resetbutton.c)
 
+#define ROUTER_XIAOMI_R1D 0xe9111 // RESET GPIO 17 (see resetbutton.c)
+
 #define NVROUTER "DD_BOARD"
 
 

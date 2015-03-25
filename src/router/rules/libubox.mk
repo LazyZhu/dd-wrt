@@ -9,11 +9,11 @@ UBOX_EXTRA_LDFLAGS=-L$(TOP)/_staging/usr/lib
 
 MAKE_FLAGS+=VERBOSE=0
 
-libubox-configure: 
+libubox-configure: json-c-configure
 	$(call CMakeClean,$(UBOX_PKG_BUILD_DIR))
 	$(call CMakeConfigure,$(UBOX_PKG_BUILD_DIR),$(UBOX_STAGING_DIR),$(UBOX_CMAKE_OPTIONS),$(UBOX_EXTRA_CFLAGS),$(UBOX_EXTRA_LDFLAGS)) 
 
-libubox: libubox-configure 
+libubox: libubox-configure json-c
 	$(MAKE) -C libubox
 	-mkdir -p $(TOP)/_staging
 	-mkdir -p $(STAGING_DIR)/usr/include/libubox

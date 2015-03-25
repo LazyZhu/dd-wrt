@@ -28,7 +28,7 @@ var update;
 addEvent(window, "load", function() {
 	if(document.getElementsByName("refresh_button")) {
 		document.getElementsByName("refresh_button")[0].disabled = true;
-		document.getElementsByName("refresh_button")[0].style.background = '#DADADA';
+		//document.getElementsByName("refresh_button")[0].style.background = '#DADADA';
 		document.getElementsByName("refresh_button")[0].style.cursor = "default";
 	}
 	
@@ -51,8 +51,9 @@ addEvent(window, "unload", function() {
 					<div id="logo"><h1><% show_control(); %></h1></div>
 				<% do_menu("Status_Router.asp","Syslog.asp"); %>
 				</div>
-				<div id="mainno">
-					<div id="contents">						
+				<div id="mainno" style="padding: 0.906em;">
+				<h2><% tran("service.syslog_srv"); %></h2>
+					<div id="contents">
 							<script type="text/javascript">
 								//<![CDATA[
 								document.write("<iframe id=\"syslog\" src=\"" + load_file(0) + "\" width=\"100%\" height=\"800\" frameborder=\"0\" type=\"text/html\"></iframe>");
