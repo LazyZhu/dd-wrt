@@ -228,7 +228,7 @@ static int __init gpio_init(void)
 		isac66 = 1;
 	}
 
-	if (nvram_match("model","RT-AC68U") || (boardnum != 24) && nvram_match("boardtype", "0x0646") && (nvram_match("boardrev", "0x1100"))) {
+	if (nvram_match("model","RT-AC68U") || ((boardnum != 24) && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1100"))) {
 		printk(KERN_EMERG "Asus-RT-AC68U init\n");
 		isac68 = 1;
 	}
