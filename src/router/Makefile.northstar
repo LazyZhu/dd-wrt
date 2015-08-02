@@ -53,7 +53,6 @@ endif
 
 export KERNELRELEASE = $(shell cat $(LINUXDIR)/include/config/kernel.release 2> /dev/null)
 
-
 #ifeq ($(PLATFORM),mipsel-uclibc)
 export CROSS_COMPILE := $(ARCH)-linux-uclibc-
 export CONFIGURE := ./configure $(ARCH)-linux --build=$(BUILD)
@@ -107,6 +106,7 @@ export TARGETDIR := $(PLATFORMDIR)/target
 ifeq ($(PLATFORM),mipsel)
 obj-y += libcrypto
 endif
+
 #
 # Configuration
 #
@@ -119,7 +119,9 @@ obj-clean := $(foreach obj,$(obj-y) $(obj-n),$(obj)-clean)
 obj-install := $(foreach obj,$(obj-y),$(obj)-install)
 obj-distclean := $(foreach obj,$(obj-y) $(obj-n),$(obj)-distclean)
 
+
 all: install_headers build_date clean_target $(obj-y) $(LINUXDIR)/.config kernel
+
 
 build_date:
 	echo "#define BUILD_DATE \"$(shell date +%D)\"" > ../../opt/build.h 
@@ -131,6 +133,7 @@ kernelsource:
 	wget http://www.de.kernel.org/pub/linux/kernel/v2.6/linux-$(KERNELVERSION).tar.bz2 -O $(LINUXDIR)/../linux-$(KERNELVERSION).tar.bz2
 	cd $(LINUXDIR)/../ && tar -xvjf $(LINUXDIR)/../linux-$(KERNELVERSION).tar.bz2
 	cd $(LINUXDIR)/../ && ./patch $(KERNELVERSION)
+
 
 kernel:
 	# Also build kernel
@@ -215,9 +218,11 @@ ifeq ($(CONFIG_USB_AUDIO),y)
 	\# CONFIG_SND_USB_UA101 is not set \
 	\# CONFIG_SND_USB_CAIAQ is not set \
 	\# CONFIG_SND_USB_6FIRE is not set \
+	\# CONFIG_SND_USB_HIFACE is not set \
 	\# CONFIG_SND_SOC is not set \
 	\# CONFIG_SOUND_PRIME is not set \
 	\# CONFIG_LINE6_USB is not set \
+	\# CONFIG_SND_BCD2000 is not set \
 	' $(LINUXDIR)/.config
 endif
 	$(MAKE) -C $(LINUXDIR) oldconfig	
@@ -240,7 +245,9 @@ ifeq ($(CONFIG_OPENDPI),y)
 	-$(MAKE) -f Makefile.northstar opendpi
 	-$(MAKE) -f Makefile.northstar opendpi-install
 endif
-
+#
+# cleanup and optimize
+#
 	rm -f $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/build
 	rm -f $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/source
 
@@ -302,6 +309,7 @@ endif
 		awk '$$1 == "U" { print $$2 } ' | \
 		sort -u > $(LINUXDIR)/mod_symtab.txt
 	$(ARCH)-linux-nm -n $(LINUXDIR)/vmlinux.o | grep ' r __ksymtab' | sed -e 's,........ r __ksymtab_,,' > $(LINUXDIR)/kernel_symtab.txt
+	$(ARCH)-linux-nm -n $(LINUXDIR)/vmlinux.o | grep ' R __ksymtab' | sed -e 's,........ R __ksymtab_,,' >> $(LINUXDIR)/kernel_symtab.txt
 	grep -f $(LINUXDIR)/mod_symtab.txt $(LINUXDIR)/kernel_symtab.txt -F > $(LINUXDIR)/sym_include.txt
 	grep -vf $(LINUXDIR)/mod_symtab.txt $(LINUXDIR)/kernel_symtab.txt -F > $(LINUXDIR)/sym_exclude.txt
 	( \
@@ -327,7 +335,6 @@ endif
 #	#$(MAKE) -j 4 -C $(LINUXDIR) zImage EXTRA_LDSFLAGS="-I$(LINUXDIR)"  CROSS_COMPILE="ccache $(ARCH)-linux-uclibc-"  KBUILD_MODPOST_WARN=1
 
 
-
 test_kernel: kernel
 	tools/lzma_4k e $(LINUXDIR)/arch/arm/boot/zImage $(ARCH)-uclibc/vmlinuz.lzma
 	./tools/seama/packimgs -b 64 -o $(ARCH)-uclibc/raw-dir868.img -i $(ARCH)-uclibc/vmlinuz.lzma
@@ -339,14 +346,12 @@ test_kernel: kernel
 #	./tools/trx_n -m 32000000 -o $(ARCH)-uclibc/webflash-dir868.trx $(ARCH)-uclibc/webflash-dir868.img
 
 
-
-
-
 install_headers:
 # important step, required for new kernels
 	-mkdir -p $(TOP)/kernel_headers/$(KERNELRELEASE)
 	$(MAKE) -C $(LINUXDIR) headers_install ARCH=arm INSTALL_HDR_PATH=$(TOP)/kernel_headers/$(KERNELRELEASE)
 	
+
 realclean: $(obj-clean)
 	rm -f .config.old .config.cmd
 	#umount $(TARGETDIR)
@@ -364,9 +369,11 @@ clean: rc-clean httpd-clean services-clean shared-clean wlconf-clean libutils-cl
 	rm -f $(TARGETDIR)/*
 	-rm -f $(ARCH)-uclibc/*
 
+
 clean_target:
 	rm -rf $(TARGETDIR)
 	rm -rf $(INSTALLDIR)
+
 
 distclean mrproper: $(obj-distclean) clean_target
 	rm -rf $(INSTALLDIR)
@@ -376,6 +383,7 @@ distclean mrproper: $(obj-distclean) clean_target
 	$(MAKE) -C config clean
 	rm -f .config $(LINUXDIR)/.config
 	rm -f .config.old .config.cmd
+
 
 optimize-lib:
 ifneq ($(CONFIG_MUSL),y)
@@ -419,7 +427,6 @@ ifeq ($(CONFIG_LIBPTHREAD),y)
 endif
 
 ifneq ($(CONFIG_NOOPT),y)
-
 	rm -rf /tmp/$(ARCHITECTURE)/mklibs-out
 	rm -f /tmp/$(ARCHITECTURE)/mklibs-progs
 	-mkdir -p /tmp/$(ARCHITECTURE)/
@@ -455,11 +462,13 @@ endif
 	cp /tmp/$(ARCHITECTURE)/mklibs-out/* $(TARGETDIR)/lib
 endif
 
+
 validate: $(eval FILE_SIZE = $(shell stat -c %s $(EX_PATH)))
 	@if [ ${FILE_SIZE} -gt ${MAXIMUM_SIZE} ] ; then \
 		echo "Image is to large. Maximum size ${MAXIMUM_SIZE} current size  ${FILE_SIZE}." ; \
 		rm -f $(EX_PATH) ; \
 	fi
+
 
 install package: clean_target $(filter-out lib.$(ARCH)-install,$(obj-install)) $(LINUXDIR)/.config
         # Install binaries into target directory
@@ -565,7 +574,8 @@ ifeq ($(CONFIG_DIST),"micro")
 	rm -rf $(TARGETDIR)/usr/share/pci.ids
 	rm -rf $(TARGETDIR)/usr/sbin/mkfs.jffs2
 endif
-ifeq ($(CONFIG_BUILD_XIAOMI),y) // we try to fit 14.3MB NOR
+### we try to fit 14.3MB NOR flash
+ifeq ($(CONFIG_BUILD_XIAOMI),y)
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/xfs
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/btrfs
 	rm -rf $(TARGETDIR)/lib/modules/$(KERNELRELEASE)/kernel/fs/udf
@@ -617,7 +627,7 @@ endif
 	$(LINUXDIR)/scripts/rstrip.sh $(TARGETDIR)
 
 	cd $(TARGETDIR) && $(TOP)/misc/rootprep.sh
-	$(TOP)/../../tools/removewhitespace.sh $(TOP)/../../tools $(TARGETDIR)/etc/config
+#	$(TOP)/../../tools/removewhitespace.sh $(TOP)/../../tools $(TARGETDIR)/etc/config
 	$(LINUXDIR)/scripts/squashfs/mksquashfs-lzma $(ARCH)-uclibc/target $(ARCH)-uclibc/root.fs -noappend -root-owned -le
 #	mkfs.jffs2 --pad --big-endian --squash -e 0x20000 -o $(ARCH)-uclibc/dd-wrt.jffs2 -d $(ARCH)-uclibc/target
 	tools/lzma_4k e $(LINUXDIR)/arch/arm/boot/zImage $(ARCH)-uclibc/vmlinuz.lzma
@@ -628,18 +638,18 @@ endif
 ifeq ($(CONFIG_BUILD_HUAWEI),y)
 	### Pack for Huawei WS880 ###
 	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/huawei-ws880-firmware.trx
-endif ### $(CONFIG_BUILD_HUAWEI)
+endif # $(CONFIG_BUILD_HUAWEI)
 
 ifeq ($(CONFIG_BUILD_XIAOMI),y)
 	### Pack for Xiaomi R1D ###
-	#   Max. size: 16384000 - BOOT (256K) - BOARD DATA (64K) - NVRAM (64K)
+	# Max. size: 16384000 - BOOT (256K) - BOARD DATA (64K) - NVRAM (64K)
 	../../opt/tools/trx -m 15990384 -o $(ARCH)-uclibc/xiaomi-r1d-firmware.bin $(ARCH)-uclibc/vmlinuz.lzma -a 131072 $(ARCH)-uclibc/root.fs
-endif ### $(CONFIG_BUILD_XIAOMI)
+endif # $(CONFIG_BUILD_XIAOMI)
 
 ifeq ($(CONFIG_BUILD_TPLINK),y)
 	### Pack for TP-Link ###
 	cd tools/tplink && ./mktplinkfw3 -B CPE510 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc9.bin
-endif ### $(CONFIG_BUILD_TPLINK)
+endif # $(CONFIG_BUILD_TPLINK)
 
 ifeq ($(CONFIG_BUILD_DLINK),y)
 	### Pack for D-Link ###
@@ -649,7 +659,7 @@ ifeq ($(CONFIG_BUILD_DLINK),y)
 	./tools/seama/seama -d $(ARCH)-uclibc/web-dir868.img
 	dd if=$(ARCH)-uclibc/web-dir868.img of=$(ARCH)-uclibc/webflash-dir868.img skip=48 iflag=skip_bytes 
 	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dir868.trx $(ARCH)-uclibc/webflash-dir868.img
-endif ### $(CONFIG_BUILD_DLINK)
+endif # $(CONFIG_BUILD_DLINK)
 
 ifeq ($(CONFIG_BUILD_ASUS),y)
 	### Pack for Asus ###
@@ -657,13 +667,13 @@ ifeq ($(CONFIG_BUILD_ASUS),y)
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC68U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac68u-firmware.trx
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC87U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac87u-firmware.trx
 	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-N18U,3.0.0.4,$(ARCH)-uclibc/asus_rt-n18u-firmware.trx
-endif ### $(CONFIG_BUILD_ASUS)
+endif # $(CONFIG_BUILD_ASUS)
 
 ifeq ($(CONFIG_BUILD_BUFFALO),y)
 	### Pack for Buffalo ###
 	dd if=$(ARCH)-uclibc/northstar-firmware-squashfs.bin of=$(ARCH)-uclibc/buffalo.trx bs=131072 conv=sync
 	cd $(ARCH)-uclibc && ../tools/bufenc/makefw.sh buffalo
-endif ### $(CONFIG_BUILD_BUFFALO)
+endif # $(CONFIG_BUILD_BUFFALO)
 
 ifeq ($(CONFIG_BUILD_NETGEAR),y)
 	### Pack for Netgear ###
@@ -680,7 +690,7 @@ else
 	./netgear/packet -k $(ARCH)-uclibc/netgear.trx -f netgear/emptyfile -b netgear/comp-r7000.txt -ok kernel_image -oall dd-wrt.bin -or rootfs_image -i netgear/ambitCfg-r7000.h && cp dd-wrt.bin.chk $(ARCH)-uclibc/K3_R7000.chk
 endif
 	-$(MAKE) -f Makefile.northstar validate MAXIMUM_SIZE=7470000 EX_PATH=$(ARCH)-uclibc/K3_EX6200.chk
-endif ### $(CONFIG_BUILD_NETGEAR)
+endif # $(CONFIG_BUILD_NETGEAR)
 
 ifeq ($(CONFIG_BUILD_TRENDNET),y)
 	### Pack for Trendnet ###
@@ -692,12 +702,11 @@ ifeq ($(CONFIG_BUILD_TRENDNET),y)
 
 	cp $(ARCH)-uclibc/northstar-firmware-squashfs.bin  $(ARCH)-uclibc/tnet811.trx
 	./tools/trendnet/auto_add_header_811 $(ARCH)-uclibc/tnet811.trx
-endif ### $(CONFIG_BUILD_TRENDNET)
+endif # $(CONFIG_BUILD_TRENDNET)
 
 include rules/all.mk
 
 .PHONY: all clean distclean mrproper install package
 .PHONY: conf mconf oldconf kconf kmconf config menuconfig oldconfig
 .PHONY: dummy fixkc libnet libpcap
-
 
