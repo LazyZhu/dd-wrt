@@ -2861,8 +2861,7 @@ void start_drivers(void)
 		led_control(LED_USB, LED_ON);
 		led_control(LED_USB1, LED_ON);
 
-		insmod
-		    ("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx");
+		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx");
 
 		if (nvram_match("usb_storage", "1")) {
 			insmod("scsi_mod scsi_wait_scan sd_mod cdrom sr_mod usb-storage");
@@ -2915,7 +2914,7 @@ void start_drivers(void)
 		rmmod("usbmisc_imx ci13xxx_imx ci_hdrc phy-mxs-usb fsl-mph-dr-of");
 		rmmod("usb-libusual dwc_otg");
 		// core
-		rmmod("xhci-hcd ohci-hcd usb-ohci uhci-hcd usb-uhci");
+		rmmod("xhci-pci xhci-hcd ohci-hcd usb-ohci uhci-hcd usb-uhci");
 		rmmod("ehci-pci ehci-platform ehci-hcd");
 		rmmod("usbcore usb-common");
 		/* unload filesystems */
