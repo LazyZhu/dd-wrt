@@ -10,42 +10,47 @@ PPTPSERVER=$(nvram get pptpd_client_srvip)
 PPTPCONF="/tmp/pptpd_client/options.vpn"
 PIDFILE="/var/run/vpnc.pid"
 PPTPPID=`ps | grep "pptp_server $PPTPSERVER" | grep pppd | awk -F" " '{print $1}'`
+REDIALT=30
 
 
 case $1 in
  "start" )
-	echo "Launching VPN client..."
+	echo -n "Launching VPN client... "
 	$0 go &
-	echo "VPN process launched"
+	echo "done"
+	logger -t vpnc "PPTP VPN Client started"
  ;;
 
  "go" )
-#	echo "Load ppp modules..."
+	echo "Load ppp modules..."
 	startservice pppmodules
+	echo "Load PPTP driver..."
 	insmod pptp 2>/dev/null
-#	echo "Waiting 5 sec......."
+	echo "Waiting 5 sec......."
 	sleep 5
 	if [ -f "${PIDFILE}" ]; then
 	   PID="`cat ${PIDFILE}`"
 	   if egrep vpnc "/proc/${PID}/cmdline" 2>/dev/null; then
-#	    echo "Already active!"
+	    echo "Already active! Quit"
 	    exit 16
 	   fi
-#	   echo "Removing stale PID file"
+	   echo "Removing stale PID file"
 	   rm -f "${PIDFILE}"
 	fi
 	echo -n $$ > "${PIDFILE}"
-#	echo "PID file created"
+	echo "PID file created"
 	echo "Attempting initial connect..."
+	logger -t vpnc "Attempting initial PPTP connect"
 	pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF nodetach
 	# nodetach needed for RET, otherwise it will be 0
 	RET=$?
 	echo "Connection dropped... Error code $RET."
-
+	sleep $REDIALT
 	while [ $RET ];
 	do
 	   PPTPPID=`ps | grep "pptp_server $PPTPSERVER" | grep pppd | awk -F" " '{print $1}'`
-	   echo "Attempting [re]connect... "
+	   echo "Attempting [re]connect..."
+	   logger -t vpnc "Attempting PPTP [re]connect"
 	   for i in $PPTPPID; do
 		   kill $i;
 	   done
@@ -56,14 +61,15 @@ case $1 in
 	   sleep 1
 	   pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF nodetach
 	   RET=$?
-	   echo "Connection dropped... Error code $RET. Wait 30 sec"
-	   sleep 30
+	   echo "Connection dropped... Error code $RET. Wait $REDIALT sec"
+	   sleep $REDIALT
 	done;
  ;;
 
  "debug" )
 	echo "Load ppp modules..."
 	startservice pppmodules
+	echo "Load PPTP driver..."
 	insmod pptp 2>/dev/null
 	echo "Waiting 5 sec......."
 	sleep 5
@@ -82,7 +88,7 @@ case $1 in
 	pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF loglevel 2 debug dump nodetach
 	RET=$?
 	echo "Return code = $RET"
-
+	sleep $REDIALT
 	while [ $RET ];
 	do
 	   PPTPPID=`ps | grep "pptp_server $PPTPSERVER" | grep pppd | awk -F" " '{print $1}'`
@@ -98,8 +104,8 @@ case $1 in
 	   pppd plugin "pptp.so" pptp_server $PPTPSERVER file $PPTPCONF loglevel 2 debug dump nodetach
 	   RET=$?
 	   echo "Return code = $RET"
-	   echo "Connection dropped... Wait 30 sec"
-	   sleep 30
+	   echo "Connection dropped... Wait $REDIALT sec"
+	   sleep $REDIALT
 	done;
  ;;
 
@@ -122,14 +128,15 @@ case $1 in
 	done
 	sleep 2
 	# rm /tmp/pptpd_client/ -R
-	echo "Remove PPTP driver"
+	echo "Remove PPTP driver..."
 	rmmod pptp 2>/dev/null
 	echo "VPN Client stopped"
+	logger -t vpnc "PPTP VPN Client stopped"
  ;;
 
  * )
 	echo " "
-	echo "  PTPP VPN Client" 
+	echo "  PPTP VPN Client" 
 	echo "  ---------------" 
 	echo " " 
 	echo "   start  -  Starts the Client" 

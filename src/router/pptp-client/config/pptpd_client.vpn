@@ -7,17 +7,20 @@
 
 RESP=0
 PPTPSERVER=$(nvram get pptpd_client_srvip)
+REDIALT=30
 
 case $1 in
- "start" )
-  echo "Launching VPN process"
-  $0 go &
-  echo "Process launched"
-;;
 
- "go"  )
-  echo "Fixing config line endings"
-  sed -i s/\\r//g /tmp/pptpd_client/options.vpn
+ "start" )
+
+  echo -n "Launching VPN process... "
+  $0 go &
+  echo "done"
+  logger -t vpn "PPTP VPN Client started"
+ ;;
+
+ "go" )
+
   echo "Waiting......."
   startservice pppmodules
   sleep 10
@@ -35,24 +38,27 @@ case $1 in
   fi
   echo -n $$ > "${PIDFILE}"
   echo "PID file created"
-  echo "Attempting initial connect"
-  pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn
+  echo "Attempting initial connect..."
+  logger -t vpn "Attempting initial PPTP connect"
+  pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn nodetach
   echo "Initial connection dropped"
-
+  sleep $REDIALT
   while [ 1 ];
   do
-   echo "Attempting connect... "
+   echo "Attempting [re]connect..."
+   logger -t vpn "Attempting PPTP [re]connect"
    killall pptp 2>/dev/null
    sleep 2
    killall -9 pptp 2>/dev/null
    sleep 1
-   pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn
+   pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn nodetach
    echo "Connection dropped... "
-   sleep 30
+   sleep $REDIALT
   done;
  ;;
 
- "debug"  )
+ "debug" )
+
   echo "Waiting......."
   sleep 10
   PIDFILE="/var/run/vpn.pid"
@@ -70,9 +76,9 @@ case $1 in
   echo -n $$ > "${PIDFILE}"
   echo "PID file created"
   echo "Attempting initial connect"
-  pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn debug nodetach
+  pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn debug dump nodetach
   echo "Initial connection dropped"
-
+  sleep $REDIALT
   while [ 1 ];
   do
    echo "Attempting connect... "
@@ -80,13 +86,13 @@ case $1 in
    sleep 2
    killall -9 pptp 2>/dev/null
    sleep 1
-   pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn debug nodetach
+   pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn debug dump nodetach
    echo "Connection dropped... "
-   sleep 30
+   sleep $REDIALT
   done;
  ;;
 
-"stop"   )
+ "stop" )
 
   VPNPID=`cat /var/run/vpn.pid`
   echo "Killing VPN PID $VPNPID"
@@ -101,12 +107,14 @@ case $1 in
   kill -9 $PPTPPID
   sleep 2
   rm /var/run/vpn.pid
-  rm /tmp/pptpd_client/ -R
+  #rm /tmp/pptpd_client/ -R
   echo "VPN Stopped"
- ;; 
-* ) 
+  logger -t vpn "PPTP VPN Client stopped"
+ ;;
+
+ * )
   echo " "
-  echo "  PTPP VPN CLIENT" 
+  echo "  PPTP VPN CLIENT" 
   echo "  --------" 
   echo " " 
   echo "   start  -  Starts the Client" 
@@ -116,4 +124,5 @@ case $1 in
   echo " " 
  ;; 
 esac
+
 return $RESP

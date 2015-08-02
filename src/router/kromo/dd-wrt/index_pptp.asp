@@ -51,11 +51,13 @@
 	<input class="spaceradio" type="radio" name="pptp_encrypt" value="1" <% nvc("pptp_encrypt","1"); %> /><% tran("share.enable"); %>&nbsp;
 	<input class="spaceradio" type="radio" name="pptp_encrypt" value="0" <% nvc("pptp_encrypt","0"); %> /><% tran("share.disable"); %>
 </div>
+<% ifdef("HAVE_PPTP_PLUGIN", "<!--"); %>
 <div class="setting">
 	<div class="label"><% tran("idx_pptp.reorder"); %></div>
 	<input class="spaceradio" type="radio" name="pptp_reorder" value="1" <% nvc("pptp_reorder","1"); %> /><% tran("share.enable"); %>&nbsp;
 	<input class="spaceradio" type="radio" name="pptp_reorder" value="0" <% nvc("pptp_reorder","0"); %> /><% tran("share.disable"); %>
 </div>
+<% ifdef("HAVE_PPTP_PLUGIN", "-->"); %>
 <div class="setting">
 	<div class="label"><% tran("share.wan_dualaccess"); %></div>
 	<input class="spaceradio" type="radio" name="wan_dualaccess" value="1" <% nvc("wan_dualaccess", "1"); %> /><% tran("share.yes"); %>&nbsp;

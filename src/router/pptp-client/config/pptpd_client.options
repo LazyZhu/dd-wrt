@@ -1,8 +1,6 @@
-### debug stuff
-#logfd 2
-#debug
-#dump
-###
+#
+# VPN client default config options
+#
 defaultroute
 usepeerdns
 lock
@@ -16,13 +14,11 @@ refuse-mschap
 ### disable comp.
 nobsdcomp
 nodeflate
-mppc
 ### stale check
-lcp-echo-adaptive
 lcp-echo-failure 20
 lcp-echo-interval 3
 ### keep alive
 idle 0
 persist
 maxfail 0
-###
+########################################

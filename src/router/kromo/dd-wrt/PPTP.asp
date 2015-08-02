@@ -253,6 +253,11 @@ addEvent(window, "unload", function() {
 		<div class="setting">
 			<div class="label"><% tran("service.pptpd_encry"); %></div>
 			<input size="27" name="pptpd_client_srvsec" value="<% nvg("pptpd_client_srvsec"); %>" />
+		</div>		
+		<div class="setting">
+			<div class="label"><% tran("share.compression"); %></div>
+			<input class="spaceradio" type="radio" name="pptpd_client_srvcmp" value="1" <% nvc("pptpd_client_srvcmp","1"); %> /><% tran("share.enable"); %>&nbsp;
+			<input class="spaceradio" type="radio" name="pptpd_client_srvcmp" value="0" <% nvc("pptpd_client_srvcmp","0"); %> /><% tran("share.disable"); %>
 		</div>
 		<div class="setting">
 			<div class="label"><% tran("service.pptpd_mtu"); %></div>
