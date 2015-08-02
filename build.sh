@@ -33,6 +33,7 @@ cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_16m $DEVDIR/src/router/
 # cp -f $DEVDIR/src/router/configs/northstar/.config_xiaomi_r1d $DEVDIR/src/router/.config
 echo "CONFIG_BUILD_HUAWEI=y" >> $DEVDIR/src/router/.config
 echo "CONFIG_USB_AUDIO=y" >> $DEVDIR/src/router/.config
+echo "CONFIG_PPTP_PLUGIN=y" >> $DEVDIR/src/router/.config
 # Make fw for other brands too
 # (uncomment desired and check src/router/Makefile.northstar)
 #echo "CONFIG_BUILD_XIAOMI=y" >> $DEVDIR/src/router/.config
@@ -155,7 +156,7 @@ echo "* doesn't need to run on every build"
 echo "* comment if build with same config"
 echo "************************************"
 echo ""
-(make -f Makefile.northstar configure | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutconf.log) 3>&1 1>&2 2>&3 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stderrconf.log 
+#(make -f Makefile.northstar configure | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutconf.log) 3>&1 1>&2 2>&3 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stderrconf.log 
 echo ""
 echo "************************************"
 echo "* Make Northstar targets..."
@@ -164,7 +165,7 @@ echo ""
 # make -f Makefile.northstar install_headers
 make -f Makefile.northstar kernel # must be builded first, or opendpi won't compile
 make -f Makefile.northstar clean all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutbuild.log
-#make -f Makefile.northstar all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutbuild.log
+# make -f Makefile.northstar all install 2>&1 | tee $DEVDIR/logs/`date "+%Y.%m.%d-%H.%M"`-stdoutbuild.log
 
 # copy firmware to image dir
 if [ -e arm-uclibc/xiaomi-r1d-firmware.bin ]
