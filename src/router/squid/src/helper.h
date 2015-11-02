@@ -1,99 +1,125 @@
 /*
- * DEBUG: section 84    Helper process maintenance
- * AUTHOR: Harvest Derived?
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 84    Helper process maintenance */
 
 #ifndef SQUID_HELPER_H
 #define SQUID_HELPER_H
 
 #include "base/AsyncCall.h"
+#include "base/InstanceId.h"
 #include "cbdata.h"
 #include "comm/forward.h"
 #include "dlink.h"
+#include "helper/ChildConfig.h"
+#include "helper/forward.h"
 #include "ip/Address.h"
-#include "HelperChildConfig.h"
+#include "SBuf.h"
 
-class helper_request;
+#include <list>
+#include <map>
 
-typedef void HLPSCB(void *, void *lastserver, char *buf);
+class Packable;
+class wordlist;
 
+/**
+ * Managers a set of individual helper processes with a common queue of requests.
+ *
+ * With respect to load, a helper goes through these states (roughly):
+ *   idle:   no processes are working on requests (and no requests are queued);
+ *   normal: some, but not all processes are working (and no requests are queued);
+ *   busy:   all processes are working (and some requests are possibly queued);
+ *   full:   all processes are working and at least 2*#processes requests are queued.
+ *
+ * A "busy" helper queues new requests and issues a WARNING every 10 minutes or so.
+ * A "full" helper either drops new requests or keeps queuing them, depending on
+ *   whether the caller can handle dropped requests (trySubmit vs helperSubmit APIs).
+ * An attempt to use a "full" helper that has been "full" for 3+ minutes kills worker.
+ *   Given enough load, all helpers except for external ACL will make such attempts.
+ */
 class helper
 {
+    CBDATA_CLASS(helper);
+
 public:
     inline helper(const char *name) :
-            cmdline(NULL),
-            id_name(name),
-            ipc_type(0),
-            last_queue_warn(0),
-            last_restart(0),
-            eom('\n') {
+        cmdline(NULL),
+        id_name(name),
+        ipc_type(0),
+        full_time(0),
+        last_queue_warn(0),
+        last_restart(0),
+        timeout(0),
+        retryTimedOut(false),
+        retryBrokenHelper(false),
+        eom('\n') {
         memset(&stats, 0, sizeof(stats));
     }
     ~helper();
+
+    ///< whether at least one more request can be successfully submitted
+    bool queueFull() const;
+
+    ///< If not full, submit request. Otherwise, either kill Squid or return false.
+    bool trySubmit(const char *buf, HLPCB * callback, void *data);
+
+    /// Submits a request to the helper or add it to the queue if none of
+    /// the servers is available.
+    void submitRequest(Helper::Request *r);
+
+    /// Dump some stats about the helper state to a Packable object
+    void packStatsInto(Packable *p, const char *label = NULL) const;
 
 public:
     wordlist *cmdline;
     dlink_list servers;
     dlink_list queue;
     const char *id_name;
-    HelperChildConfig childs;    ///< Configuration settings for number running.
+    Helper::ChildConfig childs;    ///< Configuration settings for number running.
     int ipc_type;
     Ip::Address addr;
+    time_t full_time; ///< when a full helper became full (zero for non-full helpers)
     time_t last_queue_warn;
     time_t last_restart;
+    time_t timeout; ///< Requests timeout
+    bool retryTimedOut; ///< Whether the timed-out requests must retried
+    bool retryBrokenHelper; ///< Whether the requests must retried on BH replies
+    SBuf onTimedOutResponse; ///< The response to use when helper response timedout
     char eom;   ///< The char which marks the end of (response) message, normally '\n'
 
     struct _stats {
         int requests;
         int replies;
+        int timedout;
         int queue_size;
         int avg_svc_time;
     } stats;
 
-private:
-    CBDATA_CLASS2(helper);
+protected:
+    friend void helperSubmit(helper * hlp, const char *buf, HLPCB * callback, void *data);
+    void prepSubmit();
+    void submit(const char *buf, HLPCB * callback, void *data);
 };
 
 class statefulhelper : public helper
 {
+    CBDATA_CLASS(statefulhelper);
+
 public:
-    inline statefulhelper(const char *name) : helper(name), datapool(NULL), IsAvailable(NULL), OnEmptyQueue(NULL) {};
-    inline ~statefulhelper() {};
+    inline statefulhelper(const char *name) : helper(name), datapool(NULL) {}
+    inline ~statefulhelper() {}
 
 public:
     MemAllocator *datapool;
-    HLPSAVAIL *IsAvailable;
-    HLPSONEQ *OnEmptyQueue;
 
 private:
-    CBDATA_CLASS2(statefulhelper);
+    friend void helperStatefulSubmit(statefulhelper * hlp, const char *buf, HLPCB * callback, void *data, helper_stateful_server * lastserver);
+    void submit(const char *buf, HLPCB * callback, void *data, helper_stateful_server *lastserver);
 };
 
 /**
@@ -104,17 +130,23 @@ class HelperServerBase
 public:
     /** Closes pipes to the helper safely.
      * Handles the case where the read and write pipes are the same FD.
+     *
+     * \param name displayed for the helper being shutdown if logging an error
      */
-    void closePipesSafely();
+    void closePipesSafely(const char *name);
 
     /** Closes the reading pipe.
      * If the read and write sockets are the same the write pipe will
      * also be closed. Otherwise its left open for later handling.
+     *
+     * \param name displayed for the helper being shutdown if logging an error
      */
-    void closeWritePipeSafely();
+    void closeWritePipeSafely(const char *name);
 
 public:
-    int index;
+    /// Helper program identifier; does not change when contents do,
+    ///   including during assignment
+    const InstanceId<HelperServerBase> index;
     int pid;
     Ip::Address addr;
     Comm::ConnectionPointer readPipe;
@@ -131,91 +163,74 @@ public:
     dlink_node link;
 
     struct _helper_flags {
-        unsigned int busy:1;
-        unsigned int writing:1;
-        unsigned int closing:1;
-        unsigned int shutdown:1;
-        unsigned int reserved:1;
+        bool writing;
+        bool closing;
+        bool shutdown;
+        bool reserved;
     } flags;
+
+    typedef std::list<Helper::Request *> Requests;
+    Requests requests; ///< requests in order of submission/expiration
 
     struct {
         uint64_t uses;     //< requests sent to this helper
         uint64_t replies;  //< replies received from this helper
         uint64_t pending;  //< queued lookups waiting to be sent to this helper
         uint64_t releases; //< times release() has been called on this helper (if stateful)
+        uint64_t timedout; //< requests which timed-out
     } stats;
     void initStats();
 };
 
 class MemBuf;
+class CommTimeoutCbParams;
 
 class helper_server : public HelperServerBase
 {
+    CBDATA_CLASS(helper_server);
+
 public:
+    uint64_t nextRequestId;
+
     MemBuf *wqueue;
     MemBuf *writebuf;
 
     helper *parent;
-    helper_request **requests;
 
-private:
-    CBDATA_CLASS2(helper_server);
+    // STL says storing std::list iterators is safe when changing the list
+    typedef std::map<uint64_t, Requests::iterator> RequestIndex;
+    RequestIndex requestsIndex; ///< maps request IDs to requests
+
+    /// Run over the active requests lists and forces a retry, or timedout reply
+    /// or the configured "on timeout response" for timedout requests.
+    void checkForTimedOutRequests(bool const retry);
+
+    /// Read timeout handler
+    static void requestTimeout(const CommTimeoutCbParams &io);
 };
-
-class helper_stateful_request;
 
 class helper_stateful_server : public HelperServerBase
 {
+    CBDATA_CLASS(helper_stateful_server);
+
 public:
     /* MemBuf wqueue; */
     /* MemBuf writebuf; */
 
     statefulhelper *parent;
-    helper_stateful_request *request;
 
-    void *data;			/* State data used by the calling routines */
-
-private:
-    CBDATA_CLASS2(helper_stateful_server);
+    void *data;         /* State data used by the calling routines */
 };
-
-class helper_request
-{
-
-public:
-    MEMPROXY_CLASS(helper_request);
-    char *buf;
-    HLPCB *callback;
-    void *data;
-
-    struct timeval dispatch_time;
-};
-
-MEMPROXY_CLASS_INLINE(helper_request);
-
-class helper_stateful_request
-{
-
-public:
-    MEMPROXY_CLASS(helper_stateful_request);
-    char *buf;
-    HLPSCB *callback;
-    int placeholder;		/* if 1, this is a dummy request waiting for a stateful helper to become available */
-    void *data;
-};
-
-MEMPROXY_CLASS_INLINE(helper_stateful_request);
 
 /* helper.c */
 void helperOpenServers(helper * hlp);
 void helperStatefulOpenServers(statefulhelper * hlp);
 void helperSubmit(helper * hlp, const char *buf, HLPCB * callback, void *data);
-void helperStatefulSubmit(statefulhelper * hlp, const char *buf, HLPSCB * callback, void *data, helper_stateful_server * lastserver);
-void helperStats(StoreEntry * sentry, helper * hlp, const char *label = NULL);
-void helperStatefulStats(StoreEntry * sentry, statefulhelper * hlp, const char *label = NULL);
+void helperStatefulSubmit(statefulhelper * hlp, const char *buf, HLPCB * callback, void *data, helper_stateful_server * lastserver);
 void helperShutdown(helper * hlp);
 void helperStatefulShutdown(statefulhelper * hlp);
 void helperStatefulReleaseServer(helper_stateful_server * srv);
 void *helperStatefulServerGetData(helper_stateful_server * srv);
 
 #endif /* SQUID_HELPER_H */
+

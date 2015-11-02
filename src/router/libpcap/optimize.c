@@ -20,18 +20,29 @@
  *
  *  Optimization module for tcpdump intermediate representation.
  */
-#ifndef lint
-static const char rcsid[] _U_ =
-    "@(#) $Header: /tcpdump/master/libpcap/optimize.c,v 1.77 2003/11/15 23:24:00 guy Exp $ (LBL)";
-#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#ifdef WIN32
+#include <pcap-stdinc.h>
+#else /* WIN32 */
+#if HAVE_INTTYPES_H
+#include <inttypes.h>
+#elif HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#ifdef HAVE_SYS_BITYPES_H
+#include <sys/bitypes.h>
+#endif
+#include <sys/types.h>
+#endif /* WIN32 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <string.h>
 
 #include <errno.h>
 
@@ -47,10 +58,28 @@ static const char rcsid[] _U_ =
 extern int dflag;
 #endif
 
+#if defined(MSDOS) && !defined(__DJGPP__)
+extern int _w32_ffs (int mask);
+#define ffs _w32_ffs
+#endif
+
+#if defined(WIN32) && defined (_MSC_VER)
+int ffs(int mask);
+#endif
+
+/*
+ * Represents a deleted instruction.
+ */
+#define NOP -1
+
+/*
+ * Register numbers for use-def values.
+ * 0 through BPF_MEMWORDS-1 represent the corresponding scratch memory
+ * location.  A_ATOM is the accumulator and X_ATOM is the index
+ * register.
+ */
 #define A_ATOM BPF_MEMWORDS
 #define X_ATOM (BPF_MEMWORDS+1)
-
-#define NOP -1
 
 /*
  * This define is used to represent *both* the accumulator and
@@ -79,51 +108,9 @@ static int cur_mark;
 static void opt_init(struct block *);
 static void opt_cleanup(void);
 
-static void make_marks(struct block *);
-static void mark_code(struct block *);
-
 static void intern_blocks(struct block *);
 
-static int eq_slist(struct slist *, struct slist *);
-
-static void find_levels_r(struct block *);
-
-static void find_levels(struct block *);
-static void find_dom(struct block *);
-static void propedom(struct edge *);
-static void find_edom(struct block *);
-static void find_closure(struct block *);
-static int atomuse(struct stmt *);
-static int atomdef(struct stmt *);
-static void compute_local_ud(struct block *);
-static void find_ud(struct block *);
-static void init_val(void);
-static int F(int, int, int);
-static inline void vstore(struct stmt *, int *, int, int);
-static void opt_blk(struct block *, int);
-static int use_conflict(struct block *, struct block *);
-static void opt_j(struct edge *);
-static void or_pullup(struct block *);
-static void and_pullup(struct block *);
-static void opt_blks(struct block *, int);
-static inline void link_inedge(struct edge *, struct block *);
 static void find_inedges(struct block *);
-static void opt_root(struct block **);
-static void opt_loop(struct block *, int);
-static void fold_op(struct stmt *, int, int);
-static inline struct slist *this_op(struct slist *);
-static void opt_not(struct block *);
-static void opt_peep(struct block *);
-static void opt_stmt(struct stmt *, int[], int);
-static void deadstmt(struct stmt *, struct stmt *[]);
-static void opt_deadstores(struct block *);
-static struct block *fold_edge(struct block *, struct edge *);
-static inline int eq_blk(struct block *, struct block *);
-static int slength(struct slist *);
-static int count_blocks(struct block *);
-static void number_blks_r(struct block *);
-static int count_stmts(struct block *);
-static int convert_code_r(struct block *);
 #ifdef BDEBUG
 static void opt_dump(struct block *);
 #endif
@@ -199,8 +186,7 @@ static uset all_edge_sets;
 #endif
 
 static void
-find_levels_r(b)
-	struct block *b;
+find_levels_r(struct block *b)
 {
 	int level;
 
@@ -228,8 +214,7 @@ find_levels_r(b)
  * with the 'link' field of the struct block.
  */
 static void
-find_levels(root)
-	struct block *root;
+find_levels(struct block *root)
 {
 	memset((char *)levels, 0, n_blocks * sizeof(*levels));
 	unMarkAll();
@@ -241,8 +226,7 @@ find_levels(root)
  * Assumes graph has been leveled.
  */
 static void
-find_dom(root)
-	struct block *root;
+find_dom(struct block *root)
 {
 	int i;
 	struct block *b;
@@ -272,8 +256,7 @@ find_dom(root)
 }
 
 static void
-propedom(ep)
-	struct edge *ep;
+propedom(struct edge *ep)
 {
 	SET_INSERT(ep->edom, ep->id);
 	if (ep->succ) {
@@ -287,8 +270,7 @@ propedom(ep)
  * Assumes graph has been leveled and predecessors established.
  */
 static void
-find_edom(root)
-	struct block *root;
+find_edom(struct block *root)
 {
 	int i;
 	uset x;
@@ -317,8 +299,7 @@ find_edom(root)
  * Assumes graph has been leveled.
  */
 static void
-find_closure(root)
-	struct block *root;
+find_closure(struct block *root)
 {
 	int i;
 	struct block *b;
@@ -348,8 +329,7 @@ find_closure(root)
  * The implementation should probably change to an array access.
  */
 static int
-atomuse(s)
-	struct stmt *s;
+atomuse(struct stmt *s)
 {
 	register int c = s->code;
 
@@ -394,8 +374,7 @@ atomuse(s)
  * The implementation should probably change to an array access.
  */
 static int
-atomdef(s)
-	struct stmt *s;
+atomdef(struct stmt *s)
 {
 	if (s->code == NOP)
 		return -1;
@@ -419,9 +398,19 @@ atomdef(s)
 	return -1;
 }
 
+/*
+ * Compute the sets of registers used, defined, and killed by 'b'.
+ *
+ * "Used" means that a statement in 'b' uses the register before any
+ * statement in 'b' defines it, i.e. it uses the value left in
+ * that register by a predecessor block of this block.
+ * "Defined" means that a statement in 'b' defines it.
+ * "Killed" means that a statement in 'b' defines it before any
+ * statement in 'b' uses it, i.e. it kills the value left in that
+ * register by a predecessor block of this block.
+ */
 static void
-compute_local_ud(b)
-	struct block *b;
+compute_local_ud(struct block *b)
 {
 	struct slist *s;
 	atomset def = 0, use = 0, kill = 0;
@@ -452,8 +441,26 @@ compute_local_ud(b)
 			def |= ATOMMASK(atom);
 		}
 	}
-	if (!ATOMELEM(def, A_ATOM) && BPF_CLASS(b->s.code) == BPF_JMP)
-		use |= ATOMMASK(A_ATOM);
+	if (BPF_CLASS(b->s.code) == BPF_JMP) {
+		/*
+		 * XXX - what about RET?
+		 */
+		atom = atomuse(&b->s);
+		if (atom >= 0) {
+			if (atom == AX_ATOM) {
+				if (!ATOMELEM(def, X_ATOM))
+					use |= ATOMMASK(X_ATOM);
+				if (!ATOMELEM(def, A_ATOM))
+					use |= ATOMMASK(A_ATOM);
+			}
+			else if (atom < N_ATOMS) {
+				if (!ATOMELEM(def, atom))
+					use |= ATOMMASK(atom);
+			}
+			else
+				abort();
+		}
+	}
 
 	b->def = def;
 	b->kill = kill;
@@ -464,8 +471,7 @@ compute_local_ud(b)
  * Assume graph is already leveled.
  */
 static void
-find_ud(root)
-	struct block *root;
+find_ud(struct block *root)
 {
 	int i, maxlevel;
 	struct block *p;
@@ -520,7 +526,7 @@ struct valnode *vnode_base;
 struct valnode *next_vnode;
 
 static void
-init_val()
+init_val(void)
 {
 	curval = 0;
 	next_vnode = vnode_base;
@@ -530,9 +536,7 @@ init_val()
 
 /* Because we really don't have an IR, this stuff is a little messy. */
 static int
-F(code, v0, v1)
-	int code;
-	int v0, v1;
+F(int code, int v0, int v1)
 {
 	u_int hash;
 	int val;
@@ -563,11 +567,7 @@ F(code, v0, v1)
 }
 
 static inline void
-vstore(s, valp, newval, alter)
-	struct stmt *s;
-	int *valp;
-	int newval;
-	int alter;
+vstore(struct stmt *s, int *valp, int newval, int alter)
 {
 	if (alter && *valp == newval)
 		s->code = NOP;
@@ -575,12 +575,14 @@ vstore(s, valp, newval, alter)
 		*valp = newval;
 }
 
+/*
+ * Do constant-folding on binary operators.
+ * (Unary operators are handled elsewhere.)
+ */
 static void
-fold_op(s, v0, v1)
-	struct stmt *s;
-	int v0, v1;
+fold_op(struct stmt *s, int v0, int v1)
 {
-	bpf_int32 a, b;
+	bpf_u_int32 a, b;
 
 	a = vmap[v0].const_val;
 	b = vmap[v1].const_val;
@@ -604,6 +606,12 @@ fold_op(s, v0, v1)
 		a /= b;
 		break;
 
+	case BPF_MOD:
+		if (b == 0)
+			bpf_error("modulus by zero");
+		a %= b;
+		break;
+
 	case BPF_AND:
 		a &= b;
 		break;
@@ -612,16 +620,16 @@ fold_op(s, v0, v1)
 		a |= b;
 		break;
 
+	case BPF_XOR:
+		a ^= b;
+		break;
+
 	case BPF_LSH:
 		a <<= b;
 		break;
 
 	case BPF_RSH:
 		a >>= b;
-		break;
-
-	case BPF_NEG:
-		a = -a;
 		break;
 
 	default:
@@ -633,8 +641,7 @@ fold_op(s, v0, v1)
 }
 
 static inline struct slist *
-this_op(s)
-	struct slist *s;
+this_op(struct slist *s)
 {
 	while (s != 0 && s->s.code == NOP)
 		s = s->next;
@@ -642,8 +649,7 @@ this_op(s)
 }
 
 static void
-opt_not(b)
-	struct block *b;
+opt_not(struct block *b)
 {
 	struct block *tmp = JT(b);
 
@@ -652,8 +658,7 @@ opt_not(b)
 }
 
 static void
-opt_peep(b)
-	struct block *b;
+opt_peep(struct block *b)
 {
 	struct slist *s;
 	struct slist *next, *last;
@@ -665,12 +670,20 @@ opt_peep(b)
 
 	last = s;
 	for (/*empty*/; /*empty*/; s = next) {
+		/*
+		 * Skip over nops.
+		 */
 		s = this_op(s);
 		if (s == 0)
-			break;
+			break;	/* nothing left in the block */
+
+		/*
+		 * Find the next real instruction after that one
+		 * (skipping nops).
+		 */
 		next = this_op(s->next);
 		if (next == 0)
-			break;
+			break;	/* no next instruction */
 		last = next;
 
 		/*
@@ -709,6 +722,12 @@ opt_peep(b)
 			if (ATOMELEM(b->out_use, X_ATOM))
 				continue;
 
+			/*
+			 * Check that the instruction following the ldi
+			 * is an addx, or it's an ldxms with an addx
+			 * following it (with 0 or more nops between the
+			 * ldxms and addx).
+			 */
 			if (next->s.code != (BPF_LDX|BPF_MSH|BPF_B))
 				add = next;
 			else
@@ -716,20 +735,23 @@ opt_peep(b)
 			if (add == 0 || add->s.code != (BPF_ALU|BPF_ADD|BPF_X))
 				continue;
 
+			/*
+			 * Check that a tax follows that (with 0 or more
+			 * nops between them).
+			 */
 			tax = this_op(add->next);
 			if (tax == 0 || tax->s.code != (BPF_MISC|BPF_TAX))
 				continue;
 
+			/*
+			 * Check that an ild follows that (with 0 or more
+			 * nops between them).
+			 */
 			ild = this_op(tax->next);
 			if (ild == 0 || BPF_CLASS(ild->s.code) != BPF_LD ||
 			    BPF_MODE(ild->s.code) != BPF_IND)
 				continue;
 			/*
-			 * XXX We need to check that X is not
-			 * subsequently used.  We know we can eliminate the
-			 * accumulator modifications since it is defined
-			 * by the last stmt of this sequence.
-			 *
 			 * We want to turn this sequence:
 			 *
 			 * (004) ldi     #0x2		{s}
@@ -746,6 +768,16 @@ opt_peep(b)
 			 * (007) nop
 			 * (008) ild     [x+2]
 			 *
+			 * XXX We need to check that X is not
+			 * subsequently used, because we want to change
+			 * what'll be in it after this sequence.
+			 *
+			 * We know we can eliminate the accumulator
+			 * modifications earlier in the sequence since
+			 * it is defined by the last stmt of this sequence
+			 * (i.e., the last statement of the sequence loads
+			 * a value into the accumulator, so we can eliminate
+			 * earlier operations on the accumulator).
 			 */
 			ild->s.k += s->s.k;
 			s->s.code = NOP;
@@ -755,16 +787,27 @@ opt_peep(b)
 		}
 	}
 	/*
-	 * If we have a subtract to do a comparison, and the X register
-	 * is a known constant, we can merge this value into the
-	 * comparison.
+	 * If the comparison at the end of a block is an equality
+	 * comparison against a constant, and nobody uses the value
+	 * we leave in the A register at the end of a block, and
+	 * the operation preceding the comparison is an arithmetic
+	 * operation, we can sometime optimize it away.
 	 */
-	if (BPF_OP(b->s.code) == BPF_JEQ) {
-		if (last->s.code == (BPF_ALU|BPF_SUB|BPF_X) &&
-		    !ATOMELEM(b->out_use, A_ATOM)) {
+	if (b->s.code == (BPF_JMP|BPF_JEQ|BPF_K) &&
+	    !ATOMELEM(b->out_use, A_ATOM)) {
+	    	/*
+	    	 * We can optimize away certain subtractions of the
+	    	 * X register.
+	    	 */
+		if (last->s.code == (BPF_ALU|BPF_SUB|BPF_X)) {
 			val = b->val[X_ATOM];
 			if (vmap[val].is_const) {
 				/*
+				 * If we have a subtract to do a comparison,
+				 * and the X register is a known constant,
+				 * we can merge this value into the
+				 * comparison:
+				 *
 				 * sub x  ->	nop
 				 * jeq #y	jeq #(x+y)
 				 */
@@ -773,37 +816,45 @@ opt_peep(b)
 				done = 0;
 			} else if (b->s.k == 0) {
 				/*
-				 * sub #x  ->	nop
-				 * jeq #0	jeq #x
+				 * If the X register isn't a constant,
+				 * and the comparison in the test is
+				 * against 0, we can compare with the
+				 * X register, instead:
+				 *
+				 * sub x  ->	nop
+				 * jeq #0	jeq x
 				 */
 				last->s.code = NOP;
-				b->s.code = BPF_CLASS(b->s.code) |
-					BPF_OP(b->s.code) | BPF_X;
+				b->s.code = BPF_JMP|BPF_JEQ|BPF_X;
 				done = 0;
 			}
 		}
 		/*
-		 * Likewise, a constant subtract can be simplified.
+		 * Likewise, a constant subtract can be simplified:
+		 *
+		 * sub #x ->	nop
+		 * jeq #y ->	jeq #(x+y)
 		 */
-		else if (last->s.code == (BPF_ALU|BPF_SUB|BPF_K) &&
-			 !ATOMELEM(b->out_use, A_ATOM)) {
-
+		else if (last->s.code == (BPF_ALU|BPF_SUB|BPF_K)) {
 			last->s.code = NOP;
 			b->s.k += last->s.k;
 			done = 0;
 		}
-	}
-	/*
-	 * and #k	nop
-	 * jeq #0  ->	jset #k
-	 */
-	if (last->s.code == (BPF_ALU|BPF_AND|BPF_K) &&
-	    !ATOMELEM(b->out_use, A_ATOM) && b->s.k == 0) {
-		b->s.k = last->s.k;
-		b->s.code = BPF_JMP|BPF_K|BPF_JSET;
-		last->s.code = NOP;
-		done = 0;
-		opt_not(b);
+		/*
+		 * And, similarly, a constant AND can be simplified
+		 * if we're testing against 0, i.e.:
+		 *
+		 * and #k	nop
+		 * jeq #0  ->	jset #k
+		 */
+		else if (last->s.code == (BPF_ALU|BPF_AND|BPF_K) &&
+		    b->s.k == 0) {
+			b->s.k = last->s.k;
+			b->s.code = BPF_JMP|BPF_K|BPF_JSET;
+			last->s.code = NOP;
+			done = 0;
+			opt_not(b);
+		}
 	}
 	/*
 	 * jset #0        ->   never
@@ -814,6 +865,17 @@ opt_peep(b)
 			JT(b) = JF(b);
 		if (b->s.k == 0xffffffff)
 			JF(b) = JT(b);
+	}
+	/*
+	 * If we're comparing against the index register, and the index
+	 * register is a known constant, we can just compare against that
+	 * constant.
+	 */
+	val = b->val[X_ATOM];
+	if (vmap[val].is_const && BPF_SRC(b->s.code) == BPF_X) {
+		bpf_int32 v = vmap[val].const_val;
+		b->s.code &= ~BPF_X;
+		b->s.k = v;
 	}
 	/*
 	 * If the accumulator is a known constant, we can compute the
@@ -859,10 +921,7 @@ opt_peep(b)
  * evaluation and code transformations weren't folded together.
  */
 static void
-opt_stmt(s, val, alter)
-	struct stmt *s;
-	int val[];
-	int alter;
+opt_stmt(struct stmt *s, int val[], int alter)
 {
 	int op;
 	int v;
@@ -925,8 +984,10 @@ opt_stmt(s, val, alter)
 	case BPF_ALU|BPF_SUB|BPF_K:
 	case BPF_ALU|BPF_MUL|BPF_K:
 	case BPF_ALU|BPF_DIV|BPF_K:
+	case BPF_ALU|BPF_MOD|BPF_K:
 	case BPF_ALU|BPF_AND|BPF_K:
 	case BPF_ALU|BPF_OR|BPF_K:
+	case BPF_ALU|BPF_XOR|BPF_K:
 	case BPF_ALU|BPF_LSH|BPF_K:
 	case BPF_ALU|BPF_RSH|BPF_K:
 		op = BPF_OP(s->code);
@@ -937,7 +998,7 @@ opt_stmt(s, val, alter)
 				 * fixup the generated math code */
 				if (op == BPF_ADD ||
 				    op == BPF_LSH || op == BPF_RSH ||
-				    op == BPF_OR) {
+				    op == BPF_OR || op == BPF_XOR) {
 					s->code = NOP;
 					break;
 				}
@@ -960,8 +1021,10 @@ opt_stmt(s, val, alter)
 	case BPF_ALU|BPF_SUB|BPF_X:
 	case BPF_ALU|BPF_MUL|BPF_X:
 	case BPF_ALU|BPF_DIV|BPF_X:
+	case BPF_ALU|BPF_MOD|BPF_X:
 	case BPF_ALU|BPF_AND|BPF_X:
 	case BPF_ALU|BPF_OR|BPF_X:
+	case BPF_ALU|BPF_XOR|BPF_X:
 	case BPF_ALU|BPF_LSH|BPF_X:
 	case BPF_ALU|BPF_RSH|BPF_X:
 		op = BPF_OP(s->code);
@@ -988,12 +1051,12 @@ opt_stmt(s, val, alter)
 		 */
 		if (alter && vmap[val[A_ATOM]].is_const
 		    && vmap[val[A_ATOM]].const_val == 0) {
-			if (op == BPF_ADD || op == BPF_OR) {
+			if (op == BPF_ADD || op == BPF_OR || op == BPF_XOR) {
 				s->code = BPF_MISC|BPF_TXA;
 				vstore(s, &val[A_ATOM], val[X_ATOM], alter);
 				break;
 			}
-			else if (op == BPF_MUL || op == BPF_DIV ||
+			else if (op == BPF_MUL || op == BPF_DIV || op == BPF_MOD ||
 				 op == BPF_AND || op == BPF_LSH || op == BPF_RSH) {
 				s->code = BPF_LD|BPF_IMM;
 				s->k = 0;
@@ -1047,9 +1110,7 @@ opt_stmt(s, val, alter)
 }
 
 static void
-deadstmt(s, last)
-	register struct stmt *s;
-	register struct stmt *last[];
+deadstmt(register struct stmt *s, register struct stmt *last[])
 {
 	register int atom;
 
@@ -1073,8 +1134,7 @@ deadstmt(s, last)
 }
 
 static void
-opt_deadstores(b)
-	register struct block *b;
+opt_deadstores(register struct block *b)
 {
 	register struct slist *s;
 	register int atom;
@@ -1094,14 +1154,12 @@ opt_deadstores(b)
 }
 
 static void
-opt_blk(b, do_stmts)
-	struct block *b;
-	int do_stmts;
+opt_blk(struct block *b, int do_stmts)
 {
 	struct slist *s;
 	struct edge *p;
 	int i;
-	bpf_int32 aval;
+	bpf_int32 aval, xval;
 
 #if 0
 	for (s = b->stmts; s && s->next; s = s->next)
@@ -1113,16 +1171,30 @@ opt_blk(b, do_stmts)
 
 	/*
 	 * Initialize the atom values.
-	 * If we have no predecessors, everything is undefined.
-	 * Otherwise, we inherent our values from our predecessors.
-	 * If any register has an ambiguous value (i.e. control paths are
-	 * merging) give it the undefined value of 0.
 	 */
 	p = b->in_edges;
-	if (p == 0)
+	if (p == 0) {
+		/*
+		 * We have no predecessors, so everything is undefined
+		 * upon entry to this block.
+		 */
 		memset((char *)b->val, 0, sizeof(b->val));
-	else {
+	} else {
+		/*
+		 * Inherit values from our predecessors.
+		 *
+		 * First, get the values from the predecessor along the
+		 * first edge leading to this node.
+		 */
 		memcpy((char *)b->val, (char *)p->pred->val, sizeof(b->val));
+		/*
+		 * Now look at all the other nodes leading to this node.
+		 * If, for the predecessor along that edge, a register
+		 * has a different value from the one we have (i.e.,
+		 * control paths are merging, and the merging paths
+		 * assign different values to that register), give the
+		 * register the undefined value of 0.
+		 */
 		while ((p = p->next) != NULL) {
 			for (i = 0; i < N_ATOMS; ++i)
 				if (b->val[i] != p->pred->val[i])
@@ -1130,17 +1202,36 @@ opt_blk(b, do_stmts)
 		}
 	}
 	aval = b->val[A_ATOM];
+	xval = b->val[X_ATOM];
 	for (s = b->stmts; s; s = s->next)
 		opt_stmt(&s->s, b->val, do_stmts);
 
 	/*
 	 * This is a special case: if we don't use anything from this
-	 * block, and we load the accumulator with value that is
-	 * already there, or if this block is a return,
+	 * block, and we load the accumulator or index register with a
+	 * value that is already there, or if this block is a return,
 	 * eliminate all the statements.
+	 *
+	 * XXX - what if it does a store?
+	 *
+	 * XXX - why does it matter whether we use anything from this
+	 * block?  If the accumulator or index register doesn't change
+	 * its value, isn't that OK even if we use that value?
+	 *
+	 * XXX - if we load the accumulator with a different value,
+	 * and the block ends with a conditional branch, we obviously
+	 * can't eliminate it, as the branch depends on that value.
+	 * For the index register, the conditional branch only depends
+	 * on the index register value if the test is against the index
+	 * register value rather than a constant; if nothing uses the
+	 * value we put into the index register, and we're not testing
+	 * against the index register's value, and there aren't any
+	 * other problems that would keep us from eliminating this
+	 * block, can we eliminate it?
 	 */
 	if (do_stmts &&
-	    ((b->out_use == 0 && aval != 0 &&b->val[A_ATOM] == aval) ||
+	    ((b->out_use == 0 && aval != 0 && b->val[A_ATOM] == aval &&
+	      xval != 0 && b->val[X_ATOM] == xval) ||
 	     BPF_CLASS(b->s.code) == BPF_RET)) {
 		if (b->stmts != 0) {
 			b->stmts = 0;
@@ -1167,8 +1258,7 @@ opt_blk(b, do_stmts)
  * from 'b'.
  */
 static int
-use_conflict(b, succ)
-	struct block *b, *succ;
+use_conflict(struct block *b, struct block *succ)
 {
 	int atom;
 	atomset use = succ->out_use;
@@ -1184,9 +1274,7 @@ use_conflict(b, succ)
 }
 
 static struct block *
-fold_edge(child, ep)
-	struct block *child;
-	struct edge *ep;
+fold_edge(struct block *child, struct edge *ep)
 {
 	int sense;
 	int aval0, aval1, oval0, oval1;
@@ -1211,9 +1299,9 @@ fold_edge(child, ep)
 
 	if (oval0 == oval1)
 		/*
-		 * The operands are identical, so the
-		 * result is true if a true branch was
-		 * taken to get here, otherwise false.
+		 * The operands of the branch instructions are
+		 * identical, so the result is true if a true
+		 * branch was taken to get here, otherwise false.
 		 */
 		return sense ? JT(child) : JF(child);
 
@@ -1221,8 +1309,16 @@ fold_edge(child, ep)
 		/*
 		 * At this point, we only know the comparison if we
 		 * came down the true branch, and it was an equality
-		 * comparison with a constant.  We rely on the fact that
-		 * distinct constants have distinct value numbers.
+		 * comparison with a constant.
+		 *
+		 * I.e., if we came down the true branch, and the branch
+		 * was an equality comparison with a constant, we know the
+		 * accumulator contains that constant.  If we came down
+		 * the false branch, or the comparison wasn't with a
+		 * constant, we don't know what was in the accumulator.
+		 *
+		 * We rely on the fact that distinct constants have distinct
+		 * value numbers.
 		 */
 		return JF(child);
 
@@ -1230,8 +1326,7 @@ fold_edge(child, ep)
 }
 
 static void
-opt_j(ep)
-	struct edge *ep;
+opt_j(struct edge *ep)
 {
 	register int i, k;
 	register struct block *target;
@@ -1286,8 +1381,7 @@ opt_j(ep)
 
 
 static void
-or_pullup(b)
-	struct block *b;
+or_pullup(struct block *b)
 {
 	int val, at_top;
 	struct block *pull;
@@ -1379,8 +1473,7 @@ or_pullup(b)
 }
 
 static void
-and_pullup(b)
-	struct block *b;
+and_pullup(struct block *b)
 {
 	int val, at_top;
 	struct block *pull;
@@ -1471,9 +1564,7 @@ and_pullup(b)
 }
 
 static void
-opt_blks(root, do_stmts)
-	struct block *root;
-	int do_stmts;
+opt_blks(struct block *root, int do_stmts)
 {
 	int i, maxlevel;
 	struct block *p;
@@ -1510,17 +1601,14 @@ opt_blks(root, do_stmts)
 }
 
 static inline void
-link_inedge(parent, child)
-	struct edge *parent;
-	struct block *child;
+link_inedge(struct edge *parent, struct block *child)
 {
 	parent->next = child->in_edges;
 	child->in_edges = parent;
 }
 
 static void
-find_inedges(root)
-	struct block *root;
+find_inedges(struct block *root)
 {
 	int i;
 	struct block *b;
@@ -1541,8 +1629,7 @@ find_inedges(root)
 }
 
 static void
-opt_root(b)
-	struct block **b;
+opt_root(struct block **b)
 {
 	struct slist *tmp, *s;
 
@@ -1566,9 +1653,7 @@ opt_root(b)
 }
 
 static void
-opt_loop(root, do_stmts)
-	struct block *root;
-	int do_stmts;
+opt_loop(struct block *root, int do_stmts)
 {
 
 #ifdef BDEBUG
@@ -1598,8 +1683,7 @@ opt_loop(root, do_stmts)
  * Optimize the filter code in its dag representation.
  */
 void
-bpf_optimize(rootp)
-	struct block **rootp;
+bpf_optimize(struct block **rootp)
 {
 	struct block *root;
 
@@ -1626,8 +1710,7 @@ bpf_optimize(rootp)
 }
 
 static void
-make_marks(p)
-	struct block *p;
+make_marks(struct block *p)
 {
 	if (!isMarked(p)) {
 		Mark(p);
@@ -1643,8 +1726,7 @@ make_marks(p)
  * only for nodes that are alive.
  */
 static void
-mark_code(p)
-	struct block *p;
+mark_code(struct block *p)
 {
 	cur_mark += 1;
 	make_marks(p);
@@ -1655,8 +1737,7 @@ mark_code(p)
  * the accumulator.
  */
 static int
-eq_slist(x, y)
-	struct slist *x, *y;
+eq_slist(struct slist *x, struct slist *y)
 {
 	while (1) {
 		while (x && x->s.code == NOP)
@@ -1675,8 +1756,7 @@ eq_slist(x, y)
 }
 
 static inline int
-eq_blk(b0, b1)
-	struct block *b0, *b1;
+eq_blk(struct block *b0, struct block *b1)
 {
 	if (b0->s.code == b1->s.code &&
 	    b0->s.k == b1->s.k &&
@@ -1687,14 +1767,13 @@ eq_blk(b0, b1)
 }
 
 static void
-intern_blocks(root)
-	struct block *root;
+intern_blocks(struct block *root)
 {
 	struct block *p;
 	int i, j;
-	int done;
+	int done1; /* don't shadow global */
  top:
-	done = 1;
+	done1 = 1;
 	for (i = 0; i < n_blocks; ++i)
 		blocks[i]->link = 0;
 
@@ -1718,20 +1797,20 @@ intern_blocks(root)
 		if (JT(p) == 0)
 			continue;
 		if (JT(p)->link) {
-			done = 0;
+			done1 = 0;
 			JT(p) = JT(p)->link;
 		}
 		if (JF(p)->link) {
-			done = 0;
+			done1 = 0;
 			JF(p) = JF(p)->link;
 		}
 	}
-	if (!done)
+	if (!done1)
 		goto top;
 }
 
 static void
-opt_cleanup()
+opt_cleanup(void)
 {
 	free((void *)vnode_base);
 	free((void *)vmap);
@@ -1744,11 +1823,10 @@ opt_cleanup()
 /*
  * Return the number of stmts in 's'.
  */
-static int
-slength(s)
-	struct slist *s;
+static u_int
+slength(struct slist *s)
 {
-	int n = 0;
+	u_int n = 0;
 
 	for (; s; s = s->next)
 		if (s->s.code != NOP)
@@ -1761,8 +1839,7 @@ slength(s)
  * All nodes should be initially unmarked.
  */
 static int
-count_blocks(p)
-	struct block *p;
+count_blocks(struct block *p)
 {
 	if (p == 0 || isMarked(p))
 		return 0;
@@ -1775,8 +1852,7 @@ count_blocks(p)
  * the basic blocks, and entering them into the 'blocks' array.`
  */
 static void
-number_blks_r(p)
-	struct block *p;
+number_blks_r(struct block *p)
 {
 	int n;
 
@@ -1810,11 +1886,10 @@ number_blks_r(p)
  *
  *	an extra long jump if the false branch requires it (p->longjf).
  */
-static int
-count_stmts(p)
-	struct block *p;
+static u_int
+count_stmts(struct block *p)
 {
-	int n;
+	u_int n;
 
 	if (p == 0 || isMarked(p))
 		return 0;
@@ -1829,8 +1904,7 @@ count_stmts(p)
  * from the total number of blocks and/or statements.
  */
 static void
-opt_init(root)
-	struct block *root;
+opt_init(struct block *root)
 {
 	bpf_u_int32 *p;
 	int i, n, max_stmts;
@@ -1841,7 +1915,7 @@ opt_init(root)
 	 */
 	unMarkAll();
 	n = count_blocks(root);
-	blocks = (struct block **)malloc(n * sizeof(*blocks));
+	blocks = (struct block **)calloc(n, sizeof(*blocks));
 	if (blocks == NULL)
 		bpf_error("malloc");
 	unMarkAll();
@@ -1849,14 +1923,14 @@ opt_init(root)
 	number_blks_r(root);
 
 	n_edges = 2 * n_blocks;
-	edges = (struct edge **)malloc(n_edges * sizeof(*edges));
+	edges = (struct edge **)calloc(n_edges, sizeof(*edges));
 	if (edges == NULL)
 		bpf_error("malloc");
 
 	/*
 	 * The number of levels is bounded by the number of nodes.
 	 */
-	levels = (struct block **)malloc(n_blocks * sizeof(*levels));
+	levels = (struct block **)calloc(n_blocks, sizeof(*levels));
 	if (levels == NULL)
 		bpf_error("malloc");
 
@@ -1903,8 +1977,8 @@ opt_init(root)
 	 * we'll need.
 	 */
 	maxval = 3 * max_stmts;
-	vmap = (struct vmapinfo *)malloc(maxval * sizeof(*vmap));
-	vnode_base = (struct valnode *)malloc(maxval * sizeof(*vnode_base));
+	vmap = (struct vmapinfo *)calloc(maxval, sizeof(*vmap));
+	vnode_base = (struct valnode *)calloc(maxval, sizeof(*vnode_base));
 	if (vmap == NULL || vnode_base == NULL)
 		bpf_error("malloc");
 }
@@ -1928,8 +2002,7 @@ int bids[1000];
  * properly.
  */
 static int
-convert_code_r(p)
-	struct block *p;
+convert_code_r(struct block *p)
 {
 	struct bpf_insn *dst;
 	struct slist *src;
@@ -1993,7 +2066,7 @@ convert_code_r(p)
 	    {
 		int i;
 		int jt, jf;
-		char *ljerr = "%s for block-local relative jump: off=%d";
+		const char *ljerr = "%s for block-local relative jump: off=%d";
 
 #if 0
 		printf("code=%x off=%d %x %x\n", src->s.code,
@@ -2085,13 +2158,25 @@ filled:
 /*
  * Convert flowgraph intermediate representation to the
  * BPF array representation.  Set *lenp to the number of instructions.
+ *
+ * This routine does *NOT* leak the memory pointed to by fp.  It *must
+ * not* do free(fp) before returning fp; doing so would make no sense,
+ * as the BPF array pointed to by the return value of icode_to_fcode()
+ * must be valid - it's being returned for use in a bpf_program structure.
+ *
+ * If it appears that icode_to_fcode() is leaking, the problem is that
+ * the program using pcap_compile() is failing to free the memory in
+ * the BPF program when it's done - the leak is in the program, not in
+ * the routine that happens to be allocating the memory.  (By analogy, if
+ * a program calls fopen() without ever calling fclose() on the FILE *,
+ * it will leak the FILE structure; the leak is not in fopen(), it's in
+ * the program.)  Change the program to use pcap_freecode() when it's
+ * done with the filter program.  See the pcap man page.
  */
 struct bpf_insn *
-icode_to_fcode(root, lenp)
-	struct block *root;
-	int *lenp;
+icode_to_fcode(struct block *root, u_int *lenp)
 {
-	int n;
+	u_int n;
 	struct bpf_insn *fp;
 
 	/*
@@ -2118,10 +2203,133 @@ icode_to_fcode(root, lenp)
 	return fp;
 }
 
+/*
+ * Make a copy of a BPF program and put it in the "fcode" member of
+ * a "pcap_t".
+ *
+ * If we fail to allocate memory for the copy, fill in the "errbuf"
+ * member of the "pcap_t" with an error message, and return -1;
+ * otherwise, return 0.
+ */
+int
+install_bpf_program(pcap_t *p, struct bpf_program *fp)
+{
+	size_t prog_size;
+
+	/*
+	 * Validate the program.
+	 */
+	if (!bpf_validate(fp->bf_insns, fp->bf_len)) {
+		snprintf(p->errbuf, sizeof(p->errbuf),
+			"BPF program is not valid");
+		return (-1);
+	}
+
+	/*
+	 * Free up any already installed program.
+	 */
+	pcap_freecode(&p->fcode);
+
+	prog_size = sizeof(*fp->bf_insns) * fp->bf_len;
+	p->fcode.bf_len = fp->bf_len;
+	p->fcode.bf_insns = (struct bpf_insn *)malloc(prog_size);
+	if (p->fcode.bf_insns == NULL) {
+		snprintf(p->errbuf, sizeof(p->errbuf),
+			 "malloc: %s", pcap_strerror(errno));
+		return (-1);
+	}
+	memcpy(p->fcode.bf_insns, fp->bf_insns, prog_size);
+	return (0);
+}
+
 #ifdef BDEBUG
 static void
-opt_dump(root)
-	struct block *root;
+dot_dump_node(struct block *block, struct bpf_program *prog, FILE *out)
+{
+	int icount, noffset;
+	int i;
+
+	if (block == NULL || isMarked(block))
+		return;
+	Mark(block);
+
+	icount = slength(block->stmts) + 1 + block->longjt + block->longjf;
+	noffset = min(block->offset + icount, (int)prog->bf_len);
+
+	fprintf(out, "\tblock%d [shape=ellipse, id=\"block-%d\" label=\"BLOCK%d\\n", block->id, block->id, block->id);
+	for (i = block->offset; i < noffset; i++) {
+		fprintf(out, "\\n%s", bpf_image(prog->bf_insns + i, i));
+	}
+	fprintf(out, "\" tooltip=\"");
+	for (i = 0; i < BPF_MEMWORDS; i++)
+		if (block->val[i] != 0)
+			fprintf(out, "val[%d]=%d ", i, block->val[i]);
+	fprintf(out, "val[A]=%d ", block->val[A_ATOM]);
+	fprintf(out, "val[X]=%d", block->val[X_ATOM]);
+	fprintf(out, "\"");
+	if (JT(block) == NULL)
+		fprintf(out, ", peripheries=2");
+	fprintf(out, "];\n");
+
+	dot_dump_node(JT(block), prog, out);
+	dot_dump_node(JF(block), prog, out);
+}
+static void
+dot_dump_edge(struct block *block, FILE *out)
+{
+	if (block == NULL || isMarked(block))
+		return;
+	Mark(block);
+
+	if (JT(block)) {
+		fprintf(out, "\t\"block%d\":se -> \"block%d\":n [label=\"T\"]; \n",
+				block->id, JT(block)->id);
+		fprintf(out, "\t\"block%d\":sw -> \"block%d\":n [label=\"F\"]; \n",
+			   block->id, JF(block)->id);
+	}
+	dot_dump_edge(JT(block), out);
+	dot_dump_edge(JF(block), out);
+}
+/* Output the block CFG using graphviz/DOT language
+ * In the CFG, block's code, value index for each registers at EXIT,
+ * and the jump relationship is show.
+ *
+ * example DOT for BPF `ip src host 1.1.1.1' is:
+    digraph BPF {
+    	block0 [shape=ellipse, id="block-0" label="BLOCK0\n\n(000) ldh      [12]\n(001) jeq      #0x800           jt 2	jf 5" tooltip="val[A]=0 val[X]=0"];
+    	block1 [shape=ellipse, id="block-1" label="BLOCK1\n\n(002) ld       [26]\n(003) jeq      #0x1010101       jt 4	jf 5" tooltip="val[A]=0 val[X]=0"];
+    	block2 [shape=ellipse, id="block-2" label="BLOCK2\n\n(004) ret      #68" tooltip="val[A]=0 val[X]=0", peripheries=2];
+    	block3 [shape=ellipse, id="block-3" label="BLOCK3\n\n(005) ret      #0" tooltip="val[A]=0 val[X]=0", peripheries=2];
+    	"block0":se -> "block1":n [label="T"];
+    	"block0":sw -> "block3":n [label="F"];
+    	"block1":se -> "block2":n [label="T"];
+    	"block1":sw -> "block3":n [label="F"];
+    }
+ *
+ *  After install graphviz on http://www.graphviz.org/, save it as bpf.dot
+ *  and run `dot -Tpng -O bpf.dot' to draw the graph.
+ */
+static void
+dot_dump(struct block *root)
+{
+	struct bpf_program f;
+	FILE *out = stdout;
+
+	memset(bids, 0, sizeof bids);
+	f.bf_insns = icode_to_fcode(root, &f.bf_len);
+
+	fprintf(out, "digraph BPF {\n");
+	unMarkAll();
+	dot_dump_node(root, &f, out);
+	unMarkAll();
+	dot_dump_edge(root, out);
+	fprintf(out, "}\n");
+
+	free((char *)f.bf_insns);
+}
+
+static void
+plain_dump(struct block *root)
 {
 	struct bpf_program f;
 
@@ -2131,4 +2339,17 @@ opt_dump(root)
 	putchar('\n');
 	free((char *)f.bf_insns);
 }
+static void
+opt_dump(struct block *root)
+{
+	/* if optimizer debugging is enabled, output DOT graph
+	 * `dflag=4' is equivalent to -dddd to follow -d/-dd/-ddd
+     * convention in tcpdump command line
+	 */
+	if (dflag > 3)
+		dot_dump(root);
+	else
+		plain_dump(root);
+}
+
 #endif

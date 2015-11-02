@@ -1,15 +1,21 @@
 /*
- * DEBUG: section 93    eCAP Interface
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 93    eCAP Interface */
 
 #ifndef SQUID__ECAP__MESSAGE_REP_H
 #define SQUID__ECAP__MESSAGE_REP_H
 
-#include "HttpHeader.h"
-#include "BodyPipe.h"
 #include "adaptation/forward.h"
 #include "adaptation/Message.h"
 #include "anyp/ProtocolType.h"
+#include "BodyPipe.h"
+#include "HttpHeader.h"
 #include <libecap/common/message.h>
 #include <libecap/common/header.h>
 #include <libecap/common/body.h>
@@ -45,7 +51,7 @@ public:
     virtual void parse(const Area &buf); // throws on failures
 
 protected:
-    static http_hdr_type TranslateHeaderId(const Name &name);
+    static Http::HdrType TranslateHeaderId(const Name &name);
 
 private:
     HttpHeader &theHeader; // the header being translated to libecap
@@ -172,3 +178,4 @@ private:
 } // namespace Adaptation
 
 #endif /* SQUID__E_CAP__MESSAGE_REP_H */
+

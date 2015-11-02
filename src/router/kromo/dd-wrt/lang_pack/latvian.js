@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////////////////////
 //        Latvian reference translation file - DD-WRT V24  SP2 by Janis V. 26/11/2009       //
 //        initial release                                                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ share.manual="Manuals";
 share.port="Ports";
 share.ssid="SSID";
 share.channel="Kanals";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="Signals";
 share.noise="Troksnis";
 share.beacon="Baksignals";

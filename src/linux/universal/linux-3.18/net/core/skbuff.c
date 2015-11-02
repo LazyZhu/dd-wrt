@@ -141,26 +141,6 @@ int skb_restore_cb(struct sk_buff *skb)
 }
 EXPORT_SYMBOL(skb_restore_cb);
 
-static void skb_copy_stored_cb(struct sk_buff *new, const struct sk_buff *__old)
-{
-	struct skb_cb_table *next;
-	struct sk_buff *old;
-
-	if (!__old->cb_next) {
-		new->cb_next = NULL;
-		return;
-	}
-
-	spin_lock(&skb_cb_store_lock);
-
-	old = (struct sk_buff *)__old;
-
-	next = old->cb_next;
-	atomic_inc(&next->refcnt);
-	new->cb_next = next;
-
-	spin_unlock(&skb_cb_store_lock);
-}
 #endif
 
 /**
@@ -338,6 +318,11 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask,
 	skb->end = skb->tail + size;
 	skb->mac_header = (typeof(skb->mac_header))~0U;
 	skb->transport_header = (typeof(skb->transport_header))~0U;
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	skb->cb_next = NULL;
+	skb->nf_queue_entry = NULL;
+	skb->imq_flags = 0;
+#endif
 
 	/* make sure we initialize shinfo sequentially */
 	shinfo = skb_shinfo(skb);
@@ -367,13 +352,14 @@ nodata:
 EXPORT_SYMBOL(__alloc_skb);
 
 /**
- * build_skb - build a network buffer
+ * __build_skb - build a network buffer
  * @data: data buffer provided by caller
- * @frag_size: size of fragment, or 0 if head was kmalloced
+ * @frag_size: size of data, or 0 if head was kmalloced
  *
  * Allocate a new &sk_buff. Caller provides space holding head and
  * skb_shared_info. @data must have been allocated by kmalloc() only if
- * @frag_size is 0, otherwise data should come from the page allocator.
+ * @frag_size is 0, otherwise data should come from the page allocator
+ *  or vmalloc()
  * The return is the new skb buffer.
  * On a failure the return is %NULL, and @data is not freed.
  * Notes :
@@ -384,7 +370,7 @@ EXPORT_SYMBOL(__alloc_skb);
  *  before giving packet to stack.
  *  RX rings only contains data buffers, not full skbs.
  */
-struct sk_buff *build_skb(void *data, unsigned int frag_size)
+struct sk_buff *__build_skb(void *data, unsigned int frag_size)
 {
 	struct skb_shared_info *shinfo;
 	struct sk_buff *skb;
@@ -398,7 +384,6 @@ struct sk_buff *build_skb(void *data, unsigned int frag_size)
 
 	memset(skb, 0, offsetof(struct sk_buff, tail));
 	skb->truesize = SKB_TRUESIZE(size);
-	skb->head_frag = frag_size != 0;
 	atomic_set(&skb->users, 1);
 	skb->head = data;
 	skb->data = data;
@@ -413,6 +398,23 @@ struct sk_buff *build_skb(void *data, unsigned int frag_size)
 	atomic_set(&shinfo->dataref, 1);
 	kmemcheck_annotate_variable(shinfo->destructor_arg);
 
+	return skb;
+}
+
+/* build_skb() is wrapper over __build_skb(), that specifically
+ * takes care of skb->head and skb->pfmemalloc
+ * This means that if @frag_size is not zero, then @data must be backed
+ * by a page fragment, not kmalloc() or vmalloc()
+ */
+struct sk_buff *build_skb(void *data, unsigned int frag_size)
+{
+	struct sk_buff *skb = __build_skb(data, frag_size);
+
+	if (skb && frag_size) {
+		skb->head_frag = 1;
+		if (virt_to_head_page(data)->pfmemalloc)
+			skb->pfmemalloc = 1;
+	}
 	return skb;
 }
 EXPORT_SYMBOL(build_skb);
@@ -441,7 +443,8 @@ refill:
 			gfp_t gfp = gfp_mask;
 
 			if (order)
-				gfp |= __GFP_COMP | __GFP_NOWARN;
+				gfp |= __GFP_COMP | __GFP_NOWARN |
+				       __GFP_NOMEMALLOC;
 			nc->frag.page = alloc_pages(gfp, order);
 			if (likely(nc->frag.page))
 				break;
@@ -824,13 +827,12 @@ static void BCMFASTPATH_HOST __copy_skb_header(struct sk_buff *new, const struct
 	/* We do not copy old->sk */
 	new->dev		= old->dev;
 	memcpy(new->cb, old->cb, sizeof(old->cb));
+#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
+	new->cb_next = NULL;
+#endif
 	skb_dst_copy(new, old);
 #ifdef CONFIG_XFRM
 	new->sp			= secpath_get(old->sp);
-#endif
-#if defined(CONFIG_IMQ) || defined(CONFIG_IMQ_MODULE)
-	new->cb_next = NULL;
-	/*skb_copy_stored_cb(new, old);*/
 #endif
 	__nf_copy(new, old, false);
 
@@ -3656,13 +3658,14 @@ struct sk_buff *sock_dequeue_err_skb(struct sock *sk)
 {
 	struct sk_buff_head *q = &sk->sk_error_queue;
 	struct sk_buff *skb, *skb_next;
+	unsigned long flags;
 	int err = 0;
 
-	spin_lock_bh(&q->lock);
+	spin_lock_irqsave(&q->lock, flags);
 	skb = __skb_dequeue(q);
 	if (skb && (skb_next = skb_peek(q)))
 		err = SKB_EXT_ERR(skb_next)->ee.ee_errno;
-	spin_unlock_bh(&q->lock);
+	spin_unlock_irqrestore(&q->lock, flags);
 
 	sk->sk_err = err;
 	if (err)
@@ -4173,18 +4176,20 @@ EXPORT_SYMBOL(skb_try_coalesce);
  */
 void skb_scrub_packet(struct sk_buff *skb, bool xnet)
 {
-	if (xnet)
-		skb_orphan(skb);
 	skb->tstamp.tv64 = 0;
 	skb->pkt_type = PACKET_HOST;
 	skb->skb_iif = 0;
 	skb->ignore_df = 0;
 	skb_dst_drop(skb);
-	skb->mark = 0;
-	skb_init_secmark(skb);
 	secpath_reset(skb);
 	nf_reset(skb);
 	nf_reset_trace(skb);
+
+	if (!xnet)
+		return;
+
+	skb_orphan(skb);
+	skb->mark = 0;
 }
 EXPORT_SYMBOL_GPL(skb_scrub_packet);
 
@@ -4319,7 +4324,7 @@ struct sk_buff *alloc_skb_with_frags(unsigned long header_len,
 
 		while (order) {
 			if (npages >= 1 << order) {
-				page = alloc_pages(gfp_mask |
+				page = alloc_pages((gfp_mask & ~__GFP_WAIT) |
 						   __GFP_COMP |
 						   __GFP_NOWARN |
 						   __GFP_NORETRY,

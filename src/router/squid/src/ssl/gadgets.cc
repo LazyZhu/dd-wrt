@@ -1,5 +1,14 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #include "squid.h"
 #include "ssl/gadgets.h"
+
 #if HAVE_OPENSSL_X509V3_H
 #include <openssl/x509v3.h>
 #endif
@@ -47,7 +56,7 @@ static bool setSerialNumber(ASN1_INTEGER *ai, BIGNUM const* serial)
     return true;
 }
 
-bool Ssl::writeCertAndPrivateKeyToMemory(Ssl::X509_Pointer const & cert, Ssl::EVP_PKEY_Pointer const & pkey, std::string & bufferToWrite)
+bool Ssl::writeCertAndPrivateKeyToMemory(Security::CertPointer const & cert, Ssl::EVP_PKEY_Pointer const & pkey, std::string & bufferToWrite)
 {
     bufferToWrite.clear();
     if (!pkey || !cert)
@@ -71,7 +80,7 @@ bool Ssl::writeCertAndPrivateKeyToMemory(Ssl::X509_Pointer const & cert, Ssl::EV
     return true;
 }
 
-bool Ssl::appendCertToMemory(Ssl::X509_Pointer const & cert, std::string & bufferToWrite)
+bool Ssl::appendCertToMemory(Security::CertPointer const & cert, std::string & bufferToWrite)
 {
     if (!cert)
         return false;
@@ -95,7 +104,7 @@ bool Ssl::appendCertToMemory(Ssl::X509_Pointer const & cert, std::string & buffe
     return true;
 }
 
-bool Ssl::writeCertAndPrivateKeyToFile(Ssl::X509_Pointer const & cert, Ssl::EVP_PKEY_Pointer const & pkey, char const * filename)
+bool Ssl::writeCertAndPrivateKeyToFile(Security::CertPointer const & cert, Ssl::EVP_PKEY_Pointer const & pkey, char const * filename)
 {
     if (!pkey || !cert)
         return false;
@@ -115,7 +124,7 @@ bool Ssl::writeCertAndPrivateKeyToFile(Ssl::X509_Pointer const & cert, Ssl::EVP_
     return true;
 }
 
-bool Ssl::readCertAndPrivateKeyFromMemory(Ssl::X509_Pointer & cert, Ssl::EVP_PKEY_Pointer & pkey, char const * bufferToRead)
+bool Ssl::readCertAndPrivateKeyFromMemory(Security::CertPointer & cert, Ssl::EVP_PKEY_Pointer & pkey, char const * bufferToRead)
 {
     Ssl::BIO_Pointer bio(BIO_new(BIO_s_mem()));
     BIO_puts(bio.get(), bufferToRead);
@@ -133,7 +142,7 @@ bool Ssl::readCertAndPrivateKeyFromMemory(Ssl::X509_Pointer & cert, Ssl::EVP_PKE
     return true;
 }
 
-bool Ssl::readCertFromMemory(X509_Pointer & cert, char const * bufferToRead)
+bool Ssl::readCertFromMemory(Security::CertPointer & cert, char const * bufferToRead)
 {
     Ssl::BIO_Pointer bio(BIO_new(BIO_s_mem()));
     BIO_puts(bio.get(), bufferToRead);
@@ -151,7 +160,7 @@ bool Ssl::readCertFromMemory(X509_Pointer & cert, char const * bufferToRead)
 static const size_t MaxCnLen = 64;
 
 // Replace certs common name with the given
-static bool replaceCommonName(Ssl::X509_Pointer & cert, std::string const &rawCn)
+static bool replaceCommonName(Security::CertPointer & cert, std::string const &rawCn)
 {
     std::string cn = rawCn;
 
@@ -209,10 +218,11 @@ const char *Ssl::CertAdaptAlgorithmStr[] = {
 };
 
 Ssl::CertificateProperties::CertificateProperties():
-        setValidAfter(false),
-        setValidBefore(false),
-        setCommonName(false),
-        signAlgorithm(Ssl::algSignEnd)
+    setValidAfter(false),
+    setValidBefore(false),
+    setCommonName(false),
+    signAlgorithm(Ssl::algSignEnd),
+    signHash(NULL)
 {}
 
 std::string & Ssl::CertificateProperties::dbKey() const
@@ -246,15 +256,21 @@ std::string & Ssl::CertificateProperties::dbKey() const
         certKey.append(certSignAlgorithm(signAlgorithm));
     }
 
+    if (signHash != NULL) {
+        certKey.append("+SignHash=", 10);
+        certKey.append(EVP_MD_name(signHash));
+    }
+
     return certKey;
 }
 
-// Copy certificate extensions from cert to mimicCert.
+/// Copy certificate extensions from cert to mimicCert.
+/// Returns the number of extensions copied.
 // Currently only extensions which are reported by the users that required are
 // mimicked. More safe to mimic extensions would be added here if users request
 // them.
-static void
-mimicExtensions(Ssl::X509_Pointer & cert, Ssl::X509_Pointer const & mimicCert)
+static int
+mimicExtensions(Security::CertPointer & cert, Security::CertPointer const & mimicCert)
 {
     static int extensions[]= {
         NID_key_usage,
@@ -263,18 +279,67 @@ mimicExtensions(Ssl::X509_Pointer & cert, Ssl::X509_Pointer const & mimicCert)
         0
     };
 
+    // key usage bit names
+    enum {
+        DigitalSignature,
+        NonRepudiation,
+        KeyEncipherment, // NSS requires for RSA but not EC
+        DataEncipherment,
+        KeyAgreement,
+        KeyCertificateSign,
+        CRLSign,
+        EncipherOnly,
+        DecipherOnly
+    };
+
+    int mimicAlgo = OBJ_obj2nid(mimicCert.get()->cert_info->key->algor->algorithm);
+
+    int added = 0;
     int nid;
     for (int i = 0; (nid = extensions[i]) != 0; ++i) {
         const int pos = X509_get_ext_by_NID(mimicCert.get(), nid, -1);
-        if (X509_EXTENSION *ext = X509_get_ext(mimicCert.get(), pos))
-            X509_add_ext(cert.get(), ext, -1);
+        if (X509_EXTENSION *ext = X509_get_ext(mimicCert.get(), pos)) {
+            // Mimic extension exactly.
+            if (X509_add_ext(cert.get(), ext, -1))
+                ++added;
+            if ( nid == NID_key_usage && mimicAlgo != NID_rsaEncryption ) {
+                // NSS does not requre the KeyEncipherment flag on EC keys
+                // but it does require it for RSA keys.  Since ssl-bump
+                // substitutes RSA keys for EC ones, we need to ensure that
+                // that the more stringent requirements are met.
+
+                const int p = X509_get_ext_by_NID(cert.get(), NID_key_usage, -1);
+                if ((ext = X509_get_ext(cert.get(), p)) != NULL) {
+                    ASN1_BIT_STRING *keyusage = (ASN1_BIT_STRING *)X509V3_EXT_d2i(ext);
+                    ASN1_BIT_STRING_set_bit(keyusage, KeyEncipherment, 1);
+
+                    //Build the ASN1_OCTET_STRING
+                    const X509V3_EXT_METHOD *method = X509V3_EXT_get(ext);
+                    assert(method && method->it);
+                    unsigned char *ext_der = NULL;
+                    int ext_len = ASN1_item_i2d((ASN1_VALUE *)keyusage,
+                                                &ext_der,
+                                                (const ASN1_ITEM *)ASN1_ITEM_ptr(method->it));
+
+                    ASN1_OCTET_STRING *ext_oct = M_ASN1_OCTET_STRING_new();
+                    ext_oct->data = ext_der;
+                    ext_oct->length = ext_len;
+                    X509_EXTENSION_set_data(ext, ext_oct);
+
+                    M_ASN1_OCTET_STRING_free(ext_oct);
+                    ASN1_BIT_STRING_free(keyusage);
+                }
+            }
+        }
     }
 
     // We could also restrict mimicking of the CA extension to CA:FALSE
     // because Squid does not generate valid fake CA certificates.
+
+    return added;
 }
 
-static bool buildCertificate(Ssl::X509_Pointer & cert, Ssl::CertificateProperties const &properties)
+static bool buildCertificate(Security::CertPointer & cert, Ssl::CertificateProperties const &properties)
 {
     // not an Ssl::X509_NAME_Pointer because X509_REQ_get_subject_name()
     // returns a pointer to the existing subject name. Nothing to clean here.
@@ -331,28 +396,30 @@ static bool buildCertificate(Ssl::X509_Pointer & cert, Ssl::CertificatePropertie
             X509_alias_set1(cert.get(), alStr, alLen);
         }
 
+        int addedExtensions = 0;
+
         // Mimic subjectAltName unless we used a configured CN: browsers reject
         // certificates with CN unrelated to subjectAltNames.
         if (!properties.setCommonName) {
             int pos=X509_get_ext_by_NID (properties.mimicCert.get(), OBJ_sn2nid("subjectAltName"), -1);
             X509_EXTENSION *ext=X509_get_ext(properties.mimicCert.get(), pos);
             if (ext) {
-                X509_add_ext(cert.get(), ext, -1);
-                /* According the RFC 5280 using extensions requires version 3
-                   certificate.
-                   Set version value to 2 for version 3 certificates.
-                 */
-                X509_set_version(cert.get(), 2);
+                if (X509_add_ext(cert.get(), ext, -1))
+                    ++addedExtensions;
             }
         }
 
-        mimicExtensions(cert, properties.mimicCert);
+        addedExtensions += mimicExtensions(cert, properties.mimicCert);
+
+        // According to RFC 5280, using extensions requires v3 certificate.
+        if (addedExtensions)
+            X509_set_version(cert.get(), 2); // value 2 means v3
     }
 
     return true;
 }
 
-static bool generateFakeSslCertificate(Ssl::X509_Pointer & certToStore, Ssl::EVP_PKEY_Pointer & pkeyToStore, Ssl::CertificateProperties const &properties,  Ssl::BIGNUM_Pointer const &serial)
+static bool generateFakeSslCertificate(Security::CertPointer & certToStore, Ssl::EVP_PKEY_Pointer & pkeyToStore, Ssl::CertificateProperties const &properties,  Ssl::BIGNUM_Pointer const &serial)
 {
     Ssl::EVP_PKEY_Pointer pkey;
     // Use signing certificates private key as generated certificate private key
@@ -364,7 +431,7 @@ static bool generateFakeSslCertificate(Ssl::X509_Pointer & certToStore, Ssl::EVP
     if (!pkey)
         return false;
 
-    Ssl::X509_Pointer cert(X509_new());
+    Security::CertPointer cert(X509_new());
     if (!cert)
         return false;
 
@@ -387,11 +454,13 @@ static bool generateFakeSslCertificate(Ssl::X509_Pointer & certToStore, Ssl::EVP
     if (!ret)
         return false;
 
+    const  EVP_MD *hash = properties.signHash ? properties.signHash : EVP_get_digestbyname(SQUID_SSL_SIGN_HASH_IF_NONE);
+    assert(hash);
     /*Now sign the request */
     if (properties.signAlgorithm != Ssl::algSignSelf && properties.signWithPkey.get())
-        ret = X509_sign(cert.get(), properties.signWithPkey.get(), EVP_sha1());
+        ret = X509_sign(cert.get(), properties.signWithPkey.get(), hash);
     else //else sign with self key (self signed request)
-        ret = X509_sign(cert.get(), pkey.get(), EVP_sha1());
+        ret = X509_sign(cert.get(), pkey.get(), hash);
 
     if (!ret)
         return false;
@@ -430,7 +499,7 @@ static  BIGNUM *createCertSerial(unsigned char *md, unsigned int n)
 
 /// Return the SHA1 digest of the DER encoded version of the certificate
 /// stored in a BIGNUM
-static BIGNUM *x509Digest(Ssl::X509_Pointer const & cert)
+static BIGNUM *x509Digest(Security::CertPointer const & cert)
 {
     unsigned int n;
     unsigned char md[EVP_MAX_MD_SIZE];
@@ -441,7 +510,7 @@ static BIGNUM *x509Digest(Ssl::X509_Pointer const & cert)
     return createCertSerial(md, n);
 }
 
-static BIGNUM *x509Pubkeydigest(Ssl::X509_Pointer const & cert)
+static BIGNUM *x509Pubkeydigest(Security::CertPointer const & cert)
 {
     unsigned int n;
     unsigned char md[EVP_MAX_MD_SIZE];
@@ -457,7 +526,7 @@ static BIGNUM *x509Pubkeydigest(Ssl::X509_Pointer const & cert)
 static bool createSerial(Ssl::BIGNUM_Pointer &serial, Ssl::CertificateProperties const &properties)
 {
     Ssl::EVP_PKEY_Pointer fakePkey;
-    Ssl::X509_Pointer fakeCert;
+    Security::CertPointer fakeCert;
 
     serial.reset(x509Pubkeydigest(properties.signWithX509));
     if (!serial.get()) {
@@ -478,7 +547,7 @@ static bool createSerial(Ssl::BIGNUM_Pointer &serial, Ssl::CertificateProperties
     return true;
 }
 
-bool Ssl::generateSslCertificate(Ssl::X509_Pointer & certToStore, Ssl::EVP_PKEY_Pointer & pkeyToStore, Ssl::CertificateProperties const &properties)
+bool Ssl::generateSslCertificate(Security::CertPointer & certToStore, Ssl::EVP_PKEY_Pointer & pkeyToStore, Ssl::CertificateProperties const &properties)
 {
     Ssl::BIGNUM_Pointer serial;
 
@@ -518,7 +587,7 @@ EVP_PKEY * Ssl::readSslPrivateKey(char const * keyFilename, pem_password_cb *pas
     return pkey;
 }
 
-void Ssl::readCertAndPrivateKeyFromFiles(Ssl::X509_Pointer & cert, Ssl::EVP_PKEY_Pointer & pkey, char const * certFilename, char const * keyFilename)
+void Ssl::readCertAndPrivateKeyFromFiles(Security::CertPointer & cert, Ssl::EVP_PKEY_Pointer & pkey, char const * certFilename, char const * keyFilename)
 {
     if (keyFilename == NULL)
         keyFilename = certFilename;

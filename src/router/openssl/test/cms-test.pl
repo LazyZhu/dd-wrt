@@ -59,23 +59,31 @@ my $redir = " 2> cms.err > cms.out";
 if ( $^O eq "VMS" && -f "OSSLX:openssl.exe" ) {
     $ossl_path = "pipe mcr OSSLX:openssl";
     $null_path = "NL:";
+    # On VMS, the lowest 3 bits of the exit code indicates severity
+    # 1 is success (perl translates it to 0 for $?), 2 is error
+    # (perl doesn't translate it)
+    $failure_code = 512;	# 2 << 8 = 512
 }
 # Make MSYS work
 elsif ( $^O eq "MSWin32" && -f "../apps/openssl.exe" ) {
     $ossl_path = "cmd /c ..\\apps\\openssl";
-    $null_path = "/dev/null";
+    $null_path = "NUL";
+    $failure_code = 256;
 }
 elsif ( -f "../apps/openssl$ENV{EXE_EXT}" ) {
     $ossl_path = "../util/shlib_wrap.sh ../apps/openssl";
     $null_path = "/dev/null";
+    $failure_code = 256;
 }
 elsif ( -f "..\\out32dll\\openssl.exe" ) {
     $ossl_path = "..\\out32dll\\openssl.exe";
-    $null_path = "/dev/null";
+    $null_path = "NUL";
+    $failure_code = 256;
 }
 elsif ( -f "..\\out32\\openssl.exe" ) {
     $ossl_path = "..\\out32\\openssl.exe";
-    $null_path = "/dev/null";
+    $null_path = "NUL";
+    $failure_code = 256;
 }
 else {
     die "Can't find OpenSSL executable";
@@ -97,7 +105,7 @@ if ($? == 0)
 	{
 	$no_ec = 1;
 	}
-elsif ($^O eq "VMS" ? $? == 512 : $? == 256)
+elsif ($? == $failure_code)
 	{
 	$no_ec = 0;
 	}
@@ -111,7 +119,7 @@ if ($? == 0)
 	{
 	$no_ec2m = 1;
 	}
-elsif ($? == 256)
+elsif ($? == $failure_code)
 	{
 	$no_ec2m = 0;
 	}
@@ -120,12 +128,12 @@ else
 	die "Error checking for EC2M support\n";
 	}
 
-system ("$ossl_path no-ecdh > $null_path");
+system ("$ossl_path no-ec > $null_path");
 if ($? == 0)
 	{
 	$no_ecdh = 1;
 	}
-elsif ($? == 256)
+elsif ($? == $failure_code)
 	{
 	$no_ecdh = 0;
 	}
@@ -439,6 +447,14 @@ my @smime_cms_param_tests = (
     [
 "enveloped content test streaming S/MIME format, ECDH",
         "-encrypt -in smcont.txt"
+          . " -stream -out test.cms"
+          . " -recip $smdir/smec1.pem",
+        "-decrypt -recip $smdir/smec1.pem -in test.cms -out smtst.txt"
+    ],
+
+    [
+"enveloped content test streaming S/MIME format, ECDH, key identifier",
+        "-encrypt -keyid -in smcont.txt"
           . " -stream -out test.cms"
           . " -recip $smdir/smec1.pem",
         "-decrypt -recip $smdir/smec1.pem -in test.cms -out smtst.txt"

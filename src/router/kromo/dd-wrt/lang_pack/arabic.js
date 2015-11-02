@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////////////////////
 //		Arabic translation file - DD-WRT V24SP2 by DKaminari 11/10/2009		//
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -87,12 +87,12 @@ share.manual="Manual";
 share.port="Port";
 share.ssid="SSID";
 share.channel="Channel";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="إشارة";
 share.noise="Noise";
-share.beacon="beacon";
+share.beacon="Beacon";
 share.openn="Open";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="Rate";
 share.rate="Rate";
 share.txrate="TX Rate";

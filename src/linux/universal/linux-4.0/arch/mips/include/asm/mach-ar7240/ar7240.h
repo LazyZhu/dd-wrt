@@ -432,6 +432,7 @@ int ar7240_i2c_raw_read_bytes_from_addr(int addr, unsigned char *buffer, int cou
 #define AR7240_SPI_CMD_FAST_READ    0x0b
 #define AR7240_SPI_CMD_PAGE_PROG    0x02
 #define AR7240_SPI_CMD_SECTOR_ERASE 0xd8
+#define AR7240_SPI_CMD_RDID             0x9f
 
 /* Functions to access SPI through software. Example:
  *
@@ -836,6 +837,7 @@ static inline void ar7240_setup_for_stereo_slave(int ws)
 
 
 #define QCA9533_REV_1_0			0x0140
+#define QCA9533_V2			0x0160
 #define QCA9556_REV_1_0			0x0130
 #define QCA9558_REV_1_0			0x1130
 
@@ -850,6 +852,18 @@ static inline void ar7240_setup_for_stereo_slave(int ws)
 #define QCA9533_REV_1_3			0x0143
 #define QCA9556_REV_1_3			0x0133
 #define QCA9558_REV_1_3			0x1133
+
+#define TP9343_REV_1_0			0x0150
+#define QCA9563_REV_1_0			0x1150
+
+#define TP9343_REV_1_1			0x0151
+#define QCA9563_REV_1_1			0x1151
+
+#define TP9343_REV_1_2			0x0152
+#define QCA9563_REV_1_2			0x1152
+
+#define TP9343_REV_1_3			0x0153
+#define QCA9563_REV_1_3			0x1153
 
 
 
@@ -872,6 +886,7 @@ static inline void ar7240_setup_for_stereo_slave(int ws)
 #define is_qca9533()	(((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9533_REV_1_3) || \
 			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9533_REV_1_2) || \
 			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9533_REV_1_1) || \
+			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9533_V2) || \
 			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9533_REV_1_0))
 
 #define is_qca9556()	(((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9556_REV_1_3) || \
@@ -884,7 +899,19 @@ static inline void ar7240_setup_for_stereo_slave(int ws)
 			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9558_REV_1_1) || \
 			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9558_REV_1_0))
 
+#define is_qca9563()	(((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9563_REV_1_3) || \
+			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9563_REV_1_2) || \
+			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9563_REV_1_1) || \
+			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == QCA9563_REV_1_0))
+
+#define is_tp9343()	(((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == TP9343_REV_1_3) || \
+			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == TP9343_REV_1_2) || \
+			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == TP9343_REV_1_1) || \
+			 ((ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK) == TP9343_REV_1_0))
+
 #define is_qca955x() (is_qca9556() || is_qca9558())
+
+#define is_qca956x() (is_qca9563() || is_tp9343())
 
 #define is_qca953x() (is_qca9533())
 

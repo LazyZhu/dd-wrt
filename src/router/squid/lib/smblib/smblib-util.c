@@ -1,4 +1,10 @@
-#include "squid.h"
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
 
 /* UNIX SMBlib NetBIOS implementation
 
@@ -6,7 +12,6 @@
    SMBlib Utility Routines
 
    Copyright (C) Richard Sharpe 1996
-
 */
 
 /*
@@ -25,9 +30,10 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "smblib/smblib.h"
-#include "smblib/smblib-priv.h"
+#include "squid.h"
 #include "rfcnb/rfcnb.h"
+#include "smblib/smblib-priv.h"
+#include "smblib/smblib.h"
 
 #if HAVE_STRING_H
 #include <string.h>
@@ -198,7 +204,11 @@ int SMB_Figure_Protocol(const char *dialects[], int prot_index)
 {
     int i;
 
-    if (dialects == SMB_Prots) { /* The jobs is easy, just index into table */
+    // prot_index may be a value outside the table SMB_Types[]
+    // which holds data at offsets 0 to 11
+    int ourType = (prot_index < 0 || prot_index > 11);
+
+    if (ourType && dialects == SMB_Prots) { /* The jobs is easy, just index into table */
 
         return(SMB_Types[prot_index]);
     } else { /* Search through SMB_Prots looking for a match */
@@ -767,7 +777,7 @@ int SMB_Get_Last_SMB_Err()
 
 static const char *SMBlib_Error_Messages[] = {
 
-    "Request completed sucessfully.",
+    "Request completed successfully.",
     "Server returned a non-zero SMB Error Class and Code.",
     "A lower layer protocol error occurred.",
     "Function not yet implemented.",
@@ -819,3 +829,4 @@ void SMB_Get_Error_Msg(int msg, char *msgbuf, int len)
     }
 
 }
+

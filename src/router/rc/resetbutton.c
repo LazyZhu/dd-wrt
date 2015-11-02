@@ -167,8 +167,21 @@ int getbuttonstate()
 {
 	int ret = get_gpio(3);
 	if (ret == 0)
-		return 0;;
+		return 0;
 	return 1;
+}
+#elif defined(HAVE_MVEBU)
+int getbuttonstate()
+{
+	int ret;
+	if (getRouterBrand() == ROUTER_WRT_1900AC)
+		ret = get_gpio(33);
+	else
+		ret = get_gpio(29);
+
+	if (ret == 0)
+		return 1;
+	return 0;
 }
 #elif defined(HAVE_DAP3410)
 int getbuttonstate()
@@ -211,6 +224,15 @@ int getbuttonstate()
 		return 1;
 	return 0;
 }
+#elif defined(HAVE_DIR862)
+int getbuttonstate()
+{
+	int ret = get_gpio(17);
+
+	if (ret == 0)
+		return 1;
+	return 0;
+}
 #elif defined(HAVE_MMS344)
 int getbuttonstate()
 {
@@ -239,6 +261,15 @@ int getbuttonstate()
 		return 1;
 	return 0;
 }
+#elif defined(HAVE_DIR859)
+int getbuttonstate()
+{
+	int ret = get_gpio(2);
+
+	if (ret == 0)
+		return 1;
+	return 0;
+}
 #elif defined(HAVE_DIR825C1)
 int getbuttonstate()
 {
@@ -258,6 +289,14 @@ int getbuttonstate()
 	return 0;
 }
 #elif defined(HAVE_CARAMBOLA)
+#ifdef HAVE_ERC
+int getbuttonstate()
+{
+	int ret = get_gpio(12);
+
+	return ret;
+}
+#else
 int getbuttonstate()
 {
 	int ret = get_gpio(11);
@@ -266,6 +305,7 @@ int getbuttonstate()
 		return 1;
 	return 0;
 }
+#endif
 #elif defined(HAVE_HORNET)
 int getbuttonstate()
 {
@@ -306,6 +346,30 @@ int getbuttonstate()
 {
 	int ret = get_gpio(11);
 
+	if (ret == 0)
+		return 1;
+	return 0;
+}
+#elif defined(HAVE_DAP3320)
+int getbuttonstate()
+{
+	int ret = get_gpio(12);
+	if (ret == 0)
+		return 1;
+	return 0;
+}
+#elif defined(HAVE_DAP2330)
+int getbuttonstate()
+{
+	int ret = get_gpio(17);
+	if (ret == 0)
+		return 1;
+	return 0;
+}
+#elif defined(HAVE_DAP2230)
+int getbuttonstate()
+{
+	int ret = get_gpio(17);
 	if (ret == 0)
 		return 1;
 	return 0;
@@ -793,7 +857,7 @@ void period_check(int sig)
 	// time(&t);
 	// DEBUG("resetbutton: now time=%d\n", t);
 
-#if defined(HAVE_MAGICBOX) || defined(HAVE_FONERA) || defined(HAVE_WHRAG108) || defined(HAVE_GATEWORX) || defined(HAVE_STORM) || defined(HAVE_LS2) || defined(HAVE_CA8) || defined(HAVE_TW6600)  || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_WP54G) || defined(HAVE_NP28G) || defined(HAVE_SOLO51) || defined(HAVE_OPENRISC) || defined(HAVE_DANUBE) || defined(HAVE_WDR4900) || defined(HAVE_VENTANA) || defined(HAVE_AC622) || defined(HAVE_AC722) || defined(HAVE_EROUTER)
+#if defined(HAVE_MVEBU) || defined(HAVE_MAGICBOX) || defined(HAVE_FONERA) || defined(HAVE_WHRAG108) || defined(HAVE_GATEWORX) || defined(HAVE_STORM) || defined(HAVE_LS2) || defined(HAVE_CA8) || defined(HAVE_TW6600)  || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_WP54G) || defined(HAVE_NP28G) || defined(HAVE_SOLO51) || defined(HAVE_OPENRISC) || defined(HAVE_DANUBE) || defined(HAVE_WDR4900) || defined(HAVE_VENTANA) || defined(HAVE_AC622) || defined(HAVE_AC722) || defined(HAVE_EROUTER)
 	val = getbuttonstate();
 #ifdef HAVE_WRK54G
 	if (val)
@@ -895,7 +959,7 @@ void period_check(int sig)
 
 	int state = 0;
 
-#if defined(HAVE_XSCALE) || defined(HAVE_MAGICBOX) || defined(HAVE_FONERA) || defined(HAVE_WHRAG108) || defined(HAVE_GATEWORX) || defined(HAVE_STORM) || defined(HAVE_LS2) || defined(HAVE_CA8) || defined(HAVE_TW6600)  || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_WP54G) || defined(HAVE_NP28G) || defined(HAVE_SOLO51) || defined(HAVE_OPENRISC) || defined(HAVE_DANUBE) || defined(HAVE_UNIWIP) || defined(HAVE_EROUTER) || defined(HAVE_VENTANA)
+#if defined(HAVE_MVEBU) || (HAVE_XSCALE) || defined(HAVE_MAGICBOX) || defined(HAVE_FONERA) || defined(HAVE_WHRAG108) || defined(HAVE_GATEWORX) || defined(HAVE_STORM) || defined(HAVE_LS2) || defined(HAVE_CA8) || defined(HAVE_TW6600)  || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_WP54G) || defined(HAVE_NP28G) || defined(HAVE_SOLO51) || defined(HAVE_OPENRISC) || defined(HAVE_DANUBE) || defined(HAVE_UNIWIP) || defined(HAVE_EROUTER) || defined(HAVE_VENTANA)
 	state = val;
 	int sesgpio = 0xfff;
 	int wifigpio = 0xfff;
@@ -904,6 +968,9 @@ void period_check(int sig)
 #ifdef HAVE_WZRG300NH
 	sesgpio = 0x117;
 	val |= get_gpio(23) << 23;	//aoss pushbutton
+#elif defined(HAVE_WZR600DHP)
+	sesgpio = 0x105;
+	val |= get_gpio(5) << 5;
 #elif defined(HAVE_WZRG300NH2)
 	sesgpio = 0x10c;
 	val |= get_gpio(12) << 12;	//aoss pushbutton
@@ -913,6 +980,12 @@ void period_check(int sig)
 #elif defined(HAVE_WZRG450)
 	sesgpio = 0x108;
 	val |= get_gpio(8) << 8;	//aoss pushbutton
+#elif defined(HAVE_MVEBU)
+	sesgpio = 0x101;
+	if (getRouterBrand() == ROUTER_WRT_1900AC)
+		val |= get_gpio(32) << 1;	//aoss pushbutton
+	else
+		val |= get_gpio(24) << 1;	//aoss pushbutton
 #elif defined(HAVE_DIR632)
 	sesgpio = 0x10c;
 	val |= get_gpio(12) << 12;	//aoss pushbutton
@@ -921,6 +994,10 @@ void period_check(int sig)
 	val |= get_gpio(5) << 5;	//aoss pushbutton
 #elif defined(HAVE_CARAMBOLA)
 	sesgpio = 0xfff;
+#if defined(HAVE_ERC)
+	wifigpio = 0x117;
+	val |= get_gpio(23) << 23;
+#endif
 #elif defined(HAVE_HORNET)
 	sesgpio = 0x00b;
 	val |= get_gpio(11) << 11;	//aoss pushbutton
@@ -931,14 +1008,21 @@ void period_check(int sig)
 //      sesgpio = 0x110;
 //      val |= get_gpio(16) << 16;      //aoss pushbutton
 #elif defined(HAVE_WNDR3700V4)
-	sesgpio = 0x10f;
+	wifigpio = 0x10f;
+	sesgpio = 0x10c;
 	val |= get_gpio(15) << 15;	//aoss pushbutton
+	val |= get_gpio(12) << 12;	//aoss pushbutton
 #elif defined(HAVE_WR1043V2)
 	sesgpio = 0x111;
 	val |= get_gpio(17) << 17;	//aoss pushbutton
 #elif defined(HAVE_WZR450HP2)
 	sesgpio = 0x115;
 	val |= get_gpio(21) << 21;	//aoss pushbutton
+#elif defined(HAVE_DIR859)
+	sesgpio = 0x101;
+	val |= get_gpio(1) << 1;	//aoss pushbutton
+#elif defined(HAVE_MMS344)
+
 #elif defined(HAVE_DIR825C1)
 	sesgpio = 0x110;
 	val |= get_gpio(16) << 16;	//aoss pushbutton
@@ -1149,9 +1233,18 @@ void period_check(int sig)
 		break;
 	case ROUTER_DLINK_DIR890:
 	case ROUTER_DLINK_DIR880:
+	case ROUTER_DLINK_DIR895:
+	case ROUTER_TRENDNET_TEW828:
 		sesgpio = 0x107;	// gpio 7, inversed
 		break;
+	case ROUTER_DLINK_DIR885:
+		sesgpio = 0x107;	// gpio 7, inversed
+		wifigpio = 0x10a;	// gpio 10, inversed
+		break;
 	case ROUTER_DLINK_DIR868:
+	case ROUTER_DLINK_DIR868C:
+		sesgpio = 0x107;	// gpio 7, inversed
+		break;
 	case ROUTER_ASUS_AC67U:
 		wifigpio = 0x10f;
 		sesgpio = 0x107;	// gpio 7, inversed
@@ -1162,9 +1255,24 @@ void period_check(int sig)
 		wifigpio = 0x10f;	// gpio 15, inversed
 		val |= get_gpio(15) << 15;
 		break;
+	case ROUTER_DLINK_DIR860:
+		sesgpio = 0x108;	// gpio 7, inversed
+		break;
 	case ROUTER_ASUS_AC87U:
 		sesgpio = 0x102;	// gpio 2, inversed
 		wifigpio = 0x10f;
+		break;
+	case ROUTER_ASUS_AC88U:
+		sesgpio = 0x114;	// gpio 20, inversed
+		wifigpio = 0x112;	// gpio 18, inversed
+		break;
+	case ROUTER_ASUS_AC5300:
+		wifigpio = 0x114;	// gpio 20, inversed
+		sesgpio = 0x112;	// gpio 18, inversed
+		break;
+	case ROUTER_ASUS_AC3200:
+		sesgpio = 0x107;	// gpio 2, inversed
+		wifigpio = 0x104;
 		break;
 	case ROUTER_ASUS_AC56U:
 		wifigpio = 0x107;	// gpio 7, inversed
@@ -1213,6 +1321,10 @@ void period_check(int sig)
 	case ROUTER_NETGEAR_WNDR3400:
 	case ROUTER_NETGEAR_WNR3500L:
 		sesgpio = 0x106;	// gpio 6, inversed
+		break;
+	case ROUTER_NETGEAR_WNR3500LV2:
+		sesgpio = 0x106;	// gpio 6, inversed
+		wifigpio = 0x108;
 		break;
 	case ROUTER_WRT320N:
 	case ROUTER_WRT160NV3:
@@ -1294,7 +1406,7 @@ void period_check(int sig)
 					return;
 				}
 				if ((brand & 0x000f) != 0x000f) {
-					printf("resetbutton: factory default.\n");
+					fprintf(stderr, "resetbutton: factory default.\n");
 					dd_syslog(LOG_DEBUG, "Reset button: restoring factory defaults now!\n");
 #if !defined(HAVE_XSCALE) && !defined(HAVE_MAGICBOX) && !defined(HAVE_FONERA) && !defined(HAVE_WHRAG108) && !defined(HAVE_GATEWORX) && !defined(HAVE_LS2) && !defined(HAVE_CA8) && !defined(HAVE_TW6600) && !defined(HAVE_LS5) && !defined(HAVE_LSX) && !defined(HAVE_SOLO51)
 					led_control(LED_DIAG, LED_ON);
@@ -1416,7 +1528,7 @@ void period_check(int sig)
 				break;
 			}
 		}
-#ifdef HAVE_AOSS
+#if defined(HAVE_AOSS) || defined(HAVE_WPS)
 		else if (nvram_match("radiooff_button", "2")) {
 			sysprintf("startstop aoss");
 		}
@@ -1478,7 +1590,6 @@ void period_check(int sig)
 			fprintf(stderr, "############################################\n\n");
 		}
 #endif
-///////// Wi-Fi button
 	} else if ((wifigpio != 0xfff)
 		   && (((wifigpio & 0x100) == 0 && (val & pushwifi))
 		       || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {

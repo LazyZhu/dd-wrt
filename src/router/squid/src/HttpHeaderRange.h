@@ -1,51 +1,30 @@
-
 /*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
 #ifndef SQUID_HTTPHEADERRANGE_H
 #define SQUID_HTTPHEADERRANGE_H
 
-#include "Array.h"
-#include "MemPool.h"
-#include "Packer.h"
+#include "mem/forward.h"
 #include "Range.h"
 #include "SquidString.h"
 
+#include <vector>
+
 class HttpReply;
+class Packable;
+
 /* http byte-range-spec */
 
 class HttpHdrRangeSpec
 {
+    MEMPROXY_CLASS(HttpHdrRangeSpec);
 
 public:
-    MEMPROXY_CLASS(HttpHdrRangeSpec);
     typedef Range<int64_t, uint64_t> HttpRange;
     static int64_t const UnknownPosition;
 
@@ -55,13 +34,11 @@ public:
     bool parseInit(const char *field, int flen);
     int canonize(int64_t clen);
     void outputInfo( char const *note) const;
-    void packInto(Packer * p) const;
+    void packInto(Packable * p) const;
     bool mergeWith(const HttpHdrRangeSpec * donor);
     int64_t offset;
     int64_t length;
 };
-
-MEMPROXY_CLASS_INLINE(HttpHdrRangeSpec);
 
 /**
  * There may be more than one byte range specified in the request.
@@ -70,10 +47,9 @@ MEMPROXY_CLASS_INLINE(HttpHdrRangeSpec);
  */
 class HttpHdrRange
 {
-
-public:
     MEMPROXY_CLASS(HttpHdrRange);
 
+public:
     static size_t ParsedCount;
     /* Http Range Header Field */
     static HttpHdrRange *ParseCreate(const String * range_spec);
@@ -83,8 +59,8 @@ public:
     ~HttpHdrRange();
     HttpHdrRange &operator= (HttpHdrRange const &);
 
-    typedef Vector<HttpHdrRangeSpec *>::iterator iterator;
-    typedef Vector<HttpHdrRangeSpec *>::const_iterator const_iterator;
+    typedef std::vector<HttpHdrRangeSpec *>::iterator iterator;
+    typedef std::vector<HttpHdrRangeSpec *>::const_iterator const_iterator;
     iterator begin();
     const_iterator begin () const;
     iterator end();
@@ -95,7 +71,7 @@ public:
     int canonize(HttpReply *rep);
     /* returns true if ranges are valid; inits HttpHdrRange */
     bool parseInit(const String * range_spec);
-    void packInto(Packer * p) const;
+    void packInto(Packable * p) const;
     /* other */
     bool isComplex() const;
     bool willBeComplex() const;
@@ -103,15 +79,13 @@ public:
     int64_t lowestOffset(int64_t) const;
     bool offsetLimitExceeded(const int64_t limit) const;
     bool contains(HttpHdrRangeSpec& r) const;
-    Vector<HttpHdrRangeSpec *> specs;
+    std::vector<HttpHdrRangeSpec *> specs;
 
 private:
-    void getCanonizedSpecs (Vector<HttpHdrRangeSpec *> &copy);
-    void merge (Vector<HttpHdrRangeSpec *> &basis);
+    void getCanonizedSpecs (std::vector<HttpHdrRangeSpec *> &copy);
+    void merge (std::vector<HttpHdrRangeSpec *> &basis);
     int64_t clen;
 };
-
-MEMPROXY_CLASS_INLINE(HttpHdrRange);
 
 /**
  * Data for iterating thru range specs
@@ -121,13 +95,15 @@ class HttpHdrRangeIter
 
 public:
     HttpHdrRange::iterator pos;
+    HttpHdrRange::iterator end;
     const HttpHdrRangeSpec *currentSpec() const;
     void updateSpec();
     int64_t debt() const;
     void debt(int64_t);
-    int64_t debt_size;		/* bytes left to send from the current spec */
-    String boundary;		/* boundary for multipart responses */
+    int64_t debt_size;      /* bytes left to send from the current spec */
+    String boundary;        /* boundary for multipart responses */
     bool valid;
 };
 
 #endif /* SQUID_HTTPHEADERRANGE_H */
+

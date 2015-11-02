@@ -11,10 +11,23 @@
  * Licensed under GPLv2 or later, see file LICENSE in this tarball for details.
 */
 
+//applet:IF_MODPROBE(APPLET(modprobe, BB_DIR_SBIN, BB_SUID_DROP))
+//usage:#define modprobe_trivial_usage
+//usage:	"[-qfwrsv] MODULE [SYMBOL=VALUE]..."
+//usage:#define modprobe_full_usage "\n\n"
+//usage:       "	-r	Remove MODULE (stacks) or do autoclean"
+//usage:     "\n	-q	Quiet"
+//usage:     "\n	-v	Verbose"
+//usage:     "\n	-f	Force"
+//usage:     "\n	-w	Wait for unload"
+//usage:     "\n	-s	Report via syslog instead of stderr"
+
 #include "libbb.h"
 #include <sys/utsname.h>
 #include <fnmatch.h>
 
+#define ENABLE_FEATURE_MODPROBE_FANCY_ALIAS 0
+#define ENABLE_FEATURE_MODPROBE_MULTIPLE_OPTIONS 0
 #define line_buffer bb_common_bufsiz1
 
 struct mod_opt_t {	/* one-way list of options to pass to a module */

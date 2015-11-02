@@ -1083,7 +1083,7 @@ static int br_ip6_multicast_mld2_report(struct net_bridge *br,
 
 		err = br_ip6_multicast_add_group(br, port, &grec->grec_mca,
 						 vid, src);
-		if (!err)
+		if (err)
 			break;
 	}
 
@@ -1113,6 +1113,9 @@ static void br_multicast_add_router(struct net_bridge *br,
 	struct net_bridge_port *p;
 	struct hlist_node *slot = NULL;
 
+	if (!hlist_unhashed(&port->rlist))
+		return;
+
 	hlist_for_each_entry(p, &br->router_list, rlist) {
 		if ((unsigned long) port >= (unsigned long) p)
 			break;
@@ -1140,12 +1143,8 @@ static void br_multicast_mark_router(struct net_bridge *br,
 	if (port->multicast_router != 1)
 		return;
 
-	if (!hlist_unhashed(&port->rlist))
-		goto timer;
-
 	br_multicast_add_router(br, port);
 
-timer:
 	mod_timer(&port->multicast_router_timer,
 		  now + br->multicast_querier_interval);
 }
@@ -1867,11 +1866,9 @@ out:
 
 int br_multicast_set_router(struct net_bridge *br, unsigned long val)
 {
-	int err = -ENOENT;
+	int err = -EINVAL;
 
 	spin_lock_bh(&br->multicast_lock);
-	if (!netif_running(br->dev))
-		goto unlock;
 
 	switch (val) {
 	case 0:
@@ -1882,13 +1879,8 @@ int br_multicast_set_router(struct net_bridge *br, unsigned long val)
 		br->multicast_router = val;
 		err = 0;
 		break;
-
-	default:
-		err = -EINVAL;
-		break;
 	}
 
-unlock:
 	spin_unlock_bh(&br->multicast_lock);
 
 	return err;
@@ -1897,11 +1889,9 @@ unlock:
 int br_multicast_set_port_router(struct net_bridge_port *p, unsigned long val)
 {
 	struct net_bridge *br = p->br;
-	int err = -ENOENT;
+	int err = -EINVAL;
 
 	spin_lock(&br->multicast_lock);
-	if (!netif_running(br->dev) || p->state == BR_STATE_DISABLED)
-		goto unlock;
 
 	switch (val) {
 	case 0:
@@ -1923,13 +1913,8 @@ int br_multicast_set_port_router(struct net_bridge_port *p, unsigned long val)
 
 		br_multicast_add_router(br, p);
 		break;
-
-	default:
-		err = -EINVAL;
-		break;
 	}
 
-unlock:
 	spin_unlock(&br->multicast_lock);
 
 	return err;
@@ -2034,15 +2019,11 @@ unlock:
 
 int br_multicast_set_hash_max(struct net_bridge *br, unsigned long val)
 {
-	int err = -ENOENT;
+	int err = -EINVAL;
 	u32 old;
 	struct net_bridge_mdb_htable *mdb;
 
 	spin_lock_bh(&br->multicast_lock);
-	if (!netif_running(br->dev))
-		goto unlock;
-
-	err = -EINVAL;
 	if (!is_power_of_2(val))
 		goto unlock;
 

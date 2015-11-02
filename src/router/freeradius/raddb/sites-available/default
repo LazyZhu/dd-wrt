@@ -11,7 +11,7 @@
 #	the "inner-tunnel" virtual server.  You wll likely have to edit
 #	that, too, for authentication to work.
 #
-#	$Id: 520ccbc90f3a09cd6a80e1e3b16000b7ba94d884 $
+#	$Id: 099f7f05a679af0d5577e39671ee8ad1e5abf407 $
 #
 ######################################################################
 #
@@ -156,6 +156,8 @@ authorize {
 	eap {
 		ok = return
 	}
+
+#	reject
 
 	#
 	#  Pull crypt'd passwords from /etc/passwd or /etc/shadow,
@@ -576,6 +578,10 @@ session {
 #		# log failed authentications in SQL, too.
 #		sql
 #		attr_filter.access_reject
+#		# Insert EAP-Failure message if the request was
+#		# rejected by policy instead of because of an
+#		# authentication failure
+#		eap
 #	}
 #}
 

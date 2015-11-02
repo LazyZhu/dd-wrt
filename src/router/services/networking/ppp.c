@@ -46,15 +46,14 @@
 
 #define IFUP (IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST)
 
-char *getenvs(char *env)
+char *getenvs(char *r, int size, char *env)
 {
-	static unsigned char r[64];
 	char *e = getenv(env);
 	if (!e)
 		return NULL;
 	int c = 0;
 	int i;
-	for (i = 0; i < strlen(e); i++) {
+	for (i = 0; i < strlen(e) && c < (size - 1); i++) {
 		if (e[i] != ' ')
 			r[c++] = e[i];
 	}
@@ -71,7 +70,6 @@ int ipup_main(int argc, char **argv)
 	char *wan_ifname = safe_getenv("IFNAME");
 
 	// char *wan_proto = nvram_safe_get("wan_proto");
-	char *value;
 	char buf[256];
 
 	cprintf("%s\n", argv[0]);
@@ -107,9 +105,8 @@ int ipup_main(int argc, char **argv)
 #endif
 	    )
 		nvram_set("pppoe_ifname", wan_ifname);
-
-	if (getenv("IPLOCAL")) {
-		value = getenvs("IPLOCAL");
+	char value[128];
+	if (getenvs(value, sizeof(value), "IPLOCAL")) {
 		ifconfig(wan_ifname, IFUP, value, "255.255.255.255");
 		if (nvram_match("wan_proto", "pppoe")
 #ifdef HAVE_PPPOEDUAL
@@ -152,9 +149,7 @@ int ipup_main(int argc, char **argv)
 #endif
 	}
 
-	if (getenv("IPREMOTE")) {
-		value = getenvs("IPREMOTE");
-
+	if (getenvs(value, sizeof(value), "IPREMOTE")) {
 		if (nvram_match("wan_proto", "pptp")) {
 			nvram_set("wan_gateway", value);
 			eval("route", "del", "default");
@@ -165,18 +160,18 @@ int ipup_main(int argc, char **argv)
 		}
 	}
 	strcpy(buf, "");
-	if (getenv("DNS1"))
-		sprintf(buf, "%s", getenvs("DNS1"));
-	if (getenv("DNS2"))
-		sprintf(buf + strlen(buf), "%s%s", strlen(buf) ? " " : "", getenvs("DNS2"));
+	if (getenvs(value, sizeof(value), "DNS1"))
+		sprintf(buf, "%s", value);
+	if (getenvs(value, sizeof(value), "DNS2"))
+		sprintf(buf + strlen(buf), "%s%s", strlen(buf) ? " " : "", value);
 	nvram_set("wan_get_dns", buf);
-
-	if ((value = getenv("AC_NAME")))
-		nvram_set("ppp_get_ac", value);
-	if ((value = getenv("SRV_NAME")))
-		nvram_set("ppp_get_srv", value);
-	if ((value = getenv("MTU")))
-		nvram_set("wan_run_mtu", value);
+	char *v;
+	if ((v = getenv("AC_NAME")))
+		nvram_set("ppp_get_ac", v);
+	if ((v = getenv("SRV_NAME")))
+		nvram_set("ppp_get_srv", v);
+	if ((v = getenv("MTU")))
+		nvram_set("wan_run_mtu", v);
 	start_wan_done(wan_ifname);
 	cprintf("done\n");
 	return 0;
@@ -230,7 +225,7 @@ int ipdown_main(int argc, char **argv)
 		eval("route", "del", "default");
 		nvram_set("wan_gateway", nvram_safe_get("wan_gateway_buf"));
 		eval("route", "add", "default", "gw", nvram_safe_get("wan_gateway"));
-		sysprintf("iptables -t nat -A POSTROUTING -o %s -j MASQUERADE\n", nvram_safe_get("pptp_ifname"));
+		eval("iptables", "-t", "nat", "-A", "POSTROUTING", "-o", nvram_safe_get("pptp_ifname"), "-j", "MASQUERADE");
 	}
 #ifdef HAVE_3G
 #if defined(HAVE_TMK) || defined(HAVE_BKM)
@@ -284,6 +279,7 @@ int ipdown_main(int argc, char **argv)
 	if (nvram_match("ppp_demand", "1")
 	    && (nvram_match("wan_proto", "pptp")
 		|| nvram_match("wan_proto", "l2tp")
+		|| nvram_match("wan_proto", "pppoe_dual")
 		|| nvram_match("wan_proto", "pppoe"))) {
 		stop_process("listen", "activity listener");
 		eval("listen", nvram_safe_get("lan_ifname"));

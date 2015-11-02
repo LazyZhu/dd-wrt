@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #include "squid.h"
 #include "AccessLogEntry.h"
 #include "client_side.h"
@@ -14,17 +22,19 @@
 #include "rfc1738.h"
 #include "SquidTime.h"
 #include "Store.h"
+#include "tools.h"
 #include "URL.h"
-#if USE_SSL
+#if USE_OPENSSL
 #include "ssl/ErrorDetail.h"
+#include "ssl/ServerBump.h"
 #endif
 
 /// Convert a string to NULL pointer if it is ""
 #define strOrNull(s) ((s)==NULL||(s)[0]=='\0'?NULL:(s))
 
 Format::Format::Format(const char *n) :
-        format(NULL),
-        next(NULL)
+    format(NULL),
+    next(NULL)
 {
     name = xstrdup(n);
 }
@@ -79,16 +89,17 @@ Format::Format::parse(const char *def)
 }
 
 void
-Format::Format::dump(StoreEntry * entry, const char *name)
+Format::Format::dump(StoreEntry * entry, const char *directiveName, bool eol) const
 {
     debugs(46, 4, HERE);
 
     // loop rather than recursing to conserve stack space.
-    for (Format *format = this; format; format = format->next) {
-        debugs(46, 3, HERE << "Dumping format definition for " << format->name);
-        storeAppendPrintf(entry, "format %s ", format->name);
+    for (const Format *fmt = this; fmt; fmt = fmt->next) {
+        debugs(46, 3, HERE << "Dumping format definition for " << fmt->name);
+        if (directiveName)
+            storeAppendPrintf(entry, "%s %s ", directiveName, fmt->name);
 
-        for (Token *t = format->format; t; t = t->next) {
+        for (Token *t = fmt->format; t; t = t->next) {
             if (t->type == LFT_STRING)
                 storeAppendPrintf(entry, "%s", t->data.string);
             else {
@@ -97,7 +108,7 @@ Format::Format::dump(StoreEntry * entry, const char *name)
                 ByteCode_t type = t->type;
 
                 switch (type) {
-                    /* special cases */
+                /* special cases */
 
                 case LFT_STRING:
                     break;
@@ -216,6 +227,10 @@ Format::Format::dump(StoreEntry * entry, const char *name)
                     entry->append("'", 1);
                     break;
 
+                case LOG_QUOTE_SHELL:
+                    entry->append("/", 1);
+                    break;
+
                 case LOG_QUOTE_NONE:
                     break;
                 }
@@ -242,7 +257,8 @@ Format::Format::dump(StoreEntry * entry, const char *name)
             }
         }
 
-        entry->append("\n", 1);
+        if (eol)
+            entry->append("\n", 1);
     }
 
 }
@@ -300,13 +316,22 @@ log_quoted_string(const char *str, char *out)
     *p = '\0';
 }
 
+#if USE_OPENSSL
+static char *
+sslErrorName(Ssl::ssl_error_t err, char *buf, size_t size)
+{
+    snprintf(buf, size, "SSL_ERR=%d", err);
+    return buf;
+}
+#endif
+
 void
 Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logSequenceNumber) const
 {
     char tmp[1024];
     String sb;
 
-    for (Token *fmt = format; fmt != NULL; fmt = fmt->next) {	/* for each token */
+    for (Token *fmt = format; fmt != NULL; fmt = fmt->next) {   /* for each token */
         const char *out = NULL;
         int quote = 0;
         long int outint = 0;
@@ -314,6 +339,9 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
         int dofree = 0;
         int64_t outoff = 0;
         int dooff = 0;
+        struct timeval outtv = {0, 0};
+        int doMsec = 0;
+        int doSec = 0;
 
         switch (fmt->type) {
 
@@ -331,19 +359,19 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_CLIENT_FQDN:
-            if (al->cache.caddr.IsAnyAddr()) // e.g., ICAP OPTIONS lack client
+            if (al->cache.caddr.isAnyAddr()) // e.g., ICAP OPTIONS lack client
                 out = "-";
             else
                 out = fqdncache_gethostbyaddr(al->cache.caddr, FQDN_LOOKUP_IF_MISS);
             if (!out) {
-                out = al->cache.caddr.NtoA(tmp,1024);
+                out = al->cache.caddr.toStr(tmp,1024);
             }
 
             break;
 
         case LFT_CLIENT_PORT:
             if (al->request) {
-                outint = al->request->client_addr.GetPort();
+                outint = al->request->client_addr.port();
                 doint = 1;
             }
             break;
@@ -352,20 +380,40 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 #if USE_SQUID_EUI
             // TODO make the ACL checklist have a direct link to any TCP details.
             if (al->request && al->request->clientConnectionManager.valid() && al->request->clientConnectionManager->clientConnection != NULL) {
-                if (al->request->clientConnectionManager->clientConnection->remote.IsIPv4())
+                if (al->request->clientConnectionManager->clientConnection->remote.isIPv4())
                     al->request->clientConnectionManager->clientConnection->remoteEui48.encode(tmp, 1024);
                 else
                     al->request->clientConnectionManager->clientConnection->remoteEui64.encode(tmp, 1024);
                 out = tmp;
             }
-#else
-            out = "-";
+#endif
+            break;
+
+        case LFT_EXT_ACL_CLIENT_EUI48:
+#if USE_SQUID_EUI
+            if (al->request && al->request->clientConnectionManager.valid() &&
+                    al->request->clientConnectionManager->clientConnection != NULL &&
+                    al->request->clientConnectionManager->clientConnection->remote.isIPv4()) {
+                al->request->clientConnectionManager->clientConnection->remoteEui48.encode(tmp, 1024);
+                out = tmp;
+            }
+#endif
+            break;
+
+        case LFT_EXT_ACL_CLIENT_EUI64:
+#if USE_SQUID_EUI
+            if (al->request && al->request->clientConnectionManager.valid() &&
+                    al->request->clientConnectionManager->clientConnection != NULL &&
+                    !al->request->clientConnectionManager->clientConnection->remote.isIPv4()) {
+                al->request->clientConnectionManager->clientConnection->remoteEui64.encode(tmp, 1024);
+                out = tmp;
+            }
 #endif
             break;
 
         case LFT_SERVER_IP_ADDRESS:
             if (al->hier.tcpServer != NULL) {
-                out = al->hier.tcpServer->remote.NtoA(tmp,sizeof(tmp));
+                out = al->hier.tcpServer->remote.toStr(tmp,sizeof(tmp));
             }
             break;
 
@@ -375,7 +423,7 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 
         case LFT_SERVER_PORT:
             if (al->hier.tcpServer != NULL) {
-                outint = al->hier.tcpServer->remote.GetPort();
+                outint = al->hier.tcpServer->remote.port();
                 doint = 1;
             }
             break;
@@ -383,34 +431,51 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
         case LFT_LOCAL_LISTENING_IP: {
             // avoid logging a dash if we have reliable info
             const bool interceptedAtKnownPort = al->request ?
-                                                (al->request->flags.spoofClientIp ||
-                                                 al->request->flags.intercepted) && al->cache.port :
+                                                (al->request->flags.interceptTproxy ||
+                                                 al->request->flags.intercepted) && al->cache.port != NULL :
                                                 false;
             if (interceptedAtKnownPort) {
-                const bool portAddressConfigured = !al->cache.port->s.IsAnyAddr();
+                const bool portAddressConfigured = !al->cache.port->s.isAnyAddr();
                 if (portAddressConfigured)
-                    out = al->cache.port->s.NtoA(tmp, sizeof(tmp));
+                    out = al->cache.port->s.toStr(tmp, sizeof(tmp));
             } else if (al->tcpClient != NULL)
-                out = al->tcpClient->local.NtoA(tmp, sizeof(tmp));
+                out = al->tcpClient->local.toStr(tmp, sizeof(tmp));
         }
         break;
 
         case LFT_CLIENT_LOCAL_IP:
             if (al->tcpClient != NULL) {
-                out = al->tcpClient->local.NtoA(tmp,sizeof(tmp));
+                out = al->tcpClient->local.toStr(tmp,sizeof(tmp));
+            }
+            break;
+
+        case LFT_CLIENT_LOCAL_TOS:
+            if (al->tcpClient != NULL) {
+                snprintf(tmp, sizeof(tmp), "0x%x", (uint32_t)al->tcpClient->tos);
+                out = tmp;
+            }
+            break;
+
+        case LFT_CLIENT_LOCAL_NFMARK:
+            if (al->tcpClient != NULL) {
+                snprintf(tmp, sizeof(tmp), "0x%x", al->tcpClient->nfmark);
+                out = tmp;
             }
             break;
 
         case LFT_LOCAL_LISTENING_PORT:
-            if (al->cache.port) {
-                outint = al->cache.port->s.GetPort();
+            if (al->cache.port != NULL) {
+                outint = al->cache.port->s.port();
+                doint = 1;
+            } else if (al->request) {
+                outint = al->request->my_addr.port();
                 doint = 1;
             }
             break;
 
         case LFT_CLIENT_LOCAL_PORT:
             if (al->tcpClient != NULL) {
-                outint = al->tcpClient->local.GetPort();
+                outint = al->tcpClient->local.port();
                 doint = 1;
             }
             break;
@@ -418,16 +483,30 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
         case LFT_SERVER_LOCAL_IP_OLD_27:
         case LFT_SERVER_LOCAL_IP:
             if (al->hier.tcpServer != NULL) {
-                out = al->hier.tcpServer->local.NtoA(tmp,sizeof(tmp));
+                out = al->hier.tcpServer->local.toStr(tmp,sizeof(tmp));
             }
             break;
 
         case LFT_SERVER_LOCAL_PORT:
             if (al->hier.tcpServer != NULL) {
-                outint = al->hier.tcpServer->local.GetPort();
+                outint = al->hier.tcpServer->local.port();
                 doint = 1;
             }
 
+            break;
+
+        case LFT_SERVER_LOCAL_TOS:
+            if (al->hier.tcpServer != NULL) {
+                snprintf(tmp, sizeof(tmp), "0x%x", (uint32_t)al->hier.tcpServer->tos);
+                out = tmp;
+            }
+            break;
+
+        case LFT_SERVER_LOCAL_NFMARK:
+            if (al->hier.tcpServer != NULL) {
+                snprintf(tmp, sizeof(tmp), "0x%x", al->hier.tcpServer->nfmark);
+                out = tmp;
+            }
             break;
 
         case LFT_TIME_SECONDS_SINCE_EPOCH:
@@ -447,7 +526,7 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             const char *spec;
 
             struct tm *t;
-            spec = fmt->data.timespec;
+            spec = fmt->data.string;
 
             if (fmt->type == LFT_TIME_LOCALTIME) {
                 if (!spec)
@@ -467,33 +546,44 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 
         break;
 
+        case LFT_TIME_START:
+            outtv = al->cache.start_time;
+            doSec = 1;
+            break;
+
         case LFT_TIME_TO_HANDLE_REQUEST:
-            outint = al->cache.msec;
-            doint = 1;
+            outtv = al->cache.trTime;
+            doMsec = 1;
             break;
 
         case LFT_PEER_RESPONSE_TIME:
-            if (al->hier.peer_response_time < 0) {
+            if (al->hier.peer_response_time.tv_sec ==  -1) {
                 out = "-";
             } else {
-                outoff = al->hier.peer_response_time;
-                dooff = 1;
+                outtv = al->hier.peer_response_time;
+                doMsec = 1;
             }
             break;
 
-        case LFT_TOTAL_SERVER_SIDE_RESPONSE_TIME:
-            if (al->hier.total_response_time < 0) {
+        case LFT_TOTAL_SERVER_SIDE_RESPONSE_TIME: {
+            timeval total_response_time;
+            al->hier.totalResponseTime(total_response_time);
+            if (total_response_time.tv_sec == -1) {
                 out = "-";
             } else {
-                outoff = al->hier.total_response_time;
-                dooff = 1;
+                outtv = total_response_time;
+                doMsec = 1;
             }
-            break;
+        }
+        break;
 
         case LFT_DNS_WAIT_TIME:
             if (al->request && al->request->dnsWait >= 0) {
-                outint = al->request->dnsWait;
-                doint = 1;
+                // TODO: microsecond precision for dns wait time.
+                // Convert miliseconds to timeval struct:
+                outtv.tv_sec = al->request->dnsWait / 1000;
+                outtv.tv_usec = (al->request->dnsWait % 1000) * 1000;
+                doMsec = 1;
             }
             break;
 
@@ -586,7 +676,7 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 #if ICAP_CLIENT
         case LFT_ICAP_ADDR:
             if (!out)
-                out = al->icap.hostAddr.NtoA(tmp,1024);
+                out = al->icap.hostAddr.toStr(tmp,1024);
             break;
 
         case LFT_ICAP_SERV_NAME:
@@ -685,13 +775,13 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_ICAP_TR_RESPONSE_TIME:
-            outint = al->icap.trTime;
-            doint = 1;
+            outtv = al->icap.trTime;
+            doMsec = 1;
             break;
 
         case LFT_ICAP_IO_TIME:
-            outint = al->icap.ioTime;
-            doint = 1;
+            outtv = al->icap.ioTime;
+            doMsec = 1;
             break;
 
         case LFT_ICAP_STATUS_CODE:
@@ -704,8 +794,8 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_ICAP_TOTAL_TIME:
-            outint = al->icap.processingTime;
-            doint = 1;
+            outtv = al->icap.processingTime;
+            doMsec = 1;
             break;
 #endif
         case LFT_REQUEST_HEADER_ELEM:
@@ -766,7 +856,7 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 #endif
             if (!out)
                 out = strOrNull(al->cache.extuser);
-#if USE_SSL
+#if USE_OPENSSL
             if (!out)
                 out = strOrNull(al->cache.ssluser);
 #endif
@@ -786,14 +876,18 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_USER_EXTERNAL:
-            out = strOrNull(al->cache.extuser);
+            if (al->request && al->request->extacl_user.size())
+                out = al->request->extacl_user.termedBuf();
+
+            if (!out)
+                out = strOrNull(al->cache.extuser);
             break;
 
-            /* case LFT_USER_REALM: */
-            /* case LFT_USER_SCHEME: */
+        /* case LFT_USER_REALM: */
+        /* case LFT_USER_SCHEME: */
 
-            // the fmt->type can not be LFT_HTTP_SENT_STATUS_CODE_OLD_30
-            // but compiler complains if ommited
+        // the fmt->type can not be LFT_HTTP_SENT_STATUS_CODE_OLD_30
+        // but compiler complains if ommited
         case LFT_HTTP_SENT_STATUS_CODE_OLD_30:
         case LFT_HTTP_SENT_STATUS_CODE:
             outint = al->http.code;
@@ -803,18 +897,18 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_HTTP_RECEIVED_STATUS_CODE:
-            if (al->hier.peer_reply_status == HTTP_STATUS_NONE) {
+            if (al->hier.peer_reply_status == Http::scNone) {
                 out = "-";
             } else {
                 outint = al->hier.peer_reply_status;
                 doint = 1;
             }
             break;
-            /* case LFT_HTTP_STATUS:
-             *           out = statusline->text;
-             *     quote = 1;
-             *     break;
-             */
+        /* case LFT_HTTP_STATUS:
+         *           out = statusline->text;
+         *     quote = 1;
+         *     break;
+         */
         case LFT_HTTP_BODY_BYTES_READ:
             if (al->hier.bodyBytesRead >= 0) {
                 outoff = al->hier.bodyBytesRead;
@@ -826,14 +920,7 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_SQUID_STATUS:
-            if (al->http.timedout || al->http.aborted) {
-                snprintf(tmp, sizeof(tmp), "%s%s", log_tags[al->cache.code],
-                         al->http.statusSfx());
-                out = tmp;
-            } else {
-                out = log_tags[al->cache.code];
-            }
-
+            out = al->cache.code.c_str();
             break;
 
         case LFT_SQUID_ERROR:
@@ -842,17 +929,14 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_SQUID_ERROR_DETAIL:
-#if USE_SSL
+#if USE_OPENSSL
             if (al->request && al->request->errType == ERR_SECURE_CONNECT_FAIL) {
-                if (! (out = Ssl::GetErrorName(al->request->errDetail))) {
-                    snprintf(tmp, sizeof(tmp), "SSL_ERR=%d", al->request->errDetail);
-                    out = tmp;
-                }
+                if (! (out = Ssl::GetErrorName(al->request->errDetail)))
+                    out = sslErrorName(al->request->errDetail, tmp, sizeof(tmp));
             } else
 #endif
                 if (al->request && al->request->errDetail != ERR_DETAIL_NONE) {
-                    if (al->request->errDetail > ERR_DETAIL_START  &&
-                            al->request->errDetail < ERR_DETAIL_MAX)
+                    if (al->request->errDetail > ERR_DETAIL_START && al->request->errDetail < ERR_DETAIL_MAX)
                         out = errorDetailName(al->request->errDetail);
                     else {
                         if (al->request->errDetail >= ERR_DETAIL_EXCEPTION_START)
@@ -881,7 +965,9 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 
         case LFT_CLIENT_REQ_METHOD:
             if (al->request) {
-                out = al->request->method.image();
+                const SBuf &s = al->request->method.image();
+                sb.append(s.rawContent(), s.length());
+                out = sb.termedBuf();
                 quote = 1;
             }
             break;
@@ -889,15 +975,39 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
         case LFT_CLIENT_REQ_URI:
             // original client URI
             if (al->request) {
-                out = urlCanonical(al->request);
+                const SBuf &s = al->request->effectiveRequestUri();
+                sb.append(s.rawContent(), s.length());
+                out = sb.termedBuf();
                 quote = 1;
+            }
+            break;
+
+        case LFT_CLIENT_REQ_URLSCHEME:
+            if (al->request) {
+                out = al->request->url.getScheme().c_str();
+                quote = 1;
+            }
+            break;
+
+        case LFT_CLIENT_REQ_URLDOMAIN:
+            if (al->request) {
+                out = al->request->url.host();
+                quote = 1;
+            }
+            break;
+
+        case LFT_CLIENT_REQ_URLPORT:
+            if (al->request) {
+                outint = al->request->url.port();
+                doint = 1;
             }
             break;
 
         case LFT_REQUEST_URLPATH_OLD_31:
         case LFT_CLIENT_REQ_URLPATH:
             if (al->request) {
-                out = al->request->urlpath.termedBuf();
+                SBuf s = al->request->url.path();
+                out = s.c_str();
                 quote = 1;
             }
             break;
@@ -910,8 +1020,13 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             break;
 
         case LFT_REQUEST_METHOD:
-            out = al->_private.method_str;
-            break;
+        {
+            const SBuf s(al->getLogMethod());
+            sb.append(s.rawContent(), s.length());
+            out = sb.termedBuf();
+            quote = 1;
+        }
+        break;
 
         case LFT_REQUEST_URI:
             out = al->url;
@@ -925,7 +1040,9 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 
         case LFT_SERVER_REQ_METHOD:
             if (al->adapted_request) {
-                out = al->adapted_request->method.image();
+                const SBuf &s = al->adapted_request->method.image();
+                sb.append(s.rawContent(), s.length());
+                out = sb.termedBuf();
                 quote = 1;
             }
             break;
@@ -933,14 +1050,38 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
         case LFT_SERVER_REQ_URI:
             // adapted request URI sent to server/peer
             if (al->adapted_request) {
-                out = urlCanonical(al->adapted_request);
+                const SBuf &s = al->adapted_request->effectiveRequestUri();
+                sb.append(s.rawContent(), s.length());
+                out = sb.termedBuf();
                 quote = 1;
+            }
+            break;
+
+        case LFT_SERVER_REQ_URLSCHEME:
+            if (al->adapted_request) {
+                out = al->adapted_request->url.getScheme().c_str();
+                quote = 1;
+            }
+            break;
+
+        case LFT_SERVER_REQ_URLDOMAIN:
+            if (al->adapted_request) {
+                out = al->adapted_request->url.host();
+                quote = 1;
+            }
+            break;
+
+        case LFT_SERVER_REQ_URLPORT:
+            if (al->adapted_request) {
+                outint = al->adapted_request->url.port();
+                doint = 1;
             }
             break;
 
         case LFT_SERVER_REQ_URLPATH:
             if (al->adapted_request) {
-                out = al->adapted_request->urlpath.termedBuf();
+                SBuf s = al->adapted_request->url.path();
+                out = s.c_str();
                 quote = 1;
             }
             break;
@@ -954,21 +1095,21 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             }
             break;
 
-        case LFT_REQUEST_SIZE_TOTAL:
-            outoff = al->cache.requestSize;
+        case LFT_CLIENT_REQUEST_SIZE_TOTAL:
+            outoff = al->http.clientRequestSz.messageTotal();
             dooff = 1;
             break;
 
-            /*case LFT_REQUEST_SIZE_LINE: */
-        case LFT_REQUEST_SIZE_HEADERS:
-            outoff = al->cache.requestHeadersSize;
+        case LFT_CLIENT_REQUEST_SIZE_HEADERS:
+            outoff = al->http.clientRequestSz.header;
             dooff =1;
             break;
-            /*case LFT_REQUEST_SIZE_BODY: */
-            /*case LFT_REQUEST_SIZE_BODY_NO_TE: */
 
-        case LFT_REPLY_SIZE_TOTAL:
-            outoff = al->cache.replySize;
+        /*case LFT_REQUEST_SIZE_BODY: */
+        /*case LFT_REQUEST_SIZE_BODY_NO_TE: */
+
+        case LFT_ADAPTED_REPLY_SIZE_TOTAL:
+            outoff = al->http.clientReplySz.messageTotal();
             dooff = 1;
             break;
 
@@ -986,13 +1127,19 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 
             break;
 
-            /*case LFT_REPLY_SIZE_LINE: */
-        case LFT_REPLY_SIZE_HEADERS:
-            outint = al->cache.replyHeadersSize;
+        case LFT_ADAPTED_REPLY_SIZE_HEADERS:
+            outint = al->http.clientReplySz.header;
             doint = 1;
             break;
-            /*case LFT_REPLY_SIZE_BODY: */
-            /*case LFT_REPLY_SIZE_BODY_NO_TE: */
+
+        /*case LFT_REPLY_SIZE_BODY: */
+        /*case LFT_REPLY_SIZE_BODY_NO_TE: */
+
+        case LFT_CLIENT_IO_SIZE_TOTAL:
+            outint = al->http.clientRequestSz.messageTotal() + al->http.clientReplySz.messageTotal();
+            doint = 1;
+            break;
+        /*case LFT_SERVER_IO_SIZE_TOTAL: */
 
         case LFT_TAG:
             if (al->request)
@@ -1000,11 +1147,6 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 
             quote = 1;
 
-            break;
-
-        case LFT_IO_SIZE_TOTAL:
-            outint = al->cache.requestSize + al->cache.replySize;
-            doint = 1;
             break;
 
         case LFT_EXT_LOG:
@@ -1020,13 +1162,53 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             dooff = 1;
             break;
 
-#if USE_SSL
+#if USE_OPENSSL
         case LFT_SSL_BUMP_MODE: {
             const Ssl::BumpMode mode = static_cast<Ssl::BumpMode>(al->ssl.bumpMode);
             // for Ssl::bumpEnd, Ssl::bumpMode() returns NULL and we log '-'
             out = Ssl::bumpMode(mode);
-            break;
         }
+        break;
+
+        case LFT_EXT_ACL_USER_CERT_RAW:
+            if (al->request) {
+                ConnStateData *conn = al->request->clientConnectionManager.get();
+                if (conn != NULL && Comm::IsConnOpen(conn->clientConnection)) {
+                    if (SSL *ssl = fd_table[conn->clientConnection->fd].ssl)
+                        out = sslGetUserCertificatePEM(ssl);
+                }
+            }
+            break;
+
+        case LFT_EXT_ACL_USER_CERTCHAIN_RAW:
+            if (al->request) {
+                ConnStateData *conn = al->request->clientConnectionManager.get();
+                if (conn != NULL && Comm::IsConnOpen(conn->clientConnection)) {
+                    if (SSL *ssl = fd_table[conn->clientConnection->fd].ssl)
+                        out = sslGetUserCertificatePEM(ssl);
+                }
+            }
+            break;
+
+        case LFT_EXT_ACL_USER_CERT:
+            if (al->request) {
+                ConnStateData *conn = al->request->clientConnectionManager.get();
+                if (conn != NULL && Comm::IsConnOpen(conn->clientConnection)) {
+                    if (SSL *ssl = fd_table[conn->clientConnection->fd].ssl)
+                        out = sslGetUserAttribute(ssl, format->data.header.header);
+                }
+            }
+            break;
+
+        case LFT_EXT_ACL_USER_CA_CERT:
+            if (al->request) {
+                ConnStateData *conn = al->request->clientConnectionManager.get();
+                if (conn != NULL && Comm::IsConnOpen(conn->clientConnection)) {
+                    if (SSL *ssl = fd_table[conn->clientConnection->fd].ssl)
+                        out = sslGetCAAttribute(ssl, format->data.header.header);
+                }
+            }
+            break;
 
         case LFT_SSL_USER_CERT_SUBJECT:
             if (X509 *cert = al->cache.sslClientCert.get()) {
@@ -1045,11 +1227,98 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
                 }
             }
             break;
+
+        case LFT_SSL_CLIENT_SNI:
+            if (al->request && al->request->clientConnectionManager.valid()) {
+                if (Ssl::ServerBump * srvBump = al->request->clientConnectionManager->serverBump()) {
+                    if (!srvBump->clientSni.isEmpty())
+                        out = srvBump->clientSni.c_str();
+                }
+            }
+            break;
+
+        case LFT_SSL_SERVER_CERT_ERRORS:
+            if (al->request && al->request->clientConnectionManager.valid()) {
+                if (Ssl::ServerBump * srvBump = al->request->clientConnectionManager->serverBump()) {
+                    const char *separator = fmt->data.string ? fmt->data.string : ":";
+                    for (Ssl::CertErrors *sslError = srvBump->sslErrors; sslError != NULL;  sslError = sslError->next) {
+                        if (sb.size())
+                            sb.append(separator);
+                        if (const char *errorName = Ssl::GetErrorName(sslError->element.code))
+                            sb.append(errorName);
+                        else
+                            sb.append(sslErrorName(sslError->element.code, tmp, sizeof(tmp)));
+                    }
+                    if (sb.size())
+                        out = sb.termedBuf();
+                }
+            }
+            break;
+
+        case LFT_SSL_SERVER_CERT_ISSUER:
+        case LFT_SSL_SERVER_CERT_SUBJECT:
+            // Not implemented
+            break;
 #endif
+
+        case LFT_REQUEST_URLGROUP_OLD_2X:
+            assert(LFT_REQUEST_URLGROUP_OLD_2X == 0); // should never happen.
+
+        case LFT_NOTE:
+            tmp[0] = fmt->data.header.separator;
+            tmp[1] = '\0';
+            if (fmt->data.header.header && *fmt->data.header.header) {
+                const char *separator = tmp;
+#if USE_ADAPTATION
+                Adaptation::History::Pointer ah = al->request ? al->request->adaptHistory() : Adaptation::History::Pointer();
+                if (ah != NULL && ah->metaHeaders != NULL) {
+                    if (const char *meta = ah->metaHeaders->find(fmt->data.header.header, separator))
+                        sb.append(meta);
+                }
+#endif
+                if (al->notes != NULL) {
+                    if (const char *note = al->notes->find(fmt->data.header.header, separator)) {
+                        if (sb.size())
+                            sb.append(separator);
+                        sb.append(note);
+                    }
+                }
+                out = sb.termedBuf();
+                quote = 1;
+            } else {
+                // if no argument given use default "\r\n" as notes separator
+                const char *separator = fmt->data.string ? tmp : "\r\n";
+#if USE_ADAPTATION
+                Adaptation::History::Pointer ah = al->request ? al->request->adaptHistory() : Adaptation::History::Pointer();
+                if (ah != NULL && ah->metaHeaders != NULL && !ah->metaHeaders->empty())
+                    sb.append(ah->metaHeaders->toString(separator));
+#endif
+                if (al->notes != NULL && !al->notes->empty())
+                    sb.append(al->notes->toString(separator));
+
+                out = sb.termedBuf();
+                quote = 1;
+            }
+            break;
+
+        case LFT_CREDENTIALS:
+#if USE_AUTH
+            if (al->request && al->request->auth_user_request != NULL)
+                out = strOrNull(al->request->auth_user_request->credentialsStr());
+#endif
+
+            break;
 
         case LFT_PERCENT:
             out = "%";
+            break;
 
+        case LFT_EXT_ACL_NAME:
+            out = al->lastAclName;
+            break;
+
+        case LFT_EXT_ACL_DATA:
+            out = al->lastAclData;
             break;
         }
 
@@ -1059,6 +1328,18 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
 
         } else if (doint) {
             snprintf(tmp, sizeof(tmp), "%0*ld", fmt->zero && fmt->widthMin >= 0 ? fmt->widthMin : 0, outint);
+            out = tmp;
+        } else if (doMsec) {
+            if (fmt->widthMax < 0) {
+                snprintf(tmp, sizeof(tmp), "%0*ld", fmt->widthMin , tvToMsec(outtv));
+            } else {
+                int precision = fmt->widthMax;
+                snprintf(tmp, sizeof(tmp), "%0*" PRId64 ".%0*" PRId64 "", fmt->zero && (fmt->widthMin - precision - 1 >= 0) ? fmt->widthMin - precision - 1 : 0, static_cast<int64_t>(outtv.tv_sec * 1000 + outtv.tv_usec / 1000), precision, static_cast<int64_t>((outtv.tv_usec % 1000 )* (1000 / fmt->divisor)));
+            }
+            out = tmp;
+        } else if (doSec) {
+            int precision = fmt->widthMax >=0 ? fmt->widthMax :3;
+            snprintf(tmp, sizeof(tmp), "%0*" PRId64 ".%0*d", fmt->zero && (fmt->widthMin - precision - 1 >= 0) ? fmt->widthMin - precision - 1 : 0, static_cast<int64_t>(outtv.tv_sec), precision, (int)(outtv.tv_usec / fmt->divisor));
             out = tmp;
         }
 
@@ -1093,6 +1374,16 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
                     newout = rfc1738_escape(out);
                     break;
 
+                case LOG_QUOTE_SHELL: {
+                    MemBuf mbq;
+                    mbq.init();
+                    strwordquote(&mbq, out);
+                    newout = mbq.content();
+                    mbq.stolen = 1;
+                    newfree = 1;
+                }
+                break;
+
                 case LOG_QUOTE_RAW:
                     break;
                 }
@@ -1108,7 +1399,7 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             }
 
             // enforce width limits if configured
-            const bool haveMaxWidth = fmt->widthMax >=0 && !doint && !dooff;
+            const bool haveMaxWidth = fmt->widthMax >=0 && !doint && !dooff && !doMsec && !doSec;
             if (haveMaxWidth || fmt->widthMin) {
                 const int minWidth = fmt->widthMin >= 0 ?
                                      fmt->widthMin :0;
@@ -1116,9 +1407,9 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
                                      fmt->widthMax : strlen(out);
 
                 if (fmt->left)
-                    mb.Printf("%-*.*s", minWidth, maxWidth, out);
+                    mb.appendf("%-*.*s", minWidth, maxWidth, out);
                 else
-                    mb.Printf("%*.*s", minWidth, maxWidth, out);
+                    mb.appendf("%*.*s", minWidth, maxWidth, out);
             } else
                 mb.append(out, strlen(out));
         } else {
@@ -1134,3 +1425,4 @@ Format::Format::assemble(MemBuf &mb, const AccessLogEntry::Pointer &al, int logS
             safe_free(out);
     }
 }
+

@@ -1,3 +1,9 @@
+## Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+##
+## Squid software is distributed under GPLv2+ license and includes
+## contributions from numerous individuals and organizations.
+## Please see the COPYING and CONTRIBUTORS files for details.
+##
 
 include $(top_srcdir)/src/Common.am
 include $(top_srcdir)/src/TestHeaders.am
@@ -13,12 +19,23 @@ libbase_la_SOURCES = \
 	AsyncJobCalls.h \
 	AsyncCallQueue.cc \
 	AsyncCallQueue.h \
-	TidyPointer.h \
+	ByteCounter.h \
 	CbcPointer.h \
+	CbDataList.h \
+	CharacterSet.h \
+	CharacterSet.cc \
+	EnumIterator.h \
 	InstanceId.h \
+	Lock.h \
+	LookupTable.h \
+	LruMap.h \
+	Packable.h \
+	PackableStream.h \
+	RegexPattern.cc \
+	RegexPattern.h \
 	RunnersRegistry.cc \
 	RunnersRegistry.h \
 	Subscription.h \
 	TextException.cc \
 	TextException.h \
-	StringArea.h
+	TidyPointer.h

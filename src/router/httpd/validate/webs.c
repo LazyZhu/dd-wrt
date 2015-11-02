@@ -43,6 +43,7 @@
 #endif
 
 extern char *(*websGetVar) (webs_t wp, char *var, char *d);
+extern int get_merge_ipaddr(webs_t wp, char *name, char *ipaddr);
 
 void wan_proto(webs_t wp)
 {
@@ -481,7 +482,7 @@ void summary_delete_policy(webs_t wp)
 
 void addDeletion(char *word)
 {
-	if (!strlen(word) > 0)
+	if (!word || !strlen(word))
 		return;
 
 	char *oldarg = nvram_get("action_service_arg1");
@@ -674,7 +675,7 @@ void generate_wep_key(webs_t wp)
 	generate_wep_key_single(prefix, passphrase, bit, tx);
 }
 
-void copytonv(webs_t wp, const char *fmt, ...)
+char *copytonv(webs_t wp, const char *fmt, ...)
 {
 	char varbuf[64];
 	va_list args;
@@ -687,6 +688,22 @@ void copytonv(webs_t wp, const char *fmt, ...)
 
 	if (wl)
 		nvram_set(varbuf, wl);
+	return wl;
+}
+
+void copymergetonv(webs_t wp, const char *fmt, ...)
+{
+	char varbuf[64];
+	va_list args;
+
+	va_start(args, (char *)fmt);
+	vsnprintf(varbuf, sizeof(varbuf), fmt, args);
+	va_end(args);
+	char ipaddr[32];
+	if (get_merge_ipaddr(wp, varbuf, ipaddr)) {
+		nvram_set(varbuf, ipaddr);
+	}
+
 }
 
 void copytonv2(webs_t wp, char *prefix_get, char *prefix_set, char *name)
@@ -724,8 +741,6 @@ void copytonv2_wme(webs_t wp, char *prefix_get, char *prefix_set, char *name, in
 	strtrim_right(tmpvalue, ' ');
 	nvram_set(tmpname, tmpvalue);
 }
-
-extern int get_merge_ipaddr(webs_t wp, char *name, char *ipaddr);
 
 static void save_secprefix(webs_t wp, char *prefix)
 {
@@ -779,23 +794,19 @@ _8021xprv
 	copytonv(wp, "%s_crypto", prefix);
 	copytonv(wp, "%s_wpa_psk", prefix);
 	copytonv(wp, "%s_wpa_gtk_rekey", prefix);
-	sprintf(n, "%s_radius_ipaddr", prefix);
-	if (get_merge_ipaddr(wp, n, radius))
-		nvram_set(n, radius);
+	copymergetonv(wp, "%s_radius_ipaddr", prefix);
 	copytonv(wp, "%s_radius_port", prefix);
 	copytonv(wp, "%s_radius_key", prefix);
 
-	sprintf(n, "%s_radius2_ipaddr", prefix);
-	if (get_merge_ipaddr(wp, n, radius))
-		nvram_set(n, radius);
+	copymergetonv(wp, "%s_local_ip", prefix);
+
+	copymergetonv(wp, "%s_radius2_ipaddr", prefix);
 	copytonv(wp, "%s_radius2_port", prefix);
 	copytonv(wp, "%s_radius2_key", prefix);
 #ifdef HAVE_MADWIFI
 	copytonv(wp, "%s_radius_retry", prefix);
 	copytonv(wp, "%s_acct", prefix);
-	sprintf(n, "%s_acct_ipaddr", prefix);
-	if (get_merge_ipaddr(wp, n, radius))
-		nvram_set(n, radius);
+	copymergetonv(wp, "%s_acct_ipaddr", prefix);
 	copytonv(wp, "%s_acct_port", prefix);
 	copytonv(wp, "%s_acct_key", prefix);
 #endif
@@ -835,8 +846,7 @@ _8021xprv
 	} else {
 		copytonv(wp, n);
 	}
-	sprintf(n, "%s_wep_bit", prefix);
-	copytonv(wp, n);
+	copytonv(wp, "%s_wep_bit", prefix);
 	char buf[128];
 
 	snprintf(buf, sizeof(buf), "%s:%s:%s:%s:%s:%s", pass, key1, key2, key3, key4, tx);
@@ -869,6 +879,13 @@ _8021xprv
 	}
 
 	copytonv(wp, n);
+#ifdef HAVE_MADWIFI
+	sprintf(n, "%s_config", p2);
+	sprintf(n2, "%s_config", prefix);
+	v = websGetVar(wp, n, NULL);
+	if (v && strlen(v) > 0)
+		nvram_set(n2, v);
+#endif
 
 }
 
@@ -1259,6 +1276,8 @@ void qos_add_svc(webs_t wp)
 	char *svqos_svcs = nvram_safe_get("svqos_svcs");
 	char new_svcs[4096] = { 0 };
 	int i = 0;
+	if (!add_svc)
+		return;
 
 	memset(new_svcs, 0, sizeof(new_svcs));
 
@@ -1298,6 +1317,33 @@ void qos_add_svc(webs_t wp)
 	nvram_commit();
 }
 
+void qos_add_dev(webs_t wp)
+{
+	char *var = websGetVar(wp, "wshaper_enable", NULL);
+
+	if (var != NULL)
+		nvram_set("wshaper_enable", var);
+
+	char *add_dev = websGetVar(wp, "svqos_dev", NULL);
+	char *svqos_ips = nvram_safe_get("svqos_devs");
+	char new_ip[4096] = { 0 };
+	if (!add_dev)
+		return;
+	/*
+	 * if this ip exists, return an error 
+	 */
+#ifdef HAVE_AQOS
+	snprintf(new_ip, 4095, "%s %s 100 100 0 0 none |", svqos_ips, add_dev);
+#else
+	snprintf(new_ip, 4095, "%s %s 30 |", svqos_ips, add_dev);
+#endif
+	if (strlen(new_ip) >= sizeof(new_ip))
+		return;
+
+	nvram_set("svqos_devs", new_ip);
+
+}
+
 void qos_add_ip(webs_t wp)
 {
 	char *var = websGetVar(wp, "wshaper_enable", NULL);
@@ -1313,6 +1359,8 @@ void qos_add_ip(webs_t wp)
 	char add_ip[19] = { 0 };
 	char *svqos_ips = nvram_safe_get("svqos_ips");
 	char new_ip[4096] = { 0 };
+	if (!svqos_ips || !add_ip0 || !add_ip1 || !add_ip2 || !add_ip3 || !add_nm)
+		return;
 
 	memset(new_ip, 0, sizeof(new_ip));
 
@@ -1332,7 +1380,6 @@ void qos_add_ip(webs_t wp)
 		return;
 
 	nvram_set("svqos_ips", new_ip);
-	nvram_commit();
 
 }
 
@@ -1352,6 +1399,8 @@ void qos_add_mac(webs_t wp)
 	char add_mac[19] = { 0 };
 	char *svqos_macs = nvram_safe_get("svqos_macs");
 	char new_mac[4096] = { 0 };
+	if (!svqos_macs || !add_mac0 || !add_mac1 || !add_mac2 || !add_mac3 || !add_mac4 || !add_mac5)
+		return;
 
 	memset(new_mac, 0, sizeof(new_mac));
 
@@ -1371,7 +1420,6 @@ void qos_add_mac(webs_t wp)
 		return;
 
 	nvram_set("svqos_macs", new_mac);
-	nvram_commit();
 
 }
 
@@ -1381,10 +1429,11 @@ void qos_save(webs_t wp)
 	char svqos_var[4096] = { 0 };
 	char svqos_pktstr[30] = { 0 };
 	char field[32] = { 0 };
-	char *name, *data, *level, *level2, *lanlevel, *prio, *delete, *pktopt;
-	int no_svcs = atoi(websGetVar(wp, "svqos_nosvcs", NULL));
-	int no_ips = atoi(websGetVar(wp, "svqos_noips", NULL));
-	int no_macs = atoi(websGetVar(wp, "svqos_nomacs", NULL));
+	char *name, *data, *level, *level2, *lanlevel, *prio, *delete, *pktopt, *proto;
+	int no_svcs = atoi(websGetVar(wp, "svqos_nosvcs", "0"));
+	int no_ips = atoi(websGetVar(wp, "svqos_noips", "0"));
+	int no_devs = atoi(websGetVar(wp, "svqos_nodevs", "0"));
+	int no_macs = atoi(websGetVar(wp, "svqos_nomacs", "0"));
 	int i = 0, j = 0;
 
 	/*
@@ -1401,17 +1450,17 @@ void qos_save(webs_t wp)
 		return;
 	}
 //      nvram_set("enable_game", websGetVar(wp, "enable_game", NULL));
-	nvram_set("svqos_defaults", websGetVar(wp, "svqos_defaults", NULL));
-	nvram_set("default_uplevel", websGetVar(wp, "default_uplevel", NULL));
-	nvram_set("default_downlevel", websGetVar(wp, "default_downlevel", NULL));
-	nvram_set("default_lanlevel", websGetVar(wp, "default_lanlevel", NULL));
-	nvram_set("wshaper_downlink", websGetVar(wp, "wshaper_downlink", NULL));
-	nvram_set("wshaper_uplink", websGetVar(wp, "wshaper_uplink", NULL));
-	nvram_set("wshaper_dev", websGetVar(wp, "wshaper_dev", NULL));
-	nvram_set("qos_type", websGetVar(wp, "qos_type", NULL));
+	nvram_set("svqos_defaults", websGetVar(wp, "svqos_defaults", "0"));
+	nvram_set("default_uplevel", websGetVar(wp, "default_uplevel", "0"));
+	nvram_set("default_downlevel", websGetVar(wp, "default_downlevel", "0"));
+	nvram_set("default_lanlevel", websGetVar(wp, "default_lanlevel", "0"));
+	nvram_set("wshaper_downlink", websGetVar(wp, "wshaper_downlink", "0"));
+	nvram_set("wshaper_uplink", websGetVar(wp, "wshaper_uplink", "0"));
+	nvram_set("wshaper_dev", websGetVar(wp, "wshaper_dev", "0"));
+	nvram_set("qos_type", websGetVar(wp, "qos_type", "0"));
 
 #if defined(HAVE_CODEL) || defined(HAVE_FQ_CODEL)
-	nvram_set("svqos_aqd", websGetVar(wp, "qos_aqd", NULL));
+	nvram_set("svqos_aqd", websGetVar(wp, "qos_aqd", "0"));
 #endif
 
 	// nvram_commit ();
@@ -1455,9 +1504,14 @@ void qos_save(webs_t wp)
 
 		snprintf(field, 31, "svqos_svcname%d", i);
 		name = websGetVar(wp, field, NULL);
+		if (!name)
+			continue;
 
 		snprintf(field, 31, "svqos_svcprio%d", i);
 		level = websGetVar(wp, field, NULL);
+
+		if (!level)
+			continue;
 
 		if (get_svc(name, protocol, ports))
 			continue;
@@ -1489,6 +1543,68 @@ void qos_save(webs_t wp)
 	memset(svqos_var, 0, sizeof(svqos_var));
 
 	/*
+	 * DEV priorities 
+	 */
+	for (i = 0; i < no_devs; i++) {
+
+		snprintf(field, 31, "svqos_devdel%d", i);
+		delete = websGetVar(wp, field, NULL);
+
+		if (delete && strlen(delete) > 0)
+			continue;
+
+		snprintf(field, 31, "svqos_dev%d", i);
+		data = websGetVar(wp, field, NULL);
+
+		if (!data)
+			continue;
+
+#ifndef HAVE_AQOS
+		snprintf(field, 31, "svqos_devprio%d", i);
+		level = websGetVar(wp, field, NULL);
+		if (!level)
+			continue;
+		if (strlen(svqos_var) > 0)
+			sprintf(svqos_var, "%s %s %s |", svqos_var, data, level);
+		else
+			sprintf(svqos_var, "%s %s |", data, level);
+#else
+		snprintf(field, 31, "svqos_devprio%d", i);
+		prio = websGetVar(wp, field, NULL);
+
+		snprintf(field, 31, "svqos_devup%d", i);
+		level = websGetVar(wp, field, NULL);
+		if (!level)
+			continue;
+		snprintf(field, 31, "svqos_devdown%d", i);
+		level2 = websGetVar(wp, field, NULL);
+		if (!level2)
+			continue;
+
+		snprintf(field, 31, "svqos_devservice%d", i);
+		proto = websGetVar(wp, field, NULL);
+		if (!proto)
+			continue;
+
+		snprintf(field, 31, "svqos_devlanlvl%d", i);
+		lanlevel = websGetVar(wp, field, NULL);
+		if (!lanlevel)
+			continue;
+
+		if (strlen(svqos_var) > 0)
+			sprintf(svqos_var, "%s %s %s %s %s %s %s |", svqos_var, data, level, level2, lanlevel, prio, proto);
+		else
+			sprintf(svqos_var, "%s %s %s %s %s %s |", data, level, level2, lanlevel, prio, proto);
+
+#endif
+
+	}
+
+	if (strlen(svqos_var) <= sizeof(svqos_var))
+		nvram_set("svqos_devs", svqos_var);
+	memset(svqos_var, 0, sizeof(svqos_var));
+
+	/*
 	 * IP priorities 
 	 */
 	for (i = 0; i < no_ips; i++) {
@@ -1501,10 +1617,14 @@ void qos_save(webs_t wp)
 
 		snprintf(field, 31, "svqos_ip%d", i);
 		data = websGetVar(wp, field, NULL);
+		if (!data)
+			continue;
 
 #ifndef HAVE_AQOS
 		snprintf(field, 31, "svqos_ipprio%d", i);
 		level = websGetVar(wp, field, NULL);
+		if (!level)
+			continue;
 		if (strlen(svqos_var) > 0)
 			sprintf(svqos_var, "%s %s %s |", svqos_var, data, level);
 		else
@@ -1512,13 +1632,21 @@ void qos_save(webs_t wp)
 #else
 		snprintf(field, 31, "svqos_ipprio%d", i);
 		prio = websGetVar(wp, field, NULL);
+		if (!prio)
+			continue;
 
 		snprintf(field, 31, "svqos_ipup%d", i);
 		level = websGetVar(wp, field, NULL);
+		if (!level)
+			continue;
 		snprintf(field, 31, "svqos_ipdown%d", i);
 		level2 = websGetVar(wp, field, NULL);
+		if (!level2)
+			continue;
 		snprintf(field, 31, "svqos_iplanlvl%d", i);
 		lanlevel = websGetVar(wp, field, NULL);
+		if (!lanlevel)
+			continue;
 
 		if (strlen(svqos_var) > 0)
 			sprintf(svqos_var, "%s %s %s %s %s %s |", svqos_var, data, level, level2, lanlevel, prio);
@@ -1546,10 +1674,14 @@ void qos_save(webs_t wp)
 
 		snprintf(field, 31, "svqos_mac%d", i);
 		data = websGetVar(wp, field, NULL);
+		if (!data)
+			continue;
 
 #ifndef HAVE_AQOS
 		snprintf(field, 31, "svqos_macprio%d", i);
 		level = websGetVar(wp, field, NULL);
+		if (!level)
+			continue;
 
 		if (strlen(svqos_var) > 0)
 			sprintf(svqos_var, "%s %s %s |", svqos_var, data, level);
@@ -1558,13 +1690,21 @@ void qos_save(webs_t wp)
 #else
 		snprintf(field, 31, "svqos_macprio%d", i);
 		prio = websGetVar(wp, field, NULL);
+		if (!prio)
+			continue;
 
 		snprintf(field, 31, "svqos_macup%d", i);
 		level = websGetVar(wp, field, NULL);
+		if (!level)
+			continue;
 		snprintf(field, 31, "svqos_macdown%d", i);
 		level2 = websGetVar(wp, field, NULL);
+		if (!level2)
+			continue;
 		snprintf(field, 31, "svqos_maclanlvl%d", i);
 		lanlevel = websGetVar(wp, field, NULL);
+		if (!lanlevel)
+			continue;
 
 		if (strlen(svqos_var) > 0)
 			sprintf(svqos_var, "%s %s %s %s user %s %s |", svqos_var, data, level, level2, lanlevel, prio);
@@ -1582,15 +1722,15 @@ void qos_save(webs_t wp)
 	/*
 	 * adm6996 LAN port priorities 
 	 */
-	nvram_set("svqos_port1prio", websGetVar(wp, "svqos_port1prio", NULL));
-	nvram_set("svqos_port2prio", websGetVar(wp, "svqos_port2prio", NULL));
-	nvram_set("svqos_port3prio", websGetVar(wp, "svqos_port3prio", NULL));
-	nvram_set("svqos_port4prio", websGetVar(wp, "svqos_port4prio", NULL));
+	nvram_set("svqos_port1prio", websGetVar(wp, "svqos_port1prio", "0"));
+	nvram_set("svqos_port2prio", websGetVar(wp, "svqos_port2prio", "0"));
+	nvram_set("svqos_port3prio", websGetVar(wp, "svqos_port3prio", "0"));
+	nvram_set("svqos_port4prio", websGetVar(wp, "svqos_port4prio", "0"));
 
-	nvram_set("svqos_port1bw", websGetVar(wp, "svqos_port1bw", NULL));
-	nvram_set("svqos_port2bw", websGetVar(wp, "svqos_port2bw", NULL));
-	nvram_set("svqos_port3bw", websGetVar(wp, "svqos_port3bw", NULL));
-	nvram_set("svqos_port4bw", websGetVar(wp, "svqos_port4bw", NULL));
+	nvram_set("svqos_port1bw", websGetVar(wp, "svqos_port1bw", "0"));
+	nvram_set("svqos_port2bw", websGetVar(wp, "svqos_port2bw", "0"));
+	nvram_set("svqos_port3bw", websGetVar(wp, "svqos_port3bw", "0"));
+	nvram_set("svqos_port4bw", websGetVar(wp, "svqos_port4bw", "0"));
 
 	addAction("qos");
 	nvram_set("nowebaction", "1");
@@ -1983,13 +2123,17 @@ void add_vifs_single(char *prefix, int device)
 
 	sprintf(v2, "%s_radius_ipaddr", v);
 	nvram_set(v2, "0.0.0.0");
+
 #ifdef HAVE_MADWIFI
+
 	sprintf(v2, "%s_radius2_ipaddr", v);
 	nvram_set(v2, "0.0.0.0");
 
 	sprintf(v2, "%s_radius2_port", v);
 	nvram_set(v2, "1812");
 
+	sprintf(v2, "%s_local_ip", v);
+	nvram_set(v2, "0.0.0.0");
 #endif
 #ifdef HAVE_GUESTPORT
 	char v3[80];
@@ -2094,7 +2238,7 @@ void move_vif(char *prefix, char *svif, char *tvif)
 	strcpy(tvifx, tvif);
 	rep(tvifx, '.', 'X');
 
-	if (fp = fopen(filename, "r")) {
+	if ((fp = fopen(filename, "r"))) {
 		while (fgets(line, sizeof(line), fp)) {
 			pos = strcspn(line, "=");
 			if (pos) {
@@ -2515,12 +2659,9 @@ void save_networking(webs_t wp)
 		if (strlen(prio) == 0)
 			mtu = "1500";
 
-		sprintf(n, "%s_ipaddr", ifname);
-		if (get_merge_ipaddr(wp, n, ipaddr))
-			nvram_set(n, ipaddr);
-		sprintf(n, "%s_netmask", ifname);
-		if (get_merge_ipaddr(wp, n, netmask))
-			nvram_set(n, netmask);
+		copymergetonv(wp, "%s_ipaddr", ifname);
+
+		copymergetonv(wp, "%s_netmask", ifname);
 
 		strcat(buffer, ifname);
 		strcat(buffer, ">");
@@ -2895,12 +3036,9 @@ static void save_prefix(webs_t wp, char *prefix)
 #ifdef HAVE_RELAYD
 	char gwaddr[32];
 	copytonv(wp, "%s_relayd_gw_auto", prefix);
-	sprintf(n, "%s_relayd_gw_ipaddr", prefix);
-	if (get_merge_ipaddr(wp, n, gwaddr))
-		nvram_set(n, gwaddr);
+	copymergetonv(wp, "%s_relayd_gw_ipaddr", prefix);
 #endif
 #ifdef HAVE_IFL
-	copytonv(wp, "%s_label", prefix);
 	copytonv(wp, "%s_note", prefix);
 #endif
 #ifdef HAVE_MADWIFI
@@ -3019,6 +3157,9 @@ static void save_prefix(webs_t wp, char *prefix)
 	// enabled
 	copytonv(wp, "%s_diversity", prefix);
 	copytonv(wp, "%s_preamble", prefix);
+#ifdef HAVE_ATH9K
+	copytonv(wp, "%s_shortgi", prefix);
+#endif
 	copytonv(wp, "%s_wmm", prefix);
 	copytonv(wp, "%s_bcn", prefix);
 	copytonv(wp, "%s_dtim", prefix);
@@ -3053,8 +3194,12 @@ static void save_prefix(webs_t wp, char *prefix)
 #ifdef HAVE_80211AC
 #ifndef HAVE_NOAC
 	copytonv(wp, "%s_wmf_bss_enable", prefix);
-	if (has_2ghz(prefix) && has_ac(prefix))
+	if (has_ac(prefix) && has_2ghz(prefix)) {
 		copytonv(wp, "%s_turbo_qam", prefix);
+	}
+	if (has_ac(prefix)) {
+		copytonv(wp, "%s_nitro_qam", prefix);
+	}
 	if (has_beamforming(prefix)) {
 		copytonv(wp, "%s_txbf", prefix);
 		copytonv(wp, "%s_itxbf", prefix);
@@ -3084,19 +3229,10 @@ static void save_prefix(webs_t wp, char *prefix)
 	copytonv(wp, "%s_isolation", ifname);
 	copytonv(wp, "%s_dns_redirect", ifname);
 
-	sprintf(n, "%s_dns_ipaddr", ifname);
-	char redirect_ip[64];
-	if (get_merge_ipaddr(wp, n, redirect_ip))
-		nvram_set(n, redirect_ip);
+	copymergetonv(wp, "%s_dns_ipaddr", ifname);
+	copymergetonv(wp, "%s_ipaddr", ifname);
+	copymergetonv(wp, "%s_netmask", ifname);
 
-	char addr[32];
-	sprintf(n, "%s_ipaddr", ifname);
-	if (get_merge_ipaddr(wp, n, addr))
-		nvram_set(n, addr);
-
-	sprintf(n, "%s_netmask", ifname);
-	if (get_merge_ipaddr(wp, n, addr))
-		nvram_set(n, addr);
 #else
 
 	copytonv(wp, "%s_multicast", prefix);
@@ -3104,25 +3240,13 @@ static void save_prefix(webs_t wp, char *prefix)
 	copytonv(wp, "%s_nat", prefix);
 	copytonv(wp, "%s_isolation", prefix);
 	copytonv(wp, "%s_dns_redirect", prefix);
-	sprintf(n, "%s_dns_ipaddr", prefix);
-	char redirect_ip[64];
-	if (get_merge_ipaddr(wp, n, redirect_ip))
-		nvram_set(n, redirect_ip);
-
-	char addr[32];
-
-	sprintf(n, "%s_ipaddr", prefix);
-	if (get_merge_ipaddr(wp, n, addr))
-		nvram_set(n, addr);
-
-	sprintf(n, "%s_netmask", prefix);
-	if (get_merge_ipaddr(wp, n, addr))
-		nvram_set(n, addr);
+	copymergetonv(wp, "%s_dns_ipaddr", prefix);
+	copymergetonv(wp, "%s_ipaddr", prefix);
+	copymergetonv(wp, "%s_netmask", prefix);
 
 	copytonv(wp, "%s_duallink", prefix);
-	sprintf(n, "%s_duallink_parent", prefix);
-	if (get_merge_ipaddr(wp, n, addr))
-		nvram_set(n, addr);
+
+	copymergetonv(wp, "%s_duallink_parent", prefix);
 
 #endif
 
@@ -3306,6 +3430,28 @@ void wireless_save(webs_t wp)
 			save_prefix(wp, var);
 		}
 	}
+
+#ifdef HAVE_ERC
+	struct variable filter_variables[] = {
+	      {argv:ARGV("1", "0")},
+	      {argv:ARGV("1", "0")},
+	}, *which;
+
+	char *rd_off, *rd_boot_off;
+
+	rd_off = websGetVar(wp, "radiooff_button", NULL);
+	rd_off = websGetVar(wp, "radiooff_button", NULL);
+	if (!rd_off && !valid_choice(wp, rd_off, &which[0])) {
+		return;
+	}
+	nvram_set("radiooff_button", rd_off);
+
+	rd_boot_off = websGetVar(wp, "radiooff_boot_off", NULL);
+	if (!rd_boot_off && !valid_choice(wp, rd_boot_off, &which[1])) {
+		return;
+	}
+	nvram_set("radiooff_boot_off", rd_boot_off);
+#endif
 	// nvram_commit ();
 	applytake(value);
 #ifdef HAVE_GUESTPORT
@@ -3515,7 +3661,9 @@ char *request_freedns(char *user, char *password)
 	for (i = 0; i < 20; i++)
 		sprintf(request, "%s%02x", request, final[i]);
 	unlink("/tmp/.hash");
-	sysprintf("wget \"http://freedns.afraid.org/api/?action=getdyndns&sha=%s\" -O /tmp/.hash", request);
+	char url[128];
+	snprintf(url, sizeof(url), "http://freedns.afraid.org/api/?action=getdyndns&sha=%s", request);
+	eval("wget", url, "-O", "/tmp/.hash");
 	FILE *in = fopen("/tmp/.hash", "rb");
 
 	if (in == NULL)
@@ -3597,7 +3745,7 @@ void ddns_save_value(webs_t wp)
 	case 10:		// dtdns
 		snprintf(_username, sizeof(_username), "ddns_username_%s", enable);
 		snprintf(_passwd, sizeof(_passwd), "ddns_passwd_%s", enable);
-		snprintf(_hostname, sizeof(_username), "ddns_username_%s", enable);
+		snprintf(_hostname, sizeof(_hostname), "ddns_username_%s", enable);
 		break;
 	case 5:
 		// custom

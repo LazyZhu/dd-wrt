@@ -151,7 +151,7 @@
 				status = "disabled";
 			};
 
-			serial@12000 {
+			uart0: serial@12000 {
 				compatible = "snps,dw-apb-uart";
 				reg = <0x12000 0x100>;
 				reg-shift = <2>;
@@ -160,7 +160,8 @@
 				clocks = <&coreclk 0>;
 				status = "disabled";
 			};
-			serial@12100 {
+
+			uart1: serial@12100 {
 				compatible = "snps,dw-apb-uart";
 				reg = <0x12100 0x100>;
 				reg-shift = <2>;
@@ -168,6 +169,10 @@
 				reg-io-width = <1>;
 				clocks = <&coreclk 0>;
 				status = "disabled";
+			};
+
+			pinctrl: pin-ctrl@18000 {
+				reg = <0x18000 0x38>;
 			};
 
 			coredivclk: corediv-clock@18740 {
@@ -225,14 +230,13 @@
 			};
 
 			eth0: ethernet@70000 {
-				compatible = "marvell,armada-370-neta";
 				reg = <0x70000 0x4000>;
 				interrupts = <8>;
 				clocks = <&gateclk 4>;
 				status = "disabled";
 			};
 
-			mdio {
+			mdio: mdio {
 				#address-cells = <1>;
 				#size-cells = <0>;
 				compatible = "marvell,orion-mdio";
@@ -241,7 +245,6 @@
 			};
 
 			eth1: ethernet@74000 {
-				compatible = "marvell,armada-370-neta";
 				reg = <0x74000 0x4000>;
 				interrupts = <10>;
 				clocks = <&gateclk 3>;

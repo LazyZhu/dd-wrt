@@ -32,17 +32,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef lint
-static const char rcsid[] _U_ =
-    "@(#) $Header: /repository/WRT54G/src/router/libpcap/Attic/fad-gifc.c,v 1.1.2.1 2004/06/11 11:06:31 nikki Exp $ (LBL)";
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include <sys/param.h>
-#include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #ifdef HAVE_SYS_SOCKIO_H
@@ -102,135 +96,26 @@ struct rtentry;		/* declarations in <net/if.h> */
 #endif /* HAVE_SOCKADDR_SA_LEN */
 #endif /* SA_LEN */
 
-#ifdef HAVE_PROC_NET_DEV
 /*
- * Get from "/proc/net/dev" all interfaces listed there; if they're
- * already in the list of interfaces we have, that won't add another
- * instance, but if they're not, that'll add them.
+ * This is also fun.
  *
- * We don't bother getting any addresses for them; it appears you can't
- * use SIOCGIFADDR on Linux to get IPv6 addresses for interfaces, and,
- * although some other types of addresses can be fetched with SIOCGIFADDR,
- * we don't bother with them for now.
+ * There is no ioctl that returns the amount of space required for all
+ * the data that SIOCGIFCONF could return, and if a buffer is supplied
+ * that's not large enough for all the data SIOCGIFCONF could return,
+ * on at least some platforms it just returns the data that'd fit with
+ * no indication that there wasn't enough room for all the data, much
+ * less an indication of how much more room is required.
  *
- * We also don't fail if we couldn't open "/proc/net/dev"; we just leave
- * the list of interfaces as is.
+ * The only way to ensure that we got all the data is to pass a buffer
+ * large enough that the amount of space in the buffer *not* filled in
+ * is greater than the largest possible entry.
+ *
+ * We assume that's "sizeof(ifreq.ifr_name)" plus 255, under the assumption
+ * that no address is more than 255 bytes (on systems where the "sa_len"
+ * field in a "struct sockaddr" is 1 byte, e.g. newer BSDs, that's the
+ * case, and addresses are unlikely to be bigger than that in any case).
  */
-static int
-scan_proc_net_dev(pcap_if_t **devlistp, int fd, char *errbuf)
-{
-	FILE *proc_net_f;
-	char linebuf[512];
-	int linenum;
-	unsigned char *p;
-	char name[512];	/* XXX - pick a size */
-	char *q, *saveq;
-	struct ifreq ifrflags;
-	int ret = 0;
-
-	proc_net_f = fopen("/proc/net/dev", "r");
-	if (proc_net_f == NULL)
-		return (0);
-
-	for (linenum = 1;
-	    fgets(linebuf, sizeof linebuf, proc_net_f) != NULL; linenum++) {
-		/*
-		 * Skip the first two lines - they're headers.
-		 */
-		if (linenum <= 2)
-			continue;
-
-		p = &linebuf[0];
-
-		/*
-		 * Skip leading white space.
-		 */
-		while (*p != '\0' && isspace(*p))
-			p++;
-		if (*p == '\0' || *p == '\n')
-			continue;	/* blank line */
-
-		/*
-		 * Get the interface name.
-		 */
-		q = &name[0];
-		while (*p != '\0' && !isspace(*p)) {
-			if (*p == ':') {
-				/*
-				 * This could be the separator between a
-				 * name and an alias number, or it could be
-				 * the separator between a name with no
-				 * alias number and the next field.
-				 *
-				 * If there's a colon after digits, it
-				 * separates the name and the alias number,
-				 * otherwise it separates the name and the
-				 * next field.
-				 */
-				saveq = q;
-				while (isdigit(*p))
-					*q++ = *p++;
-				if (*p != ':') {
-					/*
-					 * That was the next field,
-					 * not the alias number.
-					 */
-					q = saveq;
-				}
-				break;
-			} else
-				*q++ = *p++;
-		}
-		*q = '\0';
-
-		/*
-		 * Get the flags for this interface, and skip it if
-		 * it's not up.
-		 */
-		strncpy(ifrflags.ifr_name, name, sizeof(ifrflags.ifr_name));
-		if (ioctl(fd, SIOCGIFFLAGS, (char *)&ifrflags) < 0) {
-			if (errno == ENXIO)
-				continue;
-			(void)snprintf(errbuf, PCAP_ERRBUF_SIZE,
-			    "SIOCGIFFLAGS: %.*s: %s",
-			    (int)sizeof(ifrflags.ifr_name),
-			    ifrflags.ifr_name,
-			    pcap_strerror(errno));
-			ret = -1;
-			break;
-		}
-		if (!(ifrflags.ifr_flags & IFF_UP))
-			continue;
-
-		/*
-		 * Add an entry for this interface, with no addresses.
-		 */
-		if (pcap_add_if(devlistp, name, ifrflags.ifr_flags, NULL,
-		    errbuf) == -1) {
-			/*
-			 * Failure.
-			 */
-			ret = -1;
-			break;
-		}
-	}
-	if (ret != -1) {
-		/*
-		 * Well, we didn't fail for any other reason; did we
-		 * fail due to an error reading the file?
-		 */
-		if (ferror(proc_net_f)) {
-			(void)snprintf(errbuf, PCAP_ERRBUF_SIZE,
-			    "Error reading /proc/net/dev: %s",
-			    pcap_strerror(errno));
-			ret = -1;
-		}
-	}
-
-	(void)fclose(proc_net_f);
-	return (ret);
-}
-#endif /* HAVE_PROC_NET_DEV */
+#define MAX_SA_LEN	255
 
 /*
  * Get a list of all interfaces that are up and that we can open.
@@ -243,10 +128,11 @@ scan_proc_net_dev(pcap_if_t **devlistp, int fd, char *errbuf)
  *
  * XXX - or platforms that have other, better mechanisms but for which
  * we don't yet have code to use that mechanism; I think there's a better
- * way on Linux, for example.
+ * way on Linux, for example, but if that better way is "getifaddrs()",
+ * we already have that.
  */
 int
-pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
+pcap_findalldevs_interfaces(pcap_if_t **alldevsp, char *errbuf)
 {
 	pcap_if_t *devlist = NULL;
 	register int fd;
@@ -255,6 +141,9 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 	struct ifconf ifc;
 	char *buf = NULL;
 	unsigned buf_size;
+#if defined (HAVE_SOLARIS) || defined (HAVE_HPUX10_20_OR_LATER)
+	char *p, *q;
+#endif
 	struct ifreq ifrflags, ifrnetmask, ifrbroadaddr, ifrdstaddr;
 	struct sockaddr *netmask, *broadaddr, *dstaddr;
 	size_t netmask_size, broadaddr_size, dstaddr_size;
@@ -272,9 +161,10 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 
 	/*
 	 * Start with an 8K buffer, and keep growing the buffer until
-	 * we get the entire interface list or fail to get it for some
-	 * reason other than EINVAL (which is presumed here to mean
-	 * "buffer is too small").
+	 * we have more than "sizeof(ifrp->ifr_name) + MAX_SA_LEN"
+	 * bytes left over in the buffer or we fail to get the
+	 * interface list for some reason other than EINVAL (which is
+	 * presumed here to mean "buffer is too small").
 	 */
 	buf_size = 8192;
 	for (;;) {
@@ -297,7 +187,8 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 			free(buf);
 			return (-1);
 		}
-		if (ifc.ifc_len < buf_size)
+		if (ifc.ifc_len < buf_size &&
+		    (buf_size - ifc.ifc_len) > sizeof(ifrp->ifr_name) + MAX_SA_LEN)
 			break;
 		free(buf);
 		buf_size *= 2;
@@ -326,20 +217,27 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 		/*
 		 * XXX - The 32-bit compatibility layer for Linux on IA-64
 		 * is slightly broken. It correctly converts the structures
-		 * to and from kernel land from 64 bit to 32 bit but 
-		 * doesn't update ifc.ifc_len, leaving it larger than the 
-		 * amount really used. This means we read off the end 
-		 * of the buffer and encounter an interface with an 
-		 * "empty" name. Since this is highly unlikely to ever 
-		 * occur in a valid case we can just finish looking for 
+		 * to and from kernel land from 64 bit to 32 bit but
+		 * doesn't update ifc.ifc_len, leaving it larger than the
+		 * amount really used. This means we read off the end
+		 * of the buffer and encounter an interface with an
+		 * "empty" name. Since this is highly unlikely to ever
+		 * occur in a valid case we can just finish looking for
 		 * interfaces if we see an empty name.
 		 */
 		if (!(*ifrp->ifr_name))
 			break;
 
 		/*
-		 * Get the flags for this interface, and skip it if it's
-		 * not up.
+		 * Skip entries that begin with "dummy".
+		 * XXX - what are these?  Is this Linux-specific?
+		 * Are there platforms on which we shouldn't do this?
+		 */
+		if (strncmp(ifrp->ifr_name, "dummy", 5) == 0)
+			continue;
+
+		/*
+		 * Get the flags for this interface.
 		 */
 		strncpy(ifrflags.ifr_name, ifrp->ifr_name,
 		    sizeof(ifrflags.ifr_name));
@@ -354,8 +252,6 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 			ret = -1;
 			break;
 		}
-		if (!(ifrflags.ifr_flags & IFF_UP))
-			continue;
 
 		/*
 		 * Get the netmask for this address on this interface.
@@ -463,6 +359,34 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 			dstaddr_size = 0;
 		}
 
+#if defined (HAVE_SOLARIS) || defined (HAVE_HPUX10_20_OR_LATER)
+		/*
+		 * If this entry has a colon followed by a number at
+		 * the end, it's a logical interface.  Those are just
+		 * the way you assign multiple IP addresses to a real
+		 * interface, so an entry for a logical interface should
+		 * be treated like the entry for the real interface;
+		 * we do that by stripping off the ":" and the number.
+		 */
+		p = strchr(ifrp->ifr_name, ':');
+		if (p != NULL) {
+			/*
+			 * We have a ":"; is it followed by a number?
+			 */
+			q = p + 1;
+			while (isdigit((unsigned char)*q))
+				q++;
+			if (*q == '\0') {
+				/*
+				 * All digits after the ":" until the end.
+				 * Strip off the ":" and everything after
+				 * it.
+				 */
+				*p = '\0';
+			}
+		}
+#endif
+
 		/*
 		 * Add information for this address to the list.
 		 */
@@ -476,30 +400,7 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 		}
 	}
 	free(buf);
-
-#ifdef HAVE_PROC_NET_DEV
-	if (ret != -1) {
-		/*
-		 * We haven't had any errors yet; now read "/proc/net/dev",
-		 * and add to the list of interfaces all interfaces listed
-		 * there that we don't already have, because, on Linux,
-		 * SIOCGIFCONF reports only interfaces with IPv4 addresses,
-		 * so you need to read "/proc/net/dev" to get the names of
-		 * the rest of the interfaces.
-		 */
-		ret = scan_proc_net_dev(&devlist, fd, errbuf);
-	}
-#endif
 	(void)close(fd);
-
-	if (ret != -1) {
-		/*
-		 * We haven't had any errors yet; do any platform-specific
-		 * operations to add devices.
-		 */
-		if (pcap_platform_finddevs(&devlist, errbuf) < 0)
-			ret = -1;
-	}
 
 	if (ret == -1) {
 		/*

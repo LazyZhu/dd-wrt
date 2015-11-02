@@ -386,6 +386,7 @@ static int get_cpuport(void)
 
 		if (strchr(port, FLAG_LAN) || strchr(port, FLAG_UNTAG)) {
 			/* Change it and return */
+			printk(KERN_INFO "detected CPU Port is %d\n",pid);
 			return pid;
 		}
 	}
@@ -470,12 +471,12 @@ static int robo_switch_enable(void)
 		val |= 0xf1;
 		robo_write16(ROBO_CTRL_PAGE, ROBO_REG_CTRL_PORT0_GMIIPO + cpuport, val);
 		char *asus = nvram_get("model");
-		if (asus && !strcmp(asus,"RT-AC87U")) {
-		printk(KERN_INFO "workaround for RT-AC87U\n");
-		val = robo_read16(ROBO_CTRL_PAGE, ROBO_REG_CTRL_PORT0_GMIIPO + 5);
+		if (asus && (!strcmp(asus,"RT-AC87U") || !strcmp(asus,"RT-AC88U"))) {
+		printk(KERN_INFO "workaround for RT-AC87U/RT-AC88U\n");
+		//val = robo_read16(ROBO_CTRL_PAGE, ROBO_REG_CTRL_PORT5_GMIIPO);
 		/* (GMII_SPEED_UP_2G|SW_OVERRIDE|TXFLOW_CNTL|RXFLOW_CNTL|LINK_STS) */
-		val |= 0xf1;
-		robo_write16(ROBO_CTRL_PAGE, ROBO_REG_CTRL_PORT0_GMIIPO + 5, val);
+		val = 0xfb;
+		robo_write16(ROBO_CTRL_PAGE, ROBO_REG_CTRL_PORT5_GMIIPO, val);
 		}
 	}
 #endif
@@ -1153,6 +1154,9 @@ static int handle_reset(void *driver, char *buf, int nr)
 		//!strcmp(boardnum, "1234") && !strcmp(boardtype, "0x0646") && !strcmp(boardrev, "0x1101")
 	    ) {
 		//do nothing
+		printk(KERN_INFO "Netgear R8000 workaround\n");
+	} else if (!strcmp(boardnum,"1234") && !strcmp(boardtype,"0x072F") && !strcmp(boardrev, "0x1202")) {
+		printk(KERN_INFO "Handle TEW828 workaround\n");
 	} else {
 		for (j = 0; j < d->ports; j++) {
 			robo_write16(ROBO_CTRL_PAGE, robo.port[j], 0x0000);

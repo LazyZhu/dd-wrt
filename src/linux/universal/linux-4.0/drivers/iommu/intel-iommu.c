@@ -50,6 +50,7 @@
 #define CONTEXT_SIZE		VTD_PAGE_SIZE
 
 #define IS_GFX_DEVICE(pdev) ((pdev->class >> 16) == PCI_BASE_CLASS_DISPLAY)
+#define IS_USB_DEVICE(pdev) ((pdev->class >> 8) == PCI_CLASS_SERIAL_USB)
 #define IS_ISA_DEVICE(pdev) ((pdev->class >> 8) == PCI_CLASS_BRIDGE_ISA)
 #define IS_AZALIA(pdev) ((pdev)->vendor == 0x8086 && (pdev)->device == 0x3a3e)
 
@@ -672,6 +673,11 @@ static void domain_update_iommu_cap(struct dmar_domain *domain)
 	domain->iommu_superpage = domain_update_iommu_superpage(NULL);
 }
 
+static int iommu_dummy(struct device *dev)
+{
+	return dev->archdata.iommu == DUMMY_DEVICE_DOMAIN_INFO;
+}
+
 static struct intel_iommu *device_to_iommu(struct device *dev, u8 *bus, u8 *devfn)
 {
 	struct dmar_drhd_unit *drhd = NULL;
@@ -680,6 +686,9 @@ static struct intel_iommu *device_to_iommu(struct device *dev, u8 *bus, u8 *devf
 	struct pci_dev *ptmp, *pdev = NULL;
 	u16 segment = 0;
 	int i;
+
+	if (iommu_dummy(dev))
+		return NULL;
 
 	if (dev_is_pci(dev)) {
 		pdev = to_pci_dev(dev);
@@ -1742,9 +1751,8 @@ static int domain_init(struct dmar_domain *domain, int guest_width)
 
 static void domain_exit(struct dmar_domain *domain)
 {
-	struct dmar_drhd_unit *drhd;
-	struct intel_iommu *iommu;
 	struct page *freelist = NULL;
+	int i;
 
 	/* Domain 0 is reserved, so dont process it */
 	if (!domain)
@@ -1764,8 +1772,8 @@ static void domain_exit(struct dmar_domain *domain)
 
 	/* clear attached or cached domains */
 	rcu_read_lock();
-	for_each_active_iommu(iommu, drhd)
-		iommu_detach_domain(domain, iommu);
+	for_each_set_bit(i, domain->iommu_bmp, g_num_of_iommus)
+		iommu_detach_domain(domain, g_iommus[i]);
 	rcu_read_unlock();
 
 	dma_free_pagelist(freelist);
@@ -2555,6 +2563,10 @@ static bool device_has_rmrr(struct device *dev)
  * In both cases we assume that PCI USB devices with RMRRs have them largely
  * for historical reasons and that the RMRR space is not actively used post
  * boot.  This exclusion may change if vendors begin to abuse it.
+ *
+ * The same exception is made for graphics devices, with the requirement that
+ * any use of the RMRR regions will be torn down before assigning the device
+ * to a guest.
  */
 static bool device_is_rmrr_locked(struct device *dev)
 {
@@ -2564,7 +2576,7 @@ static bool device_is_rmrr_locked(struct device *dev)
 	if (dev_is_pci(dev)) {
 		struct pci_dev *pdev = to_pci_dev(dev);
 
-		if ((pdev->class >> 8) == PCI_CLASS_SERIAL_USB)
+		if (IS_USB_DEVICE(pdev) || IS_GFX_DEVICE(pdev))
 			return false;
 	}
 
@@ -2968,11 +2980,6 @@ static inline struct dmar_domain *get_valid_domain_for_dev(struct device *dev)
 		return info->domain;
 
 	return __get_valid_domain_for_dev(dev);
-}
-
-static int iommu_dummy(struct device *dev)
-{
-	return dev->archdata.iommu == DUMMY_DEVICE_DOMAIN_INFO;
 }
 
 /* Check if the dev needs to go through non-identity map and unmap process.*/

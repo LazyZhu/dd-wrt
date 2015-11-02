@@ -29,9 +29,9 @@ endif
 	rm -f $(INSTALLDIR)/www/Log_outgoing.asp
 endif
 
-ifneq ($(CONFIG_AOSS),y)
-	rm -f $(INSTALLDIR)/www/AOSS.asp
-endif
+#ifneq ($(CONFIG_AOSS),y)
+#	rm -f $(INSTALLDIR)/www/AOSS.asp
+#endif
 
 ifneq ($(CONFIG_SPOTPASS),y)
 	rm -f $(INSTALLDIR)/www/Nintendo.asp
@@ -182,12 +182,28 @@ ifeq ($(CONFIG_UNFY),y)
 	cp buffalo/help/* $(INSTALLDIR)/www/help
 endif
 
+#ifeq ($(CONFIG_IDEXX),y)
+#	mkdir $(INSTALLDIR)/www/style/buffalo
+#	cp buffalo/style.css $(INSTALLDIR)/www/style/buffalo
+#	cp buffalo/favicon.ico $(INSTALLDIR)/www/images
+#	cp buffalo/images/* $(INSTALLDIR)/www/images
+#	cp buffalo/help/* $(INSTALLDIR)/www/help
+#endif
 ifeq ($(CONFIG_IDEXX),y)
-	mkdir $(INSTALLDIR)/www/style/buffalo
-	cp buffalo/style.css $(INSTALLDIR)/www/style/buffalo
-	cp buffalo/favicon.ico $(INSTALLDIR)/www/images
-	cp buffalo/images/* $(INSTALLDIR)/www/images
-	cp buffalo/help/* $(INSTALLDIR)/www/help
+	mkdir $(INSTALLDIR)/www/style/idexx
+	cp idexx/style.css $(INSTALLDIR)/www/style/idexx
+#	cp idexx/favicon.ico $(INSTALLDIR)/www/images
+	cp idexx/AOSS.asp $(INSTALLDIR)/www/
+	cp idexx/images/* $(INSTALLDIR)/www/images
+	cp idexx/help/* $(INSTALLDIR)/www/help
+	cp -fa idexx/files/* $(INSTALLDIR) || true
+ifeq ($(CONFIG_IDEXX_WORLD),y)
+	echo "iw reg set 00" >> $(INSTALLDIR)/etc/config/idexx.startup
+	echo "startservice configurewifi" >> $(INSTALLDIR)/etc/config/idexx.startup
+else
+	echo "iw reg set US" >> $(INSTALLDIR)/etc/config/idexx.startup
+	echo "startservice configurewifi" >> $(INSTALLDIR)/etc/config/idexx.startup
+endif
 endif
 
 ifeq ($(CONFIG_AXTEL),y)
@@ -215,6 +231,10 @@ ifeq ($(CONFIG_ENEO),y)
 	cp eneo/images/* $(INSTALLDIR)/www/images
 	cp eneo/help/* $(INSTALLDIR)/www/help
 	cp eneo/About.htm $(INSTALLDIR)/www
+	mkdir -p $(INSTALLDIR)/etc/config
+	cp -f eneo/defaults/config/* $(INSTALLDIR)/etc/config
+	mkdir -p $(INSTALLDIR)/sbin
+	cp -f eneo/defaults/sbin/* $(INSTALLDIR)/sbin
 endif
 
 ifeq ($(CONFIG_OCTAGON),y)
@@ -495,6 +515,7 @@ ifeq ($(CONFIG_ONNET),y)
   endif
 	rm -f $(INSTALLDIR)/www/images/favicon.ico
 	ls -l $(INSTALLDIR)/www/help/
+#	cp -fa onnet/files/* $(INSTALLDIR) || true
 endif
 
 ifeq ($(CONFIG_GLAUCO),y)
@@ -654,11 +675,14 @@ ifeq ($(CONFIG_ERC),y)
 	cp -f erc/common.js $(INSTALLDIR)/www/common.js
 	cp -f erc/help/* $(INSTALLDIR)/www/help
 	cp -f erc/favicon.ico $(INSTALLDIR)/www/images/favicon.ico
-	-cp -f erc/*.asp $(INSTALLDIR)/www/
+	cp -f erc/*.asp $(INSTALLDIR)/www/
 #copy extra scripts and whatever
+ifeq ($(CONFIG_CARAMBOLA),y)
+	cp -fa erc/extra_hornet/* $(INSTALLDIR) || true
+else
 	cp -fa erc/extra/* $(INSTALLDIR) || true
 endif
-
+endif
 ifeq ($(CONFIG_MAKSAT_CORAL),y)
  ifneq ($(CONFIG_MAKSAT_BLANK),y)
 	cp -f maksat/logo-coral.png $(INSTALLDIR)/www/style/logo-coral.png
@@ -875,7 +899,9 @@ ifneq ($(CONFIG_DANUBE),y)
 	rm -f $(INSTALLDIR)/www/index_dhcp.asp
 endif
 ifneq ($(CONFIG_AOSS),y)
+ifneq ($(CONFIG_WPS),y)
 	rm -f $(INSTALLDIR)/www/AOSS.asp
+endif
 endif
 ifneq ($(CONFIG_BUFFALO),y)
 	rm -f $(INSTALLDIR)/www/SetupAssistant.asp

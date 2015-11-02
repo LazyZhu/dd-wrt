@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef SQUID_IPC_IOFILE_H
 #define SQUID_IPC_IOFILE_H
 
@@ -5,9 +13,9 @@
 #include "cbdata.h"
 #include "DiskIO/DiskFile.h"
 #include "DiskIO/IORequestor.h"
-#include "SquidString.h"
 #include "ipc/forward.h"
 #include "ipc/mem/Page.h"
+#include "SquidString.h"
 #include <list>
 #include <map>
 #include <memory>
@@ -49,6 +57,7 @@ class IpcIoPendingRequest;
 
 class IpcIoFile: public DiskFile
 {
+    CBDATA_CLASS(IpcIoFile);
 
 public:
     typedef RefCount<IpcIoFile> Pointer;
@@ -85,7 +94,7 @@ protected:
     bool canWait() const;
 
 private:
-    void trackPendingRequest(IpcIoPendingRequest *const pending);
+    void trackPendingRequest(const unsigned int id, IpcIoPendingRequest *const pending);
     void push(IpcIoPendingRequest *const pending);
     IpcIoPendingRequest *dequeueRequest(const unsigned int requestId);
 
@@ -131,12 +140,10 @@ private:
     static IpcIoFilesMap IpcIoFiles;
 
     typedef Ipc::FewToFewBiQueue Queue;
-    static std::auto_ptr<Queue> queue; ///< IPC queue
+    static std::unique_ptr<Queue> queue; ///< IPC queue
 
     /// whether we are waiting for an event to handle still queued I/O requests
     static bool DiskerHandleMoreRequestsScheduled;
-
-    CBDATA_CLASS2(IpcIoFile);
 };
 
 /// keeps original I/O request parameters while disker is handling the request
@@ -159,3 +166,4 @@ private:
 };
 
 #endif /* SQUID_IPC_IOFILE_H */
+

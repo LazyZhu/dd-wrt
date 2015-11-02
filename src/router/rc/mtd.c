@@ -96,13 +96,30 @@ struct __attribute__((__packed__)) chk_header {
 
 };
 
+static int mtdtype = 0;
+
+static int mtd_block_is_bad(int fd, int offset)
+{
+	int r = 0;
+	loff_t o = offset;
+
+	if (mtdtype == MTD_NANDFLASH) {
+		r = ioctl(fd, MEMGETBADBLOCK, &o);
+		if (r < 0) {
+			fprintf(stderr, "Failed to get erase block status\n");
+			exit(1);
+		}
+	}
+	return r;
+}
+
 /* 
  * Open an MTD device
  * @param       mtd     path to or partition name of MTD device
  * @param       flags   open() flags
  * @return      return value of open()
  */
-int mtd_open(const char *mtd, int flags)
+static int mtd_open(const char *mtd, int flags)
 {
 	FILE *fp;
 	char dev[PATH_MAX];
@@ -159,27 +176,23 @@ int mtd_erase(const char *mtd)
 	}
 
 	erase_info.length = mtd_info.erasesize;
-#if defined(HAVE_80211AC) && !defined(HAVE_NORTHSTAR)
+	mtdtype = mtd_info.type;
+	if (mtdtype == MTD_NANDFLASH)
+		fprintf(stderr, "Flash is NAND\n");
 	for (erase_info.start = 0; erase_info.start < mtd_info.size; erase_info.start += mtd_info.erasesize) {
 		fprintf(stderr, "erase[%d]\r", erase_info.start);
 		(void)ioctl(mtd_fd, MEMUNLOCK, &erase_info);
-		if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0) {
-			fprintf(stderr, "\nerror on sector %d, skip\n", erase_info.start);
+		if (mtd_block_is_bad(mtd_fd, erase_info.start)) {
+			fprintf(stderr, "\nSkipping bad block at 0x%08zx\n", erase_info.start);
 			continue;
 		}
-	}
-#else
-
-	for (erase_info.start = 0; erase_info.start < mtd_info.size; erase_info.start += mtd_info.erasesize) {
-		fprintf(stderr, "erase[%d]\r", erase_info.start);
-		(void)ioctl(mtd_fd, MEMUNLOCK, &erase_info);
 		if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0) {
 			perror(mtd);
 			close(mtd_fd);
 			return errno;
 		}
 	}
-#endif
+
 	close(mtd_fd);
 	fprintf(stderr, "erase[%d]\n", erase_info.start);
 	/* 
@@ -204,7 +217,7 @@ struct img_info {
 	uint32_t CRC;
 };
 
-struct code_header {
+struct code_header2 {
 	char magic[4];
 	char res1[4];		// for extra magic
 	char fwdate[3];
@@ -217,7 +230,7 @@ struct code_header {
 } __attribute__((packed));
 
 struct etrx_header {
-	struct code_header code;
+	struct code_header2 code;
 	struct trx_header trx;
 } __attribute__((packed));
 
@@ -246,19 +259,39 @@ int mtd_write(const char *path, const char *mtd)
 	int sum = 0;		// for debug
 	int ret = -1;
 	int i;
-	int skipoffset = 0;
+	int badblocks = 0;
 	unsigned char lzmaloader[4096];
 	int brand = getRouterBrand();
 	/* 
 	 * Netgear WGR614v8_L: Read, store and write back old lzma loader from 1st block 
 	 */
 	unsigned int trxhd = STORE32_LE(TRX_MAGIC);
+
+#if defined(HAVE_MVEBU)
+	char *part = getUEnv("boot_part");
+	if (part) {
+		fprintf(stderr,"boot partiton is %s\n",part);
+		if (!strcmp(part, "2")) {
+			mtd = "linux";
+			eval("ubootenv", "set", "boot_part", "1");
+		} else {
+			mtd = "linux2";
+			eval("ubootenv", "set", "boot_part", "2");
+		}
+		fprintf(stderr,"flash to partition %s\n",mtd);
+	} else {
+		fprintf(stderr,"no boot partition info found\n");
+	}
+#endif
+
 	switch (brand) {
 	case ROUTER_BUFFALO_WZR900DHP:
 	case ROUTER_BUFFALO_WZR600DHP2:
 	case ROUTER_LINKSYS_EA6900:
 	case ROUTER_LINKSYS_EA6700:
+	case ROUTER_LINKSYS_EA6400:
 	case ROUTER_LINKSYS_EA6500V2:
+	case ROUTER_TRENDNET_TEW828:
 		if (nvram_match("bootpartition", "1")) {
 			mtd = "linux2";
 			nvram_set("bootpartition", "0");
@@ -319,7 +352,13 @@ int mtd_write(const char *path, const char *mtd)
 			safe_fread(board_id, 1, sizeof(board_id), fp);
 
 			switch (brand) {
-
+			case ROUTER_NETGEAR_WNR3500LV2:
+				if (strncmp(board_id, "U12H172T00_NETGEAR", sizeof(board_id))) {
+					fprintf(stderr, "Error: board id %s expected %s\n", board_id, "U12H172T00_NETGEAR");
+					fclose(fp);
+					return -1;
+				}
+				break;
 			case ROUTER_NETGEAR_WNDR4000:
 				if (strncmp(board_id, "U12H181T00_NETGEAR", sizeof(board_id))) {
 					fprintf(stderr, "Error: board id %s expected %s\n", board_id, "U12H181T00_NETGEAR");
@@ -406,7 +445,7 @@ int mtd_write(const char *path, const char *mtd)
 #endif
 	// count = http_get (path, (char *) &trx, sizeof (struct trx_header), 0);
 	if (count < sizeof(struct trx_header)) {
-		fprintf(stderr, "%s: File is too small (%ld bytes)\n", path, count);
+		fprintf(stderr, "%s: File is too small (%d bytes)\n", path, count);
 		goto fail;
 	}
 	sysinfo(&info);
@@ -508,6 +547,9 @@ int mtd_write(const char *path, const char *mtd)
 		goto fail;
 	}
 	// #endif
+	mtdtype = mtd_info.type;
+	if (mtdtype == MTD_NANDFLASH)
+		fprintf(stderr, "Flash is NAND\n");
 
 	/* 
 	 * See if we have enough memory to store the whole file 
@@ -552,6 +594,10 @@ int mtd_write(const char *path, const char *mtd)
 #ifndef NETGEAR_CRC_FAKE
 	calculate_checksum(0, NULL, 0);	// init
 #endif
+#if defined(HAVE_MVEBU)		// erase all blocks first
+
+	mtd_erase(mtd);
+#endif
 	/* 
 	 * Write file or URL to MTD device 
 	 */
@@ -579,12 +625,12 @@ int mtd_write(const char *path, const char *mtd)
 		 * for debug 
 		 */
 		sum = sum + count;
-		fprintf(stderr, "write=[%ld]         \n", sum);
+		fprintf(stderr, "write=[%d]         \n", sum);
 
 		if (((count < len)
 		     && (len - off) > (mtd_info.erasesize * mul))
 		    || (count == 0)) {
-			fprintf(stderr, "%s: Truncated file (actual %ld expect %ld)\n", path, count - off, len - off);
+			fprintf(stderr, "%s: Truncated file (actual %d expect %d)\n", path, count - off, len - off);
 			goto fail;
 		}
 		/* 
@@ -611,7 +657,7 @@ int mtd_write(const char *path, const char *mtd)
 		 * Check CRC before writing if possible 
 		 */
 #ifdef HAVE_WRT160NL
-		if (count == trx.len + sizeof(struct code_header)) {
+		if (count == trx.len + sizeof(struct code_header2)) {
 #else
 		if (count == trx.len) {
 #endif
@@ -627,41 +673,39 @@ int mtd_write(const char *path, const char *mtd)
 
 		int length = ROUNDUP(count, mtd_info.erasesize);
 		int base = erase_info.start;
-#if defined(HAVE_80211AC) && !defined(HAVE_NORTHSTAR)
+		badblocks = 0;
 		for (i = 0; i < (length / mtd_info.erasesize); i++) {
 			int redo = 0;
 		      again:;
-			fprintf(stderr, "write block [%ld] at [0x%08X]        \n", i * mtd_info.erasesize, base + ((i + skipoffset) * mtd_info.erasesize));
-			erase_info.start = base + ((i + skipoffset) * mtd_info.erasesize);
+			fprintf(stderr, "write block [%d] at [0x%08X]        \r", i * mtd_info.erasesize, base + (i * mtd_info.erasesize));
+			erase_info.start = base + (i * mtd_info.erasesize);
 			(void)ioctl(mtd_fd, MEMUNLOCK, &erase_info);
-			if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0) {
-				fprintf(stderr, "erase/write failed, skip block\n");
-				skipoffset++;
-				goto again;
+			if (mtd_block_is_bad(mtd_fd, erase_info.start)) {
+				fprintf(stderr, "\nSkipping bad block at 0x%08zx\n", erase_info.start);
+				lseek(mtd_fd, mtd_info.erasesize, SEEK_CUR);
+				length += mtd_info.erasesize;
+				badblocks += mtd_info.erasesize;
+				continue;
 			}
-			lseek(mtd_fd, (i + skipoffset) * mtd_info.erasesize, SEEK_SET);
+#if !defined(HAVE_MVEBU)	// we do not need to erase again. it has been done before
 
-			if (write(mtd_fd, buf + (i * mtd_info.erasesize), mtd_info.erasesize) != mtd_info.erasesize) {
-				fprintf(stderr, "try again %d\n", redo++);
+			if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0) {
+				fprintf(stderr, "\nerase/write failed\n");
+				goto fail;
+			}
+#endif
+
+			if (write(mtd_fd, buf + (i * mtd_info.erasesize) - badblocks, mtd_info.erasesize) != mtd_info.erasesize) {
+				fprintf(stderr, "\ntry again %d\n", redo++);
 				if (redo < 10)
 					goto again;
 				goto fail;
 			}
-
-		}
-#else
-		for (i = 0; i < (length / mtd_info.erasesize); i++) {
-			fprintf(stderr, "write block [%ld] at [0x%08X]        \n", i * mtd_info.erasesize, base + (i * mtd_info.erasesize));
-			erase_info.start = base + (i * mtd_info.erasesize);
-			(void)ioctl(mtd_fd, MEMUNLOCK, &erase_info);
-			if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0 || write(mtd_fd, buf + (i * mtd_info.erasesize), mtd_info.erasesize) != mtd_info.erasesize) {
-				perror(mtd);
-				goto fail;
-			}
 		}
 
-#endif
 	}
+
+	fprintf(stderr, "\ndone [%d]\n", i * mtd_info.erasesize);
 	/* 
 	 * Netgear: Write len and checksum at the end of mtd1 
 	 */
@@ -899,7 +943,7 @@ fail:
  * @param       mtd     path to or partition name of MTD device
  * @return      0 on success and errno on failure
  */
-int mtd_unlock(const char *mtd)
+static int mtd_unlock(const char *mtd)
 {
 	int mtd_fd;
 	struct mtd_info_user mtd_info;

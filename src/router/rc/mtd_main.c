@@ -59,15 +59,14 @@
 #define BUFSIZE (16 * 1024)
 #define MAX_ARGS 8
 
-#define DEBUG
-
 #define SYSTYPE_UNKNOWN     0
 #define SYSTYPE_BROADCOM    1
 /* 
  * to be continued 
  */
+static int mtdtype;
 
-struct trx_header {
+struct trx_header2 {
 	uint32_t magic;		/* "HDR0" */
 	uint32_t len;		/* Length of file including header */
 	uint32_t crc32;		/* 32-bit CRC from flag_version to end of
@@ -80,33 +79,9 @@ struct trx_header {
 char buf[BUFSIZE];
 int buflen;
 
-static int mtd_open(const char *mtd, int flags)
-{
-	FILE *fp;
-	char dev[PATH_MAX];
-	int i;
-
-	if ((fp = fopen("/proc/mtd", "r"))) {
-		while (fgets(dev, sizeof(dev), fp)) {
-			if (sscanf(dev, "mtd%d:", &i) && strstr(dev, mtd)) {
-				snprintf(dev, sizeof(dev), "/dev/mtd/%d", i);
-				fclose(fp);
-				// fprintf(stderr,"opening %s\n",dev);
-				int r = open(dev, flags);
-
-				// fprintf(stderr,"return %d\n",r);
-				return r;
-			}
-		}
-		fclose(fp);
-	}
-
-	return open(mtd, flags);
-}
-
 static int image_check_bcom(int imagefd, const char *mtd)
 {
-	struct trx_header *trx = (struct trx_header *)buf;
+	struct trx_header2 *trx = (struct trx_header2 *)buf;
 	struct mtd_info_user mtdInfo;
 	int fd;
 
@@ -125,11 +100,11 @@ static int image_check_bcom(int imagefd, const char *mtd)
 		/* 
 		 * ignore the first 32 bytes 
 		 */
-		buflen = read(imagefd, buf, sizeof(struct trx_header));
+		buflen = read(imagefd, buf, sizeof(struct trx_header2));
 		break;
 	}
 
-	if (trx->magic != TRX_MAGIC || trx->len < sizeof(struct trx_header)) {
+	if (trx->magic != TRX_MAGIC || trx->len < sizeof(struct trx_header2)) {
 		fprintf(stderr, "Bad trx header\n");
 		fprintf(stderr, "If this is a firmware in bin format, like some of the\n" "original firmware files are, use following command to convert to trx:\n" "dd if=firmware.bin of=firmware.trx bs=32 skip=1\n");
 		return 0;
@@ -186,7 +161,7 @@ static int image_check(int imagefd, const char *mtd)
 	}
 }
 
-int mtd_check(char *mtd)
+static int mtd_check(char *mtd)
 {
 	struct mtd_info_user mtdInfo;
 	int fd;
@@ -202,79 +177,16 @@ int mtd_check(char *mtd)
 		close(fd);
 		return 0;
 	}
+	mtdtype = mtdInfo.type;
 
 	close(fd);
 	return 1;
 }
 
-static int mtd_unlock(const char *mtd)
-{
-	int fd;
-	struct mtd_info_user mtdInfo;
-	struct erase_info_user mtdLockInfo;
-
-	fd = mtd_open(mtd, O_RDWR | O_SYNC);
-	if (fd < 0) {
-		fprintf(stderr, "Could not open mtd device: %s\n", mtd);
-		exit(1);
-	}
-
-	if (ioctl(fd, MEMGETINFO, &mtdInfo)) {
-		fprintf(stderr, "Could not get MTD device info from %s\n", mtd);
-		close(fd);
-		exit(1);
-	}
-
-	mtdLockInfo.start = 0;
-	mtdLockInfo.length = mtdInfo.size;
-	if (ioctl(fd, MEMUNLOCK, &mtdLockInfo)) {
-		close(fd);
-		return 0;
-	}
-
-	close(fd);
-	return 0;
-}
-
-static int mtd_erase(const char *mtd)
-{
-	int fd;
-	struct mtd_info_user mtdInfo;
-	struct erase_info_user mtdEraseInfo;
-
-	fd = mtd_open(mtd, O_RDWR | O_SYNC);
-	if (fd < 0) {
-		fprintf(stderr, "Could not open mtd device: %s\n", mtd);
-		exit(1);
-	}
-
-	if (ioctl(fd, MEMGETINFO, &mtdInfo)) {
-		fprintf(stderr, "Could not get MTD device info from %s\n", mtd);
-		close(fd);
-		exit(1);
-	}
-
-	mtdEraseInfo.length = mtdInfo.erasesize;
-
-	for (mtdEraseInfo.start = 0; mtdEraseInfo.start < mtdInfo.size; mtdEraseInfo.start += mtdInfo.erasesize) {
-
-		ioctl(fd, MEMUNLOCK, &mtdEraseInfo);
-		if (ioctl(fd, MEMERASE, &mtdEraseInfo)) {
-			fprintf(stderr, "Could not erase MTD device: %s\n", mtd);
-			close(fd);
-			exit(1);
-		}
-	}
-
-	close(fd);
-	return 0;
-
-}
-
-static int mtd_write(int imagefd, const char *mtd, int quiet)
+static int s_mtd_write(int imagefd, const char *mtd, int quiet)
 {
 	int fd, i, result;
-	size_t r, w, e;
+	size_t r, w, e, skip_bad_blocks;
 	struct mtd_info_user mtdInfo;
 	struct erase_info_user mtdEraseInfo;
 	int ret = 0;
@@ -312,7 +224,7 @@ static int mtd_write(int imagefd, const char *mtd, int quiet)
 		/* 
 		 * need to erase the next block before writing data to it 
 		 */
-		while (w > e) {
+		while (w > e - skip_bad_blocks) {
 			mtdEraseInfo.start = e;
 			mtdEraseInfo.length = mtdInfo.erasesize;
 
@@ -321,6 +233,17 @@ static int mtd_write(int imagefd, const char *mtd, int quiet)
 			/* 
 			 * erase the chunk 
 			 */
+			if (mtd_block_is_bad(fd, mtdEraseInfo.start)) {
+				if (!quiet)
+					fprintf(stderr, "\nSkipping bad block at 0x%08zx   ", e);
+				skip_bad_blocks += mtdInfo.erasesize;
+				e += mtdInfo.erasesize;
+				// Move the file pointer along over the bad block.
+				lseek(fd, mtdInfo.erasesize, SEEK_CUR);
+				continue;
+
+			}
+
 			if (ioctl(fd, MEMERASE, &mtdEraseInfo) < 0) {
 				fprintf(stderr, "Erasing mtd failed: %s\n", mtd);
 				exit(1);
@@ -350,6 +273,93 @@ static int mtd_write(int imagefd, const char *mtd, int quiet)
 	return 0;
 }
 
+#define BOOTCOUNT_MAGIC	0x20110811
+
+struct bootcounter {
+	uint32_t magic;
+	uint32_t count;
+	uint32_t checksum;
+};
+
+static char page[2048];
+
+static int mtd_resetbc(char *mtd)
+{
+	struct mtd_info_user mtd_info;
+	struct bootcounter *curr = (struct bootcounter *)page;
+	unsigned int i;
+	int last_count = 0;
+	int num_bc;
+	int fd;
+	int ret;
+
+	if (!mtd_check(mtd))
+		return -1;
+
+	fd = mtd_open(mtd, O_RDWR | O_SYNC);
+	if (fd < 0) {
+		fprintf(stderr, "error while opening mtd\n");
+		return -1;
+	}
+
+	if (ioctl(fd, MEMGETINFO, &mtd_info) < 0) {
+		fprintf(stderr, "failed to get mtd info!\n");
+		return -1;
+	}
+//      num_bc = mtd_info.size / mtd_info.writesize;
+	num_bc = mtd_info.size / mtd_info.oobblock;
+
+	for (i = 0; i < num_bc; i++) {
+		pread(fd, curr, sizeof(*curr), i * mtd_info.oobblock);
+
+		if (curr->magic != BOOTCOUNT_MAGIC && curr->magic != 0xffffffff) {
+			fprintf(stderr, "unexpected magic %08x, bailing out\n", curr->magic);
+			goto out;
+		}
+
+		if (curr->magic == 0xffffffff)
+			break;
+
+		last_count = curr->count;
+	}
+
+	/* no need to do writes when last boot count is already 0 */
+	if (last_count == 0) {
+		fprintf(stderr, "count is already zero, no need to call again\n");
+		goto out;
+	}
+	fprintf(stderr, "reset boot counter\n");
+	if (i == num_bc) {
+		struct erase_info_user erase_info;
+		erase_info.start = 0;
+		erase_info.length = mtd_info.size;
+
+		/* erase block */
+		ret = ioctl(fd, MEMERASE, &erase_info);
+		if (ret < 0) {
+			fprintf(stderr, "failed to erase block: %i\n", ret);
+			return -1;
+		}
+
+		i = 0;
+	}
+
+	memset(curr, 0xff, mtd_info.oobblock);
+
+	curr->magic = BOOTCOUNT_MAGIC;
+	curr->count = 0;
+	curr->checksum = BOOTCOUNT_MAGIC;
+
+	ret = pwrite(fd, curr, mtd_info.oobblock, i * mtd_info.oobblock);
+	if (ret < 0)
+		fprintf(stderr, "failed to write: %i\n", ret);
+	sync();
+out:
+	close(fd);
+
+	return 0;
+}
+
 static void usage(void)
 {
 	fprintf(stderr,
@@ -357,6 +367,7 @@ static void usage(void)
 		"The device is in the format of mtdX (eg: mtd4) or its label.\n"
 		"mtd recognizes these commands:\n"
 		"        unlock                  unlock the device\n"
+		"        resetbc                 reset bootcounter for WRT1900AC/WRT1200AC/WRT1900ACv2\n"
 		"        erase                   erase all data on device\n"
 		"        write <imagefile>|-     write <imagefile> (use - for stdin) to device\n"
 		"Following options are available:\n"
@@ -421,6 +432,9 @@ int mtd_main(int argc, char **argv)
 	} else if ((strcmp(argv[0], "erase") == 0) && (argc == 2)) {
 		cmd = CMD_ERASE;
 		device = argv[1];
+	} else if ((strcmp(argv[0], "resetbc") == 0) && (argc == 2)) {
+		mtd_resetbc(argv[1]);
+		exit(0);
 	} else if ((strcmp(argv[0], "write") == 0) && (argc == 3)) {
 		cmd = CMD_WRITE;
 		device = argv[2];
@@ -487,7 +501,7 @@ int mtd_main(int argc, char **argv)
 	case CMD_WRITE:
 		if (quiet < 2)
 			fprintf(stderr, "Writing from %s to %s ... ", imagefile, device);
-		mtd_write(imagefd, device, quiet);
+		s_mtd_write(imagefd, device, quiet);
 		if (quiet < 2)
 			fprintf(stderr, "\n");
 		break;

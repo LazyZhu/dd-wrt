@@ -263,7 +263,7 @@ void __init ar71xx_add_device_mdio(unsigned int id, u32 phy_mask)
 	struct ag71xx_mdio_platform_data *mdio_data;
 	unsigned int max_id;
 
-	if (ar71xx_soc == AR71XX_SOC_AR9341 || ar71xx_soc == AR71XX_SOC_AR9342 || ar71xx_soc == AR71XX_SOC_AR9344 || ar71xx_soc == AR71XX_SOC_QCA9556 || ar71xx_soc == AR71XX_SOC_QCA9558)
+	if (ar71xx_soc == AR71XX_SOC_AR9341 || ar71xx_soc == AR71XX_SOC_AR9342 || ar71xx_soc == AR71XX_SOC_AR9344 || ar71xx_soc == AR71XX_SOC_QCA9556 || ar71xx_soc == AR71XX_SOC_QCA9558  || ar71xx_soc == AR71XX_SOC_QCA9563)
 		max_id = 1;
 	else
 		max_id = 0;
@@ -287,6 +287,8 @@ void __init ar71xx_add_device_mdio(unsigned int id, u32 phy_mask)
 	case AR71XX_SOC_AR9344:
 	case AR71XX_SOC_QCA9556:
 	case AR71XX_SOC_QCA9558:
+	case AR71XX_SOC_QCA9563:
+	case AR71XX_SOC_TP9343:
 		if (id == 0) {
 			mdio_dev = &ar71xx_mdio0_device;
 			mdio_data = &ar71xx_mdio0_data;
@@ -334,9 +336,10 @@ void __init ar71xx_add_device_mdio(unsigned int id, u32 phy_mask)
 	case AR71XX_SOC_QCA9533:
 		mdio_data->builtin_switch = 1;
 		break;
-
 	case AR71XX_SOC_QCA9556:
 	case AR71XX_SOC_QCA9558:
+	case AR71XX_SOC_QCA9563:
+	case AR71XX_SOC_TP9343:
 		mdio_data->is_ar934x = 1;
 		break;
 
@@ -687,6 +690,8 @@ static void __init ar71xx_init_eth_pll_data(unsigned int id)
 	case AR71XX_SOC_QCA9533:
 	case AR71XX_SOC_QCA9556:
 	case AR71XX_SOC_QCA9558:
+	case AR71XX_SOC_QCA9563:
+	case AR71XX_SOC_TP9343:
 		pll_10 = AR934X_PLL_VAL_10;
 		pll_100 = AR934X_PLL_VAL_100;
 		pll_1000 = AR934X_PLL_VAL_1000;
@@ -763,6 +768,8 @@ static int __init ar71xx_setup_phy_if_mode(unsigned int id, struct ag71xx_platfo
 			break;
 		case AR71XX_SOC_QCA9556:
 		case AR71XX_SOC_QCA9558:
+		case AR71XX_SOC_QCA9563:
+		case AR71XX_SOC_TP9343:
 			switch (pdata->phy_if_mode) {
 			case PHY_INTERFACE_MODE_MII:
 			case PHY_INTERFACE_MODE_RGMII:
@@ -821,6 +828,8 @@ static int __init ar71xx_setup_phy_if_mode(unsigned int id, struct ag71xx_platfo
 			break;
 		case AR71XX_SOC_QCA9556:
 		case AR71XX_SOC_QCA9558:
+		case AR71XX_SOC_QCA9563:
+		case AR71XX_SOC_TP9343:
 			switch (pdata->phy_if_mode) {
 			case PHY_INTERFACE_MODE_MII:
 			case PHY_INTERFACE_MODE_RGMII:
@@ -1009,6 +1018,8 @@ void __init ar71xx_add_device_eth(unsigned int id)
 	case AR71XX_SOC_AR9341:
 	case AR71XX_SOC_AR9342:
 	case AR71XX_SOC_AR9344:
+	case AR71XX_SOC_QCA9563:
+	case AR71XX_SOC_TP9343:
 		if (id == 0) {
 			pdata->reset_bit = AR934X_RESET_GE0_MAC | AR934X_RESET_GE0_MDIO;
 			pdata->ddr_flush = ar934x_ddr_flush_ge0;
@@ -1147,6 +1158,8 @@ void __init ar71xx_add_device_eth(unsigned int id)
 
 		case AR71XX_SOC_QCA9556:
 		case AR71XX_SOC_QCA9558:
+		case AR71XX_SOC_QCA9563:
+		case AR71XX_SOC_TP9343:
 			/* don't assign any MDIO device by default */
 			break;
 

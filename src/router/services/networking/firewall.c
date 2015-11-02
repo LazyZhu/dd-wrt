@@ -387,7 +387,7 @@ static void parse_upnp_forward()
 
 	if (nvram_match("upnp_clear", "1")) {	// tofu10
 		nvram_unset("upnp_clear");
-		for (i = 0; i < 50; ++i) {
+		for (i = 0; i < 1000; ++i) {
 			sprintf(name, "forward_port%d", i);
 			nvram_unset(name);
 		}
@@ -780,12 +780,6 @@ static int wanactive(void)
 
 static void nat_postrouting(void)
 {
-#ifdef HAVE_PPPOESERVER
-//	if (nvram_match("pppoeserver_enabled", "1")
-//	    && wanactive())
-// BUG: http://svn.dd-wrt.com/ticket/4033
-//		save2file("-A POSTROUTING -s %s/%s -j SNAT --to-source=%s\n", nvram_safe_get("pppoeserver_remotenet"), nvram_safe_get("pppoeserver_remotemask"), wanaddr);
-#endif
 	if (has_gateway()) {
 
 		// added for logic test
@@ -867,13 +861,13 @@ static void nat_postrouting(void)
 			writeproc("/proc/sys/net/ipv4/conf/br0/loop", "1");
 
 		if (!nvram_match("wan_proto", "pptp") && !nvram_match("wan_proto", "l2tp") && nvram_match("wshaper_enable", "0")) {
-			eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "tcp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
-			eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "udp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
+			//eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "tcp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
+			//eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "udp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
 		}
 	} else {
 		if (!nvram_match("wan_proto", "pptp") && !nvram_match("wan_proto", "l2tp") && nvram_match("wshaper_enable", "0")) {
-			eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "tcp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
-			eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "udp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
+			//eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "tcp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
+			//eval("iptables", "-t", "raw", "-A", "PREROUTING", "-p", "udp", "-j", "CT", "--helper", "ddtb");	//this speeds up networking alot on slow systems 
 		}
 		eval("iptables", "-t", "raw", "-A", "PREROUTING", "-j", "NOTRACK");	//this speeds up networking alot on slow systems 
 		/* the following code must be used in future kernel versions, not yet used. we still need to test it */
@@ -1393,7 +1387,7 @@ static void advgrp_chain(int seq, unsigned int mark, int urlenable)
 			}
 #ifdef HAVE_OPENDPI
 			if (!strcmp(protocol, "dpi")) {
-				insmod("/lib/opendpi/xt_opendpi.ko");
+				eval("insmod", "xt_opendpi", "bt_hash_size=2", "bt_hash_timeout=3600");
 				save2file("-A advgrp_%d -m ndpi --%s -j %s\n", seq, realname, log_drop);
 			}
 #endif
@@ -1434,7 +1428,7 @@ static void advgrp_chain(int seq, unsigned int mark, int urlenable)
 					if (!strcmp(proto, "bit")) {
 						/* bittorrent detection enhanced */
 #ifdef HAVE_OPENDPI
-						insmod("/lib/opendpi/xt_opendpi.ko");
+						eval("insmod", "xt_opendpi", "bt_hash_size=2", "bt_hash_timeout=3600");
 						save2file("-A advgrp_%d -m ndpi --bittorrent -j %s\n", seq, log_drop);
 #else
 						insmod("ipt_layer7 xt_layer7");
@@ -1472,7 +1466,7 @@ static void advgrp_chain(int seq, unsigned int mark, int urlenable)
 
 		/* p2p detection enhanced */
 #ifdef HAVE_OPENDPI
-		insmod("/lib/opendpi/xt_opendpi.ko");
+		eval("insmod", "xt_opendpi", "bt_hash_size=2", "bt_hash_timeout=3600");
 		/*commonly used protocols, decending */
 		save2file("-A advgrp_%d -m ndpi --bittorrent -j %s\n", seq, log_drop);
 /*  disable till pattern works
@@ -2411,7 +2405,7 @@ static void mangle_table(void)
 
 		save2file("-A PREROUTING -i ! %s -d %s -j MARK --set-mark %s\n", get_wan_face(), get_wan_ipaddr(), get_NFServiceMark("FORWARD", 1));
 
-		save2file("-A PREROUTING -j CONNMARK --save\n");
+		save2file("-A PREROUTING -j CONNMARK --save-mark\n");
 	}
 
 	/*
@@ -2625,12 +2619,12 @@ void start_firewall6(void)
 	eval("ip6tables", "-A", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT");
 	eval("ip6tables", "-A", "INPUT", "-p", "icmpv6", "-j", "ACCEPT");
 	eval("ip6tables", "-A", "INPUT", "-s", "fe80::/64", "-j", "ACCEPT");
+	eval("ip6tables", "-A", "INPUT", "-i", "br0", "-j", "ACCEPT");
 
 	if (nvram_match("ipv6_typ", "ipv6rd") || nvram_match("ipv6_typ", "ipv6in4") || nvram_match("ipv6_typ", "ipv6to4")) {
 
 		eval("iptables", "-I", "INPUT", "-p", "41", "-j", "ACCEPT");
 
-		//we have to update ip6tables to support clamp-mss
 		eval("ip6tables", "-A", "FORWARD", "-p", "tcp", "-m", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu");
 
 	}
@@ -2659,6 +2653,8 @@ void start_firewall6(void)
 
 	if (nvram_match("ipv6_typ", "ipv6in4"))
 		eval("ip6tables", "-A", "FORWARD", "-o", "ip6tun", "-j", "ACCEPT");
+	
+	eval("ip6tables", "-A", "FORWARD", "-p", "icmpv6", "--icmpv6-type", "echo-request", "-m", "limit", "--limit", "2/s", "-j", "ACCEPT");
 
 	eval("ip6tables", "-A", "FORWARD", "-j", "DROP");
 
@@ -2669,10 +2665,10 @@ void start_loadfwmodules(void)
 {
 	insmod("iptable_raw iptable_mangle nf_conntrack_h323 xt_NFLOG"
 	       " xt_length xt_REDIRECT xt_CT xt_limit xt_TCPMSS"
-	       " xt_connbytes xt_connlimit xt_physdev"
+	       " xt_connbytes xt_connlimit"
 	       " xt_CLASSIFY xt_recent"
-	       " xt_DSCP xt_conntrack xt_state"
-	       " xt_IMQ xt_string" " xt_LOG xt_iprange xt_tcpmss" " xt_NETMAP compat_xtables" " ipt_MASQUERADE iptable_filter nf_reject_ipv4" " ipt_REJECT nf_nat_h323" " ipt_TRIGGER nf_nat_masquerade_ipv4 ipt_ah");
+	       " xt_conntrack xt_state"
+	       " xt_string" " xt_LOG xt_iprange xt_tcpmss" " xt_NETMAP compat_xtables" " ipt_MASQUERADE iptable_filter nf_reject_ipv4" " ipt_REJECT nf_nat_h323" " ipt_TRIGGER nf_nat_masquerade_ipv4 ipt_ah");
 
 }
 
@@ -2850,7 +2846,9 @@ void start_firewall(void)
 	 */
 	cprintf("Exec RC Filewall\n");
 #ifdef HAVE_REGISTER
+#ifndef HAVE_ERC
 	if (isregistered_real())
+#endif
 #endif
 	{
 		runStartup("/jffs/etc/config", ".prewall");	// if available

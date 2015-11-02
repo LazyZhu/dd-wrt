@@ -1,41 +1,18 @@
-
 /*
- * DEBUG: section 87    Client-side Stream routines.
- * AUTHOR: Robert Collins
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with thisObject program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
+/* DEBUG: section 87    Client-side Stream routines. */
+
 #include "squid.h"
+#include "client_side_request.h"
 #include "clientStream.h"
 #include "HttpReply.h"
 #include "HttpRequest.h"
-#include "client_side_request.h"
 
 /**
  \defgroup ClientStreamInternal Client Streams Internals
@@ -67,7 +44,7 @@
  \par
  * Each node including the HEAD of the clientStream has a cbdataReference
  * held by the stream. Freeing the stream then removes that reference
- * and cbdataFree()'s every node.
+ * and delete's every node.
  * Any node with other References, and all nodes downstream will only
  * free when those references are released.
  * Stream nodes MAY hold references to the data member of the node.
@@ -95,7 +72,7 @@
  \code
    mycontext = thisObject->data;
    thisObject->data = NULL;
-   clientStreamFree (thisObject->head);
+   delete thisObject->head;
    mycontext = NULL;
    return;
  \endcode
@@ -103,26 +80,23 @@
  \todo rather than each node undeleting the next, have a clientStreamDelete that walks the list.
  */
 
-/// \ingroup ClientStreamInternal
-CBDATA_TYPE(clientStreamNode);
+CBDATA_CLASS_INIT(clientStreamNode);
 
-/* Local functions */
-static FREE clientStreamFree;
+clientStreamNode::clientStreamNode(CSR * aReadfunc, CSCB * aCallback, CSD * aDetach, CSS * aStatus, ClientStreamData aData) :
+    head(NULL),
+    readfunc(aReadfunc),
+    callback(aCallback),
+    detach(aDetach),
+    status(aStatus),
+    data(aData)
+{}
 
-/// \ingroup ClientStreamInternal
-clientStreamNode *
-clientStreamNew(CSR * readfunc, CSCB * callback, CSD * detach, CSS * status,
-                ClientStreamData data)
+clientStreamNode::~clientStreamNode()
 {
-    clientStreamNode *temp;
-    CBDATA_INIT_TYPE_FREECB(clientStreamNode, clientStreamFree);
-    temp = cbdataAlloc(clientStreamNode);
-    temp->readfunc = readfunc;
-    temp->callback = callback;
-    temp->detach = detach;
-    temp->status = status;
-    temp->data = data;
-    return temp;
+    debugs(87, 3, "Freeing clientStreamNode " << this);
+
+    removeFromStream();
+    data = NULL;
 }
 
 /**
@@ -138,8 +112,7 @@ clientStreamInit(dlink_list * list, CSR * func, CSD * rdetach, CSS * readstatus,
                  ClientStreamData readdata, CSCB * callback, CSD * cdetach, ClientStreamData callbackdata,
                  StoreIOBuffer tailBuffer)
 {
-    clientStreamNode *temp = clientStreamNew(func, NULL, rdetach, readstatus,
-                             readdata);
+    clientStreamNode *temp = new clientStreamNode(func, NULL, rdetach, readstatus, readdata);
     dlinkAdd(cbdataReference(temp), &temp->node, list);
     temp->head = list;
     clientStreamInsertHead(list, NULL, callback, cdetach, NULL, callbackdata);
@@ -157,11 +130,10 @@ void
 clientStreamInsertHead(dlink_list * list, CSR * func, CSCB * callback,
                        CSD * detach, CSS * status, ClientStreamData data)
 {
-
     /* test preconditions */
     assert(list != NULL);
     assert(list->head);
-    clientStreamNode *temp = clientStreamNew(func, callback, detach, status, data);
+    clientStreamNode *temp = new clientStreamNode(func, callback, detach, status, data);
     temp->head = list;
     debugs(87, 3, "clientStreamInsertHead: Inserted node " << temp <<
            " with data " << data.getRaw() << " after head");
@@ -190,9 +162,9 @@ clientStreamCallback(clientStreamNode * thisObject, ClientHttpRequest * http,
  \ingroup ClientStreamInternal
  * Call the previous node in the chain to read some data
  *
- \param thisObject	??
- \param http		??
- \param readBuffer	??
+ \param thisObject  ??
+ \param http        ??
+ \param readBuffer  ??
  */
 void
 clientStreamRead(clientStreamNode * thisObject, ClientHttpRequest * http,
@@ -213,8 +185,8 @@ clientStreamRead(clientStreamNode * thisObject, ClientHttpRequest * http,
  \ingroup ClientStreamInternal
  * Detach from the stream - only allowed for terminal members
  *
- \param thisObject	??
- \param http		??
+ \param thisObject  ??
+ \param http        ??
  */
 void
 clientStreamDetach(clientStreamNode * thisObject, ClientHttpRequest * http)
@@ -234,7 +206,7 @@ clientStreamDetach(clientStreamNode * thisObject, ClientHttpRequest * http)
 
     cbdataReferenceDone(temp);
 
-    cbdataFree(thisObject);
+    delete thisObject;
 
     /* and tell the prev that the detach has occured */
     /*
@@ -256,8 +228,8 @@ clientStreamDetach(clientStreamNode * thisObject, ClientHttpRequest * http)
  \ingroup ClientStreamInternal
  * Abort the stream - detach every node in the pipeline.
  *
- \param thisObject	??
- \param http		??
+ \param thisObject  ??
+ \param http        ??
  */
 void
 clientStreamAbort(clientStreamNode * thisObject, ClientHttpRequest * http)
@@ -278,8 +250,8 @@ clientStreamAbort(clientStreamNode * thisObject, ClientHttpRequest * http)
  \ingroup ClientStreamInternal
  * Call the upstream node to find it's status
  *
- \param thisObject	??
- \param http		??
+ \param thisObject  ??
+ \param http        ??
  */
 clientStream_status_t
 clientStreamStatus(clientStreamNode * thisObject, ClientHttpRequest * http)
@@ -290,8 +262,6 @@ clientStreamStatus(clientStreamNode * thisObject, ClientHttpRequest * http)
     return prev->status(prev, http);
 }
 
-/* Local function bodies */
-
 void
 clientStreamNode::removeFromStream()
 {
@@ -299,18 +269,6 @@ clientStreamNode::removeFromStream()
         dlinkDelete(&node, head);
 
     head = NULL;
-}
-
-/// \ingroup ClientStreamInternal
-void
-clientStreamFree(void *foo)
-{
-    clientStreamNode *thisObject = (clientStreamNode *)foo;
-
-    debugs(87, 3, "Freeing clientStreamNode " << thisObject);
-
-    thisObject->removeFromStream();
-    thisObject->data = NULL;
 }
 
 clientStreamNode *
@@ -330,3 +288,4 @@ clientStreamNode::next() const
     else
         return NULL;
 }
+

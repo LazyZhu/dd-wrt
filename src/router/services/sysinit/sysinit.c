@@ -85,8 +85,6 @@ extern struct nvram_param *srouter_defaults;
 extern void load_defaults(void);
 extern void free_defaults(void);
 
-extern int usb_add_ufd(void);
-
 extern int f_exists(const char *path);
 
 int endswith(char *str, char *cmp)
@@ -131,7 +129,7 @@ void runStartup(char *folder, char *extension)
 			sprintf(fullname, "%s/%s", folder, entry[n]->d_name);
 			if (!stat(fullname, &filestat)
 			    && (filestat.st_mode & S_IXUSR))
-				sysprintf("%s 2>&1 > /dev/null", fullname);
+				eval_silence(fullname);
 			free(entry[n]);
 			n++;
 			continue;
@@ -140,7 +138,7 @@ void runStartup(char *folder, char *extension)
 			sprintf(fullname, "%s/%s", folder, entry[n]->d_name);
 			if (!stat(fullname, &filestat)
 			    && (filestat.st_mode & S_IXUSR))
-				sysprintf("%s 2>&1 > /dev/null", fullname);
+				eval_silence(fullname);
 			free(entry[n]);
 			n++;
 			continue;
@@ -165,17 +163,15 @@ void runStartup(char *folder, char *extension)
 				}
 			}
 #endif
-			sysprintf("%s/%s 2>&1 > /dev/null", folder, entry[n]->d_name);
+
+			sprintf(fullname, "%s/%s", folder, entry[n]->d_name);
+			eval_silence(fullname);
 			// execute script 
 		}
 		free(entry[n]);
 		n++;
 	}
 	free(entry);
-
-//      sysprintf("/usr/sbin/wl interference_override 4");
-//      sysprintf("/usr/sbin/wl -i eth1 interference 3");
-//      sysprintf("/usr/sbin/wl -i eth2 interference 3");
 
 	return;
 }
@@ -373,6 +369,10 @@ static void buffalo_defaults(int force)
 		} else if (!strcmp(region, "KR")) {
 			nvram_set("wl1_regdomain", "KOREA_REPUBLIC");
 		}
+#ifdef HAVE_HOBBIT
+		nvram_set("wl_regdomain", "EUROPE");
+#endif
+
 #endif
 		if (!strcmp(region, "AP") || !strcmp(region, "CH")
 		    || !strcmp(region, "KR")
@@ -513,7 +513,7 @@ static void buffalo_defaults(int force)
 		nvram_unset("http_userpln");
 		nvram_unset("http_pwdpln");
 #ifdef HAVE_SPOTPASS
-		system("startservice spotpass_defaults -f");
+		eval("startservice", "spotpass_defaults", "-f");
 #endif
 	}
 }
@@ -545,7 +545,7 @@ static void buffalo_defaults(int force)
 		}
 
 		chmod(script, 0755);
-		system(script);
+		eval(script);
 
 		fp = fopen(config, "r");
 		if (fp) {
@@ -610,7 +610,7 @@ static void buffalo_defaults(int force)
 		nvram_unset("http_userpln");
 		nvram_unset("http_pwdpln");
 #ifdef HAVE_SPOTPASS
-		system("startservice spotpass_defaults -f");
+		eval("startservice", "spotpass_defaults", "-f");
 #endif
 		nvram_commit();
 	}
@@ -843,7 +843,7 @@ static void buffalo_defaults(int force)
 		nvram_unset("http_userpln");
 		nvram_unset("http_pwdpln");
 #ifdef HAVE_SPOTPASS
-		system("startservice spotpass_defaults -f");
+		eval("startservice", "spotpass_defaults", "-f");
 #endif
 		nvram_commit();
 	}
@@ -915,7 +915,7 @@ void start_run_rc_startup(void)
 	create_rc_file(RC_STARTUP);
 
 	if (f_exists("/tmp/.rc_startup"))
-		system("/tmp/.rc_startup");
+		eval("/tmp/.rc_startup");
 
 	while (count > 0) {
 		directory = opendir("/opt/etc/init.d");
@@ -939,7 +939,7 @@ void start_run_rc_shutdown(void)
 	runStartup("/opt/etc/init.d", "K**");	// if available; run K** shutdown scripts
 	create_rc_file(RC_SHUTDOWN);
 	if (f_exists("/tmp/.rc_shutdown"))
-		system("/tmp/.rc_shutdown");
+		eval("/tmp/.rc_shutdown");
 	return;
 }
 
@@ -1190,6 +1190,34 @@ void start_restore_defaults(void)
 		{"wan_default", "eth0"},
 		{0, 0}
 	};
+#elif HAVE_MVEBU
+	struct nvram_param *generic = NULL;
+
+	struct nvram_param wrt1900[] = {
+		{"lan_ifname", "br0"},
+		{"lan_ifnames", "eth0 eth1 ath0 ath1"},
+		{"wan_ifname", "eth1"},
+		{"wan_ifname2", "eth1"},
+		{"wan_ifnames", "eth1"},
+		{"wan_default", "eth1"},
+		{0, 0}
+	};
+
+	struct nvram_param wrt1200[] = {
+		{"lan_ifname", "br0"},
+		{"lan_ifnames", "eth1 eth0 ath0 ath1"},
+		{"wan_ifname", "eth0"},
+		{"wan_ifname2", "eth0"},
+		{"wan_ifnames", "eth0"},
+		{"wan_default", "eth0"},
+		{0, 0}
+	};
+	int wrt_brand = getRouterBrand();
+	if (wrt_brand == ROUTER_WRT_1900AC)
+		generic = wrt1900;
+	else
+		generic = wrt1200;
+
 #elif HAVE_WDR4900
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
@@ -1272,37 +1300,7 @@ void start_restore_defaults(void)
 		{"wan_default", "eth0"},
 		{0, 0}
 	};
-#elif HAVE_PICO2
-	struct nvram_param generic[] = {
-		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth0 ath0 ath1"},
-		{"wan_ifname", "eth0"},
-		{"wan_ifname2", "eth0"},
-		{"wan_ifnames", "eth0"},
-		{"wan_default", "eth0"},
-		{0, 0}
-	};
-#elif HAVE_PICO2HP
-	struct nvram_param generic[] = {
-		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth0 ath0 ath1"},
-		{"wan_ifname", "eth0"},
-		{"wan_ifname2", "eth0"},
-		{"wan_ifnames", "eth0"},
-		{"wan_default", "eth0"},
-		{0, 0}
-	};
-#elif HAVE_MS2
-	struct nvram_param generic[] = {
-		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth0 ath0 ath1"},
-		{"wan_ifname", "eth0"},
-		{"wan_ifname2", "eth0"},
-		{"wan_ifnames", "eth0"},
-		{"wan_default", "eth0"},
-		{0, 0}
-	};
-#elif HAVE_BS2HP
+#elif defined(HAVE_PICO2) || defined(HAVE_PICO2HP) || defined(HAVE_MS2) || defined(HAVE_BS2HP)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames", "eth0 ath0 ath1"},
@@ -1362,6 +1360,16 @@ void start_restore_defaults(void)
 		{"wan_default", "eth1"},
 		{0, 0}
 	};
+#elif HAVE_ERC
+	struct nvram_param generic[] = {
+		{"lan_ifname", "br0"},
+		{"lan_ifnames", "eth0 eth1 ath0"},
+		{"wan_ifname", "eth0"},
+		{"wan_ifname2", "eth0"},
+		{"wan_ifnames", "eth0"},
+		{"wan_default", "eth0"},
+		{0, 0}
+	};
 #elif HAVE_CARAMBOLA
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
@@ -1370,6 +1378,16 @@ void start_restore_defaults(void)
 		{"wan_ifname2", "vlan2"},
 		{"wan_ifnames", "vlan2"},
 		{"wan_default", "vlan2"},
+		{0, 0}
+	};
+#elif HAVE_WR710
+	struct nvram_param generic[] = {
+		{"lan_ifname", "br0"},
+		{"lan_ifnames", "eth0 eth1 ath0"},
+		{"wan_ifname", "eth0"},
+		{"wan_ifname2", "eth0"},
+		{"wan_ifnames", "eth0"},
+		{"wan_default", "eth0"},
 		{0, 0}
 	};
 #elif HAVE_WR703
@@ -1487,10 +1505,11 @@ void start_restore_defaults(void)
 		{"wan_ifnames", "eth0"},
 		{"wan_default", "eth0"},
 #else
-		{"wan_ifname", "eth1"},
+/*		{"wan_ifname", "eth1"},
 		{"wan_ifname2", "eth1"},
 		{"wan_ifnames", "eth1"},
 		{"wan_default", "eth1"},
+*/
 #endif
 		{0, 0}
 	};
@@ -1498,6 +1517,26 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames", "eth0 eth1 ath0"},
+		{"wan_ifname", ""},
+		{"wan_ifname2", ""},
+		{"wan_ifnames", ""},
+		{"wan_default", ""},
+		{0, 0}
+	};
+#elif HAVE_DIR862
+	struct nvram_param generic[] = {
+		{"lan_ifname", "br0"},
+		{"lan_ifnames", "eth0 eth1 ath0 ath1"},
+		{"wan_ifname", ""},
+		{"wan_ifname2", ""},
+		{"wan_ifnames", ""},
+		{"wan_default", ""},
+		{0, 0}
+	};
+#elif HAVE_MMS344
+	struct nvram_param generic[] = {
+		{"lan_ifname", "br0"},
+		{"lan_ifnames", "vlan1 vlan2 ath0 ath1"},
 		{"wan_ifname", ""},
 		{"wan_ifname2", ""},
 		{"wan_ifnames", ""},
@@ -1611,37 +1650,7 @@ void start_restore_defaults(void)
 		{"wan_default", ""},
 		{0, 0}
 	};
-#elif HAVE_JJAP005
-	struct nvram_param generic[] = {
-		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth0 eth1 ath0"},
-		{"wan_ifname", "eth1"},
-		{"wan_ifname2", "eth1"},
-		{"wan_ifnames", "eth1"},
-		{"wan_default", "eth1"},
-		{0, 0}
-	};
-#elif HAVE_JJAP501
-	struct nvram_param generic[] = {
-		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth0 eth1 ath0"},
-		{"wan_ifname", "eth1"},
-		{"wan_ifname2", "eth1"},
-		{"wan_ifnames", "eth1"},
-		{"wan_default", "eth1"},
-		{0, 0}
-	};
-#elif HAVE_AC722
-	struct nvram_param generic[] = {
-		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth0 eth1 ath0"},
-		{"wan_ifname", "eth1"},
-		{"wan_ifname2", "eth1"},
-		{"wan_ifnames", "eth1"},
-		{"wan_default", "eth1"},
-		{0, 0}
-	};
-#elif HAVE_AC622
+#elif defined(HAVE_JJAP005) || defined(HAVE_JJAP501) || defined(HAVE_AC722) || defined(HAVE_AC622)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames", "eth0 eth1 ath0"},
@@ -1963,7 +1972,7 @@ void start_restore_defaults(void)
 #ifdef HAVE_RB500
 	linux_overrides = generic;
 	int brand = getRouterBrand();
-#elif defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
+#elif defined(HAVE_MVEBU) || defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
     || defined(HAVE_GATEWORX) || defined(HAVE_FONERA) || defined(HAVE_SOLO51) || defined(HAVE_RT2880) || defined(HAVE_LS2) || defined(HAVE_LS5) \
     || defined(HAVE_WHRAG108) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_OPENRISC) \
     || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_CA8)  || defined(HAVE_OCTEON)
@@ -2071,6 +2080,7 @@ void start_restore_defaults(void)
 		linux_overrides = vlan;
 		break;
 	case ROUTER_NETGEAR_WNR3500L:
+	case ROUTER_NETGEAR_WNR3500LV2:
 		linux_overrides = wnr3500vlan;
 		break;
 	case ROUTER_ASUS_RTN16:
@@ -2178,7 +2188,7 @@ void start_restore_defaults(void)
 	/*
 	 * Restore defaults 
 	 */
-#if defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
+#if defined(HAVE_MVEBU) || defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
     || defined(HAVE_GATEWORX) || defined(HAVE_FONERA) || defined(HAVE_SOLO51) || defined(HAVE_RT2880) || defined(HAVE_LS2) || defined(HAVE_LS5) \
     || defined(HAVE_WHRAG108) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_OPENRISC) \
     || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_CA8) || defined(HAVE_80211AC) || defined(HAVE_OCTEON)
@@ -2211,13 +2221,16 @@ void start_restore_defaults(void)
 					if (!strcmp(t->name, u->name)) {
 						nvcnt++;
 						nvram_set(u->name, u->value);
+						fprintf(stderr, "Name: %s Value: %s\n", u->name, u->value);
 						break;
 					}
 				}
 				if (!u || !u->name) {
 					nvcnt++;
 					nvram_set(t->name, t->value);
-					if (icnt == 1 && startswith(t->name, "wl1_"))	//unset wl1_xx if we have single radio only
+					if (icnt < 2 && startswith(t->name, "wl1_"))	//unset wl1_xx if we have only one radio
+						nvram_unset(t->name);
+					if (icnt < 3 && startswith(t->name, "wl2_"))	//unset wl2_xx if we have only one or two radios
 						nvram_unset(t->name);
 					// remove 3rd radio values
 					if (icnt == 2 && startswith(t->name, "wl2_"))	//unset wl2_xx if we have double radio only
@@ -2373,6 +2386,8 @@ void start_restore_defaults(void)
 		nvram_set("lan_ipaddr", "10.0.0.1");
 #elif HAVE_HOBBIT
 		nvram_set("lan_ipaddr", "192.168.50.254");
+#elif HAVE_ERC
+		nvram_set("lan_ipaddr", "10.195.0.1");
 #elif HAVE_AXTEL
 		nvram_set("lan_ipaddr", "192.168.11.1");
 #else
@@ -2465,15 +2480,28 @@ void start_restore_defaults(void)
 	case ROUTER_BUFFALO_WZR1750:
 	case ROUTER_BUFFALO_WXR1900DHP:
 	case ROUTER_DLINK_DIR868:
+	case ROUTER_DLINK_DIR868C:
 	case ROUTER_DLINK_DIR890:
+	case ROUTER_DLINK_DIR895:
+	case ROUTER_DLINK_DIR860:
 	case ROUTER_ASUS_AC56U:
 	case ROUTER_TRENDNET_TEW812:
 	case ROUTER_TRENDNET_TEW811:
+	case ROUTER_LINKSYS_EA6400:
 		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
 		    || !nvram_get("vlan2ports")
 		    || nvram_match("vlan2ports", "")) {
 			nvram_set("vlan1ports", "0 1 2 3 5*");
 			nvram_set("vlan2ports", "4 5u");
+		}
+		break;
+	case ROUTER_DLINK_DIR885:
+	case ROUTER_TRENDNET_TEW828:
+		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
+		    || !nvram_get("vlan2ports")
+		    || nvram_match("vlan2ports", "")) {
+			nvram_set("vlan1ports", "0 1 2 3 5 6 7 8*");
+			nvram_set("vlan2ports", "4 8u");
 		}
 		break;
 	case ROUTER_LINKSYS_EA6900:
@@ -2498,6 +2526,30 @@ void start_restore_defaults(void)
 		    || nvram_match("vlan2ports", "")) {
 			nvram_set("vlan1ports", "1 2 3 5 7*");
 			nvram_set("vlan2ports", "0 7u");
+		}
+		break;
+	case ROUTER_ASUS_AC88U:
+		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
+		    || !nvram_get("vlan2ports")
+		    || nvram_match("vlan2ports", "")) {
+			nvram_set("vlan1ports", "0 1 2 3 5 7*");
+			nvram_set("vlan2ports", "4 7u");
+		}
+		break;
+	case ROUTER_ASUS_AC5300:
+		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
+		    || !nvram_get("vlan2ports")
+		    || nvram_match("vlan2ports", "")) {
+			nvram_set("vlan1ports", "1 2 3 4 5 7*");
+			nvram_set("vlan2ports", "0 7u");
+		}
+		break;
+	case ROUTER_ASUS_AC3200:
+		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
+		    || !nvram_get("vlan2ports")
+		    || nvram_match("vlan2ports", "")) {
+			nvram_set("vlan1ports", "1 2 3 5*");
+			nvram_set("vlan2ports", "4 5u");
 		}
 		break;
 	case ROUTER_ASUS_RTN53:
@@ -2573,6 +2625,7 @@ void start_restore_defaults(void)
 		if (!nvram_get("vlan0ports") || nvram_match("vlan0ports", "")) {
 			switch (brand) {
 			case ROUTER_NETGEAR_WNR3500L:
+			case ROUTER_NETGEAR_WNR3500LV2:
 			case ROUTER_WRT320N:
 			case ROUTER_NETGEAR_WNDR4500:
 			case ROUTER_NETGEAR_WNDR4500V2:
@@ -2627,7 +2680,11 @@ void start_restore_defaults(void)
 
 		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")) {
 			switch (brand) {
+//                      case ROUTER_WRT_1900AC:
+//                              nvram_set("vlan2ports", "4 5");
+//                              break;
 			case ROUTER_NETGEAR_WNR3500L:
+			case ROUTER_NETGEAR_WNR3500LV2:
 			case ROUTER_NETGEAR_WNDR4500:
 			case ROUTER_NETGEAR_WNDR4500V2:
 			case ROUTER_NETGEAR_R6300:
@@ -2861,10 +2918,10 @@ void start_drivers(void)
 		led_control(LED_USB, LED_ON);
 		led_control(LED_USB1, LED_ON);
 
-		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx");
+		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx");
 
 		if (nvram_match("usb_storage", "1")) {
-			insmod("scsi_mod scsi_wait_scan sd_mod cdrom sr_mod usb-storage");
+			insmod("scsi_mod scsi_wait_scan sd_mod cdrom sr_mod usb-storage sata_mv ehci-orion");
 		}
 
 		if (nvram_match("usb_printer", "1")) {
@@ -2884,22 +2941,18 @@ void start_drivers(void)
 			eval("usbipd", "-D");
 		}
 #endif
+
 		//ahci
-		insmod("libata libahci ahci ahci_platforms ahci_imx mmc_core mmc_block sdhci sdhci-pltfm sdhci-esdhc-imx");
+		insmod("libata libahci libahci_platform ahci ahci_platform ahci_platforms ahci_imx ahci_mvebu mmc_core mmc_block sdhci sdhci-pltfm sdhci-esdhc-imx");
 
 		mount("devpts", "/proc/bus/usb", "usbfs", MS_MGC_VAL, NULL);
-//   Mounting is done by hotplug event!         
-//              if( nvram_match("usb_automnt", "1") && nvram_match("usb_storage", "1")) {
-//                      printf(stderr, "[USB] check for drives....\n");
-//                      usb_add_ufd();
-//              }
-	} else {
+	} else { // unload usb drivers
 		eval("stopservice", "samba3");
 		eval("stopservice", "ftpsrv");
 		sysprintf("umount /%s", nvram_default_get("usb_mntpoint", "mnt"));
 
 		//ahci
-		rmmod("sdhci-esdhc-imx sdhci-pltfm mmc_block sdhci ahci_imx mmc_core ahci_platforms ahci libahci libata");
+		rmmod("sdhci-esdhc-imx sdhci-pltfm sdhci mmc_block ahci_imx mmc_core ahci_mvebu ahci_imx ahci_platforms ahci_platform ahci libahci_platform libahci libata");
 #ifdef HAVE_USBIP
 		rmmod("usbip-host usbip-core usbip usbip_common_mod");
 #endif
@@ -2914,7 +2967,7 @@ void start_drivers(void)
 		rmmod("usbmisc_imx ci13xxx_imx ci_hdrc phy-mxs-usb fsl-mph-dr-of");
 		rmmod("usb-libusual dwc_otg");
 		// core
-		rmmod("xhci-pci xhci-hcd ohci-hcd usb-ohci uhci-hcd usb-uhci");
+		rmmod("xhci-pci xhci-plat-hcd xhci-hcd ohci-hcd usb-ohci uhci-hcd usb-uhci");
 		rmmod("ehci-pci ehci-platform ehci-hcd");
 		rmmod("usbcore usb-common");
 		/* unload filesystems */

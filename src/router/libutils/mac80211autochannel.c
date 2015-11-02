@@ -19,7 +19,7 @@
 #include <stdbool.h>
 
 #include "unl.h"
-#include "linux/nl80211.h"
+#include <nl80211.h>
 #include "list.h"
 #include "list_sort.h"
 
@@ -151,6 +151,10 @@ static int freq_list(struct unl *unl, int phy)
 #if defined(HAVE_BUFFALO) && defined(HAVE_WZRHPAG300NH)
 			if (tb[NL80211_FREQUENCY_ATTR_RADAR])
 				continue;
+#endif
+#ifdef HAVE_IDEXX
+			if  (ieee80211_mhz2ieee(freq_mhz) > 48)
+                                continue;
 #endif
 			f = calloc(1, sizeof(*f));
 			INIT_LIST_HEAD(&f->list);

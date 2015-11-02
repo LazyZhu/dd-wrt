@@ -77,6 +77,11 @@ struct kioctx_cpu {
 	unsigned		reqs_available;
 };
 
+struct ctx_rq_wait {
+	struct completion comp;
+	atomic_t count;
+};
+
 struct kioctx {
 	struct percpu_ref	users;
 	atomic_t		dead;
@@ -115,7 +120,7 @@ struct kioctx {
 	/*
 	 * signals when all in-flight requests are done
 	 */
-	struct completion *requests_done;
+	struct ctx_rq_wait	*rq_wait;
 
 	struct {
 		/*
@@ -278,11 +283,11 @@ static int aio_ring_mmap(struct file *file, struct vm_area_struct *vma)
 	return 0;
 }
 
-static void aio_ring_remap(struct file *file, struct vm_area_struct *vma)
+static int aio_ring_remap(struct file *file, struct vm_area_struct *vma)
 {
 	struct mm_struct *mm = vma->vm_mm;
 	struct kioctx_table *table;
-	int i;
+	int i, res = -EINVAL;
 
 	spin_lock(&mm->ioctx_lock);
 	rcu_read_lock();
@@ -292,13 +297,17 @@ static void aio_ring_remap(struct file *file, struct vm_area_struct *vma)
 
 		ctx = table->table[i];
 		if (ctx && ctx->aio_ring_file == file) {
-			ctx->user_id = ctx->mmap_base = vma->vm_start;
+			if (!atomic_read(&ctx->dead)) {
+				ctx->user_id = ctx->mmap_base = vma->vm_start;
+				res = 0;
+			}
 			break;
 		}
 	}
 
 	rcu_read_unlock();
 	spin_unlock(&mm->ioctx_lock);
+	return res;
 }
 
 static const struct file_operations aio_ring_fops = {
@@ -535,8 +544,8 @@ static void free_ioctx_reqs(struct percpu_ref *ref)
 	struct kioctx *ctx = container_of(ref, struct kioctx, reqs);
 
 	/* At this point we know that there are no any in-flight requests */
-	if (ctx->requests_done)
-		complete(ctx->requests_done);
+	if (ctx->rq_wait && atomic_dec_and_test(&ctx->rq_wait->count))
+		complete(&ctx->rq_wait->comp);
 
 	INIT_WORK(&ctx->free_work, free_ioctx);
 	schedule_work(&ctx->free_work);
@@ -727,6 +736,9 @@ static struct kioctx *ioctx_alloc(unsigned nr_events)
 err_cleanup:
 	aio_nr_sub(ctx->max_reqs);
 err_ctx:
+	atomic_set(&ctx->dead, 1);
+	if (ctx->mmap_size)
+		vm_munmap(ctx->mmap_base, ctx->mmap_size);
 	aio_free_ring(ctx);
 err:
 	mutex_unlock(&ctx->ring_lock);
@@ -744,15 +756,16 @@ err:
  *	the rapid destruction of the kioctx.
  */
 static int kill_ioctx(struct mm_struct *mm, struct kioctx *ctx,
-		struct completion *requests_done)
+		      struct ctx_rq_wait *wait)
 {
 	struct kioctx_table *table;
 
-	if (atomic_xchg(&ctx->dead, 1))
-		return -EINVAL;
-
-
 	spin_lock(&mm->ioctx_lock);
+	if (atomic_xchg(&ctx->dead, 1)) {
+		spin_unlock(&mm->ioctx_lock);
+		return -EINVAL;
+	}
+
 	table = rcu_dereference_raw(mm->ioctx_table);
 	WARN_ON(ctx != table->table[ctx->id]);
 	table->table[ctx->id] = NULL;
@@ -773,7 +786,7 @@ static int kill_ioctx(struct mm_struct *mm, struct kioctx *ctx,
 	if (ctx->mmap_size)
 		vm_munmap(ctx->mmap_base, ctx->mmap_size);
 
-	ctx->requests_done = requests_done;
+	ctx->rq_wait = wait;
 	percpu_ref_kill(&ctx->users);
 	return 0;
 }
@@ -805,18 +818,24 @@ EXPORT_SYMBOL(wait_on_sync_kiocb);
 void exit_aio(struct mm_struct *mm)
 {
 	struct kioctx_table *table = rcu_dereference_raw(mm->ioctx_table);
-	int i;
+	struct ctx_rq_wait wait;
+	int i, skipped;
 
 	if (!table)
 		return;
 
+	atomic_set(&wait.count, table->nr);
+	init_completion(&wait.comp);
+
+	skipped = 0;
 	for (i = 0; i < table->nr; ++i) {
 		struct kioctx *ctx = table->table[i];
-		struct completion requests_done =
-			COMPLETION_INITIALIZER_ONSTACK(requests_done);
 
-		if (!ctx)
+		if (!ctx) {
+			skipped++;
 			continue;
+		}
+
 		/*
 		 * We don't need to bother with munmap() here - exit_mmap(mm)
 		 * is coming and it'll unmap everything. And we simply can't,
@@ -825,10 +844,12 @@ void exit_aio(struct mm_struct *mm)
 		 * that it needs to unmap the area, just set it to 0.
 		 */
 		ctx->mmap_size = 0;
-		kill_ioctx(mm, ctx, &requests_done);
+		kill_ioctx(mm, ctx, &wait);
+	}
 
+	if (!atomic_sub_and_test(skipped, &wait.count)) {
 		/* Wait until all IO for the context are done. */
-		wait_for_completion(&requests_done);
+		wait_for_completion(&wait.comp);
 	}
 
 	RCU_INIT_POINTER(mm->ioctx_table, NULL);
@@ -1313,15 +1334,17 @@ SYSCALL_DEFINE1(io_destroy, aio_context_t, ctx)
 {
 	struct kioctx *ioctx = lookup_ioctx(ctx);
 	if (likely(NULL != ioctx)) {
-		struct completion requests_done =
-			COMPLETION_INITIALIZER_ONSTACK(requests_done);
+		struct ctx_rq_wait wait;
 		int ret;
+
+		init_completion(&wait.comp);
+		atomic_set(&wait.count, 1);
 
 		/* Pass requests_done to kill_ioctx() where it can be set
 		 * in a thread-safe way. If we try to set it here then we have
 		 * a race condition if two io_destroy() called simultaneously.
 		 */
-		ret = kill_ioctx(current->mm, ioctx, &requests_done);
+		ret = kill_ioctx(current->mm, ioctx, &wait);
 		percpu_ref_put(&ioctx->users);
 
 		/* Wait until all IO for the context are done. Otherwise kernel
@@ -1329,7 +1352,7 @@ SYSCALL_DEFINE1(io_destroy, aio_context_t, ctx)
 		 * is destroyed.
 		 */
 		if (!ret)
-			wait_for_completion(&requests_done);
+			wait_for_completion(&wait.comp);
 
 		return ret;
 	}

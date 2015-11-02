@@ -1,13 +1,18 @@
 /*
- * DEBUG: section 54    Interprocess Communication
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 54    Interprocess Communication */
 
 #ifndef SQUID_IPC_INQUIRER_H
 #define SQUID_IPC_INQUIRER_H
 
-#include "base/AsyncJobCalls.h"
 #include "base/AsyncJob.h"
+#include "base/AsyncJobCalls.h"
 #include "ipc/forward.h"
 #include "ipc/Request.h"
 #include "ipc/Response.h"
@@ -21,6 +26,8 @@ namespace Ipc
 /// aggregating individual strand responses and dumping the result if needed
 class Inquirer: public AsyncJob
 {
+    CBDATA_CLASS(Inquirer);
+
 public:
     Inquirer(Request::Pointer aRequest, const Ipc::StrandCoords& coords, double aTimeout);
     virtual ~Inquirer();
@@ -73,10 +80,9 @@ protected:
     static RequestsMap TheRequestsMap; ///< pending strand requests
 
     static unsigned int LastRequestId; ///< last requestId used
-
-    CBDATA_CLASS2(Inquirer);
 };
 
 } // namespace Ipc
 
 #endif /* SQUID_IPC_INQUIRER_H */
+

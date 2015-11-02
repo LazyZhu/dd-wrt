@@ -1,61 +1,78 @@
-#ifndef SQUID_REFRESHPATTERN_H_
-#define SQUID_REFRESHPATTERN_H_
 /*
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
-/// a representation of a refresh pattern. Currently a POD.
+#ifndef SQUID_REFRESHPATTERN_H_
+#define SQUID_REFRESHPATTERN_H_
+
+#include "base/RegexPattern.h"
+
+/// a representation of a refresh pattern.
 class RefreshPattern
 {
+    MEMPROXY_CLASS(RefreshPattern);
+
 public:
-    const char *pattern;
-    regex_t compiled_pattern;
+
+    /*
+     * Defaults:
+     *      MIN     NONE
+     *      PCT     20%
+     *      MAX     3 days
+     */
+#define REFRESH_DEFAULT_MAX static_cast<time_t>(259200)
+
+    RefreshPattern(const char *aPattern, const decltype(RegexPattern::flags) &reFlags) :
+        pattern(reFlags, aPattern),
+        min(0), pct(0.20), max(REFRESH_DEFAULT_MAX),
+        next(NULL),
+        max_stale(0)
+    {
+        memset(&flags, 0, sizeof(flags));
+    }
+
+    ~RefreshPattern() {
+        while (RefreshPattern *t = next) {
+            next = t->next;
+            t->next = nullptr;
+            delete t;
+        }
+    }
+    // ~RefreshPattern() default destructor is fine
+
+    RegexPattern pattern;
     time_t min;
     double pct;
     time_t max;
     RefreshPattern *next;
 
     struct {
-        unsigned int icase:1;
-        unsigned int refresh_ims:1;
-        unsigned int store_stale:1;
+        bool refresh_ims;
+        bool store_stale;
 #if USE_HTTP_VIOLATIONS
-        unsigned int override_expire:1;
-        unsigned int override_lastmod:1;
-        unsigned int reload_into_ims:1;
-        unsigned int ignore_reload:1;
-        unsigned int ignore_no_store:1;
-        unsigned int ignore_must_revalidate:1;
-        unsigned int ignore_private:1;
-        unsigned int ignore_auth:1;
+        bool override_expire;
+        bool override_lastmod;
+        bool reload_into_ims;
+        bool ignore_reload;
+        bool ignore_no_store;
+        bool ignore_private;
 #endif
     } flags;
     int max_stale;
+
+    // statistics about how many matches this pattern has had
+    mutable struct stats_ {
+        stats_() : matchTests(0), matchCount(0) {}
+
+        uint64_t matchTests;
+        uint64_t matchCount;
+        // TODO: some stats to indicate how useful/less the flags are would be nice.
+    } stats;
 };
 
 #endif /* SQUID_REFRESHPATTERN_H_ */
+

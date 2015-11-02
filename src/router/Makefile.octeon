@@ -174,11 +174,18 @@ kernel:
 	# Also build kernel
 ifeq ($(CONFIG_E200),y)
 	cp $(LINUXDIR)/.config_e200 $(LINUXDIR)/.config
+ifneq ($(CONFIG_USBBOOT),y)
+	sed -i 's/CONFIG_USB=y/CONFIG_USB=m/g' $(LINUXDIR)/.config
+endif
 else
 	cp $(LINUXDIR)/.config_octeon $(LINUXDIR)/.config
 endif
 ifeq ($(CONFIG_KERNEL_ELF_CORE),y)
 	sed -i 's/\# CONFIG_ELF_CORE is not set/CONFIG_ELF_CORE=y/g' $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_USBBOOT),y)
+	sed -i 's/root=\/dev\/mmcblk0p2/root=\/dev\/sda2/g' $(LINUXDIR)/.config
+	sed -i 's/CONFIG_MMC_OCTEON=y/CONFIG_MMC_OCTEON=m/g' $(LINUXDIR)/.config
 endif
 ifeq ($(CONFIG_EOP_TUNNEL),y)
 	echo CONFIG_NET_ETHERIP=m >> $(LINUXDIR)/.config
@@ -401,7 +408,7 @@ ifneq ($(CONFIG_NOOPT),y)
 	rm -rf /tmp/$(ARCHITECTURE)/mklibs-out
 	rm -f /tmp/$(ARCHITECTURE)/mklibs-progs
 	-mkdir -p /tmp/$(ARCHITECTURE)/
-	find $(TARGETDIR) -type f -perm +100 -exec \
+	find $(TARGETDIR) -type f -perm /100 -exec \
 		file -r -N -F '' {} + | \
 		awk ' /executable.*dynamically/ { print $$1 }' > /tmp/$(ARCHITECTURE)/mklibs-progs
 
@@ -662,6 +669,11 @@ endif
 	cp $(ARCH)-uclibc/root.fs $(ARCH)-uclibc/sysupgrade-erlite/root
 	(cd $(ARCH)-uclibc; tar cvf ubnt-erlite-sysupgrade.tar sysupgrade-erlite)
 
+	mkdir -p $(ARCH)-uclibc/sysupgrade-er/
+	echo "BOARD=er" > $(ARCH)-uclibc/sysupgrade-er/CONTROL
+	cp $(LINUXDIR)/vmlinux $(ARCH)-uclibc/sysupgrade-er/kernel
+	cp $(ARCH)-uclibc/root.fs $(ARCH)-uclibc/sysupgrade-er/root
+	(cd $(ARCH)-uclibc; tar cvf ubnt-er-sysupgrade.tar sysupgrade-er)
 
 
 #	dd if=$(ARCH)-uclibc/vmlinux.gz of=$(ARCH)-uclibc/vmlinux.bin.gz bs=65536 conv=sync

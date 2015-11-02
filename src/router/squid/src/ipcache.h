@@ -1,12 +1,20 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef _SQUID_IPCACHE_H
 #define _SQUID_IPCACHE_H
+
+#include "dns/forward.h"
 
 namespace Ip
 {
 class Address;
 }
-
-class DnsLookupDetails;
 
 typedef struct _ipcache_addrs {
     Ip::Address *in_addrs;
@@ -16,7 +24,7 @@ typedef struct _ipcache_addrs {
     unsigned char badcount;
 } ipcache_addrs;
 
-typedef void IPH(const ipcache_addrs *, const DnsLookupDetails &details, void *);
+typedef void IPH(const ipcache_addrs *, const Dns::LookupDetails &details, void *);
 
 void ipcache_purgelru(void *);
 void ipcache_nbgethostbyname(const char *name, IPH * handler, void *handlerData);
@@ -34,3 +42,4 @@ void ipcache_restart(void);
 int ipcacheAddEntryFromHosts(const char *name, const char *ipaddr);
 
 #endif /* _SQUID_IPCACHE_H */
+

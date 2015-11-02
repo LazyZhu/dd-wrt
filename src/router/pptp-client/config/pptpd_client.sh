@@ -1,6 +1,4 @@
 #!/bin/sh
-USER=$(/usr/sbin/nvram get pptpd_client_srvuser)
-PASS=$(/usr/sbin/nvram get pptpd_client_srvpass)
 SEC=$(/usr/sbin/nvram get pptpd_client_srvsec)
 CMP=$(/usr/sbin/nvram get pptpd_client_srvcmp)
 MTU=$(/usr/sbin/nvram get pptpd_client_srvmtu)

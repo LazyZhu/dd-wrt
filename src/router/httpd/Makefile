@@ -171,6 +171,12 @@ endif
 ifeq ($(CONFIG_DIR860),y)
 CFLAGS += -DHAVE_DIR860
 endif
+ifeq ($(CONFIG_DIR859),y)
+CFLAGS += -DHAVE_DIR859
+endif
+ifeq ($(CONFIG_DIR862),y)
+CFLAGS += -DHAVE_DIR862
+endif
 ifeq ($(CONFIG_BCMMODERN),y)
 CFLAGS += -DHAVE_BCMMODERN
 endif
@@ -232,6 +238,10 @@ endif
 ifeq ($(CONFIG_SANSFIL),y)
   CFLAGS += -DHAVE_SANSFIL
 endif
+ifeq ($(CONFIG_MVEBU),y)
+CFLAGS += -DHAVE_MVEBU
+CFLAGS += -DHAVE_CPUTEMP
+endif
 include $(TOP)/rules/generic.mk
 CFLAGS += $(DD_CFLAGS)
 
@@ -260,6 +270,9 @@ endif
 
 ifeq ($(CONFIG_IDEXX),y)
 CFLAGS += -DHAVE_IDEXX
+ifeq ($(CONFIG_IDEXX_WORLD),y)
+CFLAGS += -DHAVE_IDEXX_WORLD
+endif
 endif
 
 ifeq ($(CONFIG_FREECWMP),y)
@@ -270,6 +283,7 @@ endif
 ifeq ($(CONFIG_UNFY),y)
 CLFAGS += -DHAVE_UNFY
 endif
+
 
 ifeq ($(CONFIG_RB500),y)
 CFLAGS += -DHAVE_RB500
@@ -1007,6 +1021,9 @@ endif
 ifeq ($(CONFIG_JWAP003),y)
   CFLAGS += -DHAVE_JWAP003
 endif
+ifeq ($(CONFIG_UNBOUND),y)
+  CFLAGS += -DHAVE_UNBOUND
+endif
 ifeq ($(CONFIG_LSX),y)
 CFLAGS += -DHAVE_LSX
 endif
@@ -1052,6 +1069,23 @@ endif
 ifeq ($(CONFIG_JJAP93),y)
 CFLAGS += -DHAVE_JJAP93
 endif
+ifeq ($(CONFIG_DAP2230),y)
+CFLAGS += -DHAVE_DAP2230
+endif
+ifeq ($(CONFIG_DAP3320),y)
+CFLAGS += -DHAVE_DAP3320
+endif
+ifeq ($(CONFIG_DAP2330),y)
+CFLAGS += -DHAVE_DAP2330
+endif
+ifeq ($(CONFIG_DAP2660),y)
+CFLAGS += -DHAVE_DAP2660
+endif
+ifeq ($(CONFIG_DAP3662),y)
+  CFLAGS += -DHAVE_DAP3662
+endif
+
+
 ifeq ($(CONFIG_TIEXTRA1),y)
 CFLAGS += -DHAVE_TIEXTRA1 -Wl,-rpath,$(TOP)/jansson/src/.libs
 LDFLAGS +=   -Wl,-rpath,$(TOP)/jansson/src/.libs
@@ -1127,6 +1161,8 @@ endif
 ifeq ($(CONFIG_CUSTOMSSLCERT),y)
 CFLAGS += -DHAVE_CUSTOMSSLCERT
 endif
+
+
 
 #use this do disable number of arguments checking (less code and faster exec)
 CFLAGS += -DFASTWEB
@@ -1244,7 +1280,7 @@ endif
 endif
 endif
 	
-httpd: cgi.o ej.o httpd.o broadcom.o \
+httpd: cgi.o ej.o httpd.o base.o \
        $(ADDOBJ) nvramsr.o callvalidate.o $(OBJS)
 #	gcc -o write_web write_web.c
 #	./write_web www 

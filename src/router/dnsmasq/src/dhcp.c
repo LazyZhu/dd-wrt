@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2014 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2015 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -146,7 +146,7 @@ void dhcp_packet(time_t now, int pxe_fd)
   struct iovec iov;
   ssize_t sz; 
   int iface_index = 0, unicast_dest = 0, is_inform = 0;
-  struct in_addr iface_addr;
+  struct in_addr iface_addr, *addrp = NULL;
   struct iface_param parm;
 #ifdef HAVE_LINUX_NETWORK
   struct arpreq arp_req;
@@ -225,10 +225,11 @@ void dhcp_packet(time_t now, int pxe_fd)
   strncpy(arp_req.arp_dev, ifr.ifr_name, 16);
 #endif 
 
-   /* One form of bridging on BSD has the property that packets
-      can be recieved on bridge interfaces which do not have an IP address.
-      We allow these to be treated as aliases of another interface which does have
-      an IP address with --dhcp-bridge=interface,alias,alias */
+  /* If the interface on which the DHCP request was received is an
+     alias of some other interface (as specified by the
+     --bridge-interface option), change ifr.ifr_name so that we look
+     for DHCP contexts associated with the aliased interface instead
+     of with the aliasing one. */
   for (bridge = daemon->bridges; bridge; bridge = bridge->next)
     {
       for (alias = bridge->alias; alias; alias = alias->next)
@@ -236,7 +237,9 @@ void dhcp_packet(time_t now, int pxe_fd)
 	  {
 	    if (!(iface_index = if_nametoindex(bridge->iface)))
 	      {
-		my_syslog(LOG_WARNING, _("unknown interface %s in bridge-interface"), ifr.ifr_name);
+		my_syslog(MS_DHCP | LOG_WARNING,
+			  _("unknown interface %s in bridge-interface"),
+			  bridge->iface);
 		return;
 	      }
 	    else 
@@ -272,11 +275,9 @@ void dhcp_packet(time_t now, int pxe_fd)
     {
       ifr.ifr_addr.sa_family = AF_INET;
       if (ioctl(daemon->dhcpfd, SIOCGIFADDR, &ifr) != -1 )
-	iface_addr = ((struct sockaddr_in *) &ifr.ifr_addr)->sin_addr;
-      else
 	{
-	  my_syslog(MS_DHCP | LOG_WARNING, _("DHCP packet received on %s which has no address"), ifr.ifr_name);
-	  return;
+	  addrp = &iface_addr;
+	  iface_addr = ((struct sockaddr_in *) &ifr.ifr_addr)->sin_addr;
 	}
       
       for (tmp = daemon->dhcp_except; tmp; tmp = tmp->next)
@@ -295,7 +296,7 @@ void dhcp_packet(time_t now, int pxe_fd)
       parm.relay_local.s_addr = 0;
       parm.ind = iface_index;
       
-      if (!iface_check(AF_INET, (struct all_addr *)&iface_addr, ifr.ifr_name, NULL))
+      if (!iface_check(AF_INET, (struct all_addr *)addrp, ifr.ifr_name, NULL))
 	{
 	  /* If we failed to match the primary address of the interface, see if we've got a --listen-address
 	     for a secondary */
@@ -315,6 +316,12 @@ void dhcp_packet(time_t now, int pxe_fd)
 	  complete_context(match.addr, iface_index, NULL, match.netmask, match.broadcast, &parm);
 	}    
       
+      if (!addrp)
+        {
+          my_syslog(MS_DHCP | LOG_WARNING, _("DHCP packet received on %s which has no address"), ifr.ifr_name);
+          return;
+        }
+
       if (!iface_enumerate(AF_INET, &parm, complete_context))
 	return;
 
@@ -376,10 +383,9 @@ void dhcp_packet(time_t now, int pxe_fd)
 	}
     } 
 #if defined(HAVE_LINUX_NETWORK)
-  else if ((ntohs(mess->flags) & 0x8000) || mess->hlen == 0 ||
-	   mess->hlen > sizeof(ifr.ifr_addr.sa_data) || mess->htype == 0)
+  else
     {
-      /* broadcast to 255.255.255.255 (or mac address invalid) */
+      /* fill cmsg for outbound interface (both broadcast & unicast) */
       struct in_pktinfo *pkt;
       msg.msg_control = control_u.control;
       msg.msg_controllen = sizeof(control_u);
@@ -389,23 +395,29 @@ void dhcp_packet(time_t now, int pxe_fd)
       pkt->ipi_spec_dst.s_addr = 0;
       msg.msg_controllen = cmptr->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
       cmptr->cmsg_level = IPPROTO_IP;
-      cmptr->cmsg_type = IP_PKTINFO;  
-      dest.sin_addr.s_addr = INADDR_BROADCAST;
-      dest.sin_port = htons(daemon->dhcp_client_port);
-    }
-  else
-    {
-      /* unicast to unconfigured client. Inject mac address direct into ARP cache. 
-	 struct sockaddr limits size to 14 bytes. */
-      dest.sin_addr = mess->yiaddr;
-      dest.sin_port = htons(daemon->dhcp_client_port);
-      memcpy(&arp_req.arp_pa, &dest, sizeof(struct sockaddr_in));
-      arp_req.arp_ha.sa_family = mess->htype;
-      memcpy(arp_req.arp_ha.sa_data, mess->chaddr, mess->hlen);
-      /* interface name already copied in */
-      arp_req.arp_flags = ATF_COM;
-      if (ioctl(daemon->dhcpfd, SIOCSARP, &arp_req) == -1)
-	my_syslog(MS_DHCP | LOG_ERR, _("ARP-cache injection failed: %s"), strerror(errno));
+      cmptr->cmsg_type = IP_PKTINFO;
+
+      if ((ntohs(mess->flags) & 0x8000) || mess->hlen == 0 ||
+         mess->hlen > sizeof(ifr.ifr_addr.sa_data) || mess->htype == 0)
+        {
+          /* broadcast to 255.255.255.255 (or mac address invalid) */
+          dest.sin_addr.s_addr = INADDR_BROADCAST;
+          dest.sin_port = htons(daemon->dhcp_client_port);
+        }
+      else
+        {
+          /* unicast to unconfigured client. Inject mac address direct into ARP cache.
+          struct sockaddr limits size to 14 bytes. */
+          dest.sin_addr = mess->yiaddr;
+          dest.sin_port = htons(daemon->dhcp_client_port);
+          memcpy(&arp_req.arp_pa, &dest, sizeof(struct sockaddr_in));
+          arp_req.arp_ha.sa_family = mess->htype;
+          memcpy(arp_req.arp_ha.sa_data, mess->chaddr, mess->hlen);
+          /* interface name already copied in */
+          arp_req.arp_flags = ATF_COM;
+          if (ioctl(daemon->dhcpfd, SIOCSARP, &arp_req) == -1)
+            my_syslog(MS_DHCP | LOG_ERR, _("ARP-cache injection failed: %s"), strerror(errno));
+        }
     }
 #elif defined(HAVE_SOLARIS_NETWORK)
   else if ((ntohs(mess->flags) & 0x8000) || mess->hlen != ETHER_ADDR_LEN || mess->htype != ARPHRD_ETHER)
@@ -443,7 +455,7 @@ void dhcp_packet(time_t now, int pxe_fd)
   setsockopt(fd, IPPROTO_IP, IP_BOUND_IF, &iface_index, sizeof(iface_index));
 #endif
   
-  while(sendmsg(fd, &msg, 0) == -1 && retry_send());
+  while(retry_send(sendmsg(fd, &msg, 0)));
 }
  
 /* check against secondary interface addresses */

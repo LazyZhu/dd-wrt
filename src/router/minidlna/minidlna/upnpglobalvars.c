@@ -52,6 +52,7 @@
 #include <limits.h>
 
 #include "upnpdescstrings.h"
+#include "config.h"
 #include "upnpglobalvars.h"
 
 /* startup time */

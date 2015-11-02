@@ -1,6 +1,12 @@
 /*
- * DEBUG: section 93    ICAP (RFC 3507) Client
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 93    ICAP (RFC 3507) Client */
 
 #include "squid.h"
 #include "base/AsyncCall.h"
@@ -22,7 +28,7 @@ AsyncJob::Pointer AsyncJob::Start(AsyncJob *j)
 }
 
 AsyncJob::AsyncJob(const char *aTypeName) :
-        stopReason(NULL), typeName(aTypeName), inCall(NULL)
+    stopReason(NULL), typeName(aTypeName), inCall(NULL)
 {
     debugs(93,5, "AsyncJob constructed, this=" << this <<
            " type=" << typeName << " [" << id << ']');
@@ -117,7 +123,8 @@ void AsyncJob::callStart(AsyncCall &call)
            typeName << " status in:" << status());
 }
 
-void AsyncJob::callException(const std::exception &e)
+void
+AsyncJob::callException(const std::exception &)
 {
     // we must be called asynchronously and hence, the caller must lock us
     Must(cbdataReferenceValid(toCbdata()));
@@ -155,10 +162,9 @@ const char *AsyncJob::status() const
 
     buf.append(" [", 2);
     if (stopReason != NULL) {
-        buf.Printf("Stopped, reason:");
-        buf.Printf("%s",stopReason);
+        buf.appendf("Stopped, reason:%s", stopReason);
     }
-    buf.Printf(" %s%u]", id.Prefix, id.value);
+    buf.appendf(" %s%u]", id.Prefix, id.value);
     buf.terminate();
 
     return buf.content();

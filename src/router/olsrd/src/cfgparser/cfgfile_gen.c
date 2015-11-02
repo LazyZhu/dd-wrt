@@ -53,10 +53,12 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-int olsrd_write_cnf(struct olsrd_config *cnf, const char *fname) {
 
+int olsrd_write_cnf(struct olsrd_config *cnf, const char *fname) {
   return 1;
 }
+
+
 
 void olsrd_write_cnf_autobuf(struct autobuf *out, struct olsrd_config *cnf) {
 }

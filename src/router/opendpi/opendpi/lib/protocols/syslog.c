@@ -2,7 +2,7 @@
  * syslog.c
  *
  * Copyright (C) 2009-2011 by ipoque GmbH
- * Copyright (C) 2011-13 - ntop.org
+ * Copyright (C) 2011-15 - ntop.org
  *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the OpenDPI and PACE technology by ipoque GmbH
@@ -22,23 +22,22 @@
  * 
  */
 
-
 #include "ndpi_protocols.h"
 #ifdef NDPI_PROTOCOL_SYSLOG
 
 static void ndpi_int_syslog_add_connection(struct ndpi_detection_module_struct
-											 *ndpi_struct, struct ndpi_flow_struct *flow)
+					   *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-	ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_SYSLOG, NDPI_REAL_PROTOCOL);
+	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SYSLOG, NDPI_PROTOCOL_UNKNOWN);
 }
 
 static void ndpi_search_syslog(struct ndpi_detection_module_struct
-						  *ndpi_struct, struct ndpi_flow_struct *flow)
+			       *ndpi_struct, struct ndpi_flow_struct *flow)
 {
 	struct ndpi_packet_struct *packet = &flow->packet;
-	
-//      struct ndpi_id_struct         *src=ndpi_struct->src;
-//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
+
+	//      struct ndpi_id_struct         *src=ndpi_struct->src;
+	//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
 
 	u_int8_t i;
 
@@ -50,8 +49,7 @@ static void ndpi_search_syslog(struct ndpi_detection_module_struct
 
 		for (;;) {
 			if (packet->payload[i] < '0' || packet->payload[i] > '9' || i++ > 3) {
-				NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG,
-						"read symbols while the symbol is a number.\n");
+				NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG, "read symbols while the symbol is a number.\n");
 				break;
 			}
 		}
@@ -72,16 +70,14 @@ static void ndpi_search_syslog(struct ndpi_detection_module_struct
 		}
 
 		/* check for "last message repeated" */
-		if (i + sizeof("last message") - 1 <= packet->payload_packet_len &&
-			memcmp(packet->payload + i, "last message", sizeof("last message") - 1) == 0) {
+		if (i + sizeof("last message") - 1 <= packet->payload_packet_len && memcmp(packet->payload + i, "last message", sizeof("last message") - 1) == 0) {
 
 			NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG, "found syslog by 'last message' string.\n");
 
 			ndpi_int_syslog_add_connection(ndpi_struct, flow);
 
 			return;
-		} else if (i + sizeof("snort: ") - 1 <= packet->payload_packet_len &&
-				   memcmp(packet->payload + i, "snort: ", sizeof("snort: ") - 1) == 0) {
+		} else if (i + sizeof("snort: ") - 1 <= packet->payload_packet_len && memcmp(packet->payload + i, "snort: ", sizeof("snort: ") - 1) == 0) {
 
 			/* snort events */
 
@@ -92,21 +88,17 @@ static void ndpi_search_syslog(struct ndpi_detection_module_struct
 			return;
 		}
 
-		if (ndpi_mem_cmp(&packet->payload[i], "Jan", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Feb", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Mar", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Apr", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "May", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Jun", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Jul", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Aug", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Sep", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Oct", 3) != 0
-			&& ndpi_mem_cmp(&packet->payload[i], "Nov", 3) != 0 && ndpi_mem_cmp(&packet->payload[i], "Dec", 3) != 0) {
+		if (memcmp(&packet->payload[i], "Jan", 3) != 0
+		    && memcmp(&packet->payload[i], "Feb", 3) != 0
+		    && memcmp(&packet->payload[i], "Mar", 3) != 0
+		    && memcmp(&packet->payload[i], "Apr", 3) != 0
+		    && memcmp(&packet->payload[i], "May", 3) != 0
+		    && memcmp(&packet->payload[i], "Jun", 3) != 0
+		    && memcmp(&packet->payload[i], "Jul", 3) != 0
+		    && memcmp(&packet->payload[i], "Aug", 3) != 0
+		    && memcmp(&packet->payload[i], "Sep", 3) != 0 && memcmp(&packet->payload[i], "Oct", 3) != 0 && memcmp(&packet->payload[i], "Nov", 3) != 0 && memcmp(&packet->payload[i], "Dec", 3) != 0) {
 
-
-			NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG,
-					"no month-shortname following: syslog excluded.\n");
+			NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG, "no month-shortname following: syslog excluded.\n");
 
 			NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_SYSLOG);
 
@@ -114,8 +106,7 @@ static void ndpi_search_syslog(struct ndpi_detection_module_struct
 
 		} else {
 
-			NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG,
-					"a month-shortname following: syslog detected.\n");
+			NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG, "a month-shortname following: syslog detected.\n");
 
 			ndpi_int_syslog_add_connection(ndpi_struct, flow);
 
@@ -125,6 +116,15 @@ static void ndpi_search_syslog(struct ndpi_detection_module_struct
 	NDPI_LOG(NDPI_PROTOCOL_SYSLOG, ndpi_struct, NDPI_LOG_DEBUG, "no syslog detected.\n");
 
 	NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_SYSLOG);
+}
+
+static void init_syslog_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("Syslog", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_SYSLOG,
+					    ndpi_search_syslog, NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_OR_UDP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+
+	*id += 1;
 }
 
 #endif

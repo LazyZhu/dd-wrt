@@ -72,12 +72,19 @@ void start_sysinit(void)
 	insmod("mbcache");
 	insmod("jbd2");
 	insmod("ext4");
-
-	if (mount("/dev/sda3", "/jffs", "ext2", MS_MGC_VAL, NULL)) {
-		eval("/sbin/mkfs.ext2", "-F", "-b", "1024", "/dev/sda3");
-		mount("/dev/sda3", "/jffs", "ext2", MS_MGC_VAL, NULL);
-		eval("mount", "--bind", "/jffs", "/usr/local");
+	FILE *check = fopen("/dev/sda3", "rb");
+	char drive[64];
+	if (check) {
+		fclose(check);
+		sprintf(drive, "/dev/sda3");
+	} else {
+		sprintf(drive, "/dev/mmcblk0p3");
 	}
+	if (mount(drive, "/jffs", "ext2", MS_MGC_VAL, NULL)) {
+		eval("/sbin/mkfs.ext2", "-F", "-b", "1024", drive);
+		mount(drive, "/jffs", "ext2", MS_MGC_VAL, NULL);
+	}
+	eval("mount", "--bind", "/jffs", "/usr/local");
 
 	int brand = getRouterBrand();
 

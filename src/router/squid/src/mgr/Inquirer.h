@@ -1,7 +1,12 @@
 /*
- * DEBUG: section 16    Cache Manager API
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 16    Cache Manager API */
 
 #ifndef SQUID_MGR_INQUIRER_H
 #define SQUID_MGR_INQUIRER_H
@@ -20,6 +25,8 @@ namespace Mgr
 /// aggregating individual strand responses and dumping the result if needed
 class Inquirer: public Ipc::Inquirer
 {
+    CBDATA_CLASS(Inquirer);
+
 public:
     Inquirer(Action::Pointer anAction, const Request &aCause,
              const Ipc::StrandCoords &coords);
@@ -47,10 +54,9 @@ private:
 
     AsyncCall::Pointer writer; ///< comm_write callback
     AsyncCall::Pointer closer; ///< comm_close handler
-
-    CBDATA_CLASS2(Inquirer);
 };
 
 } // namespace Mgr
 
 #endif /* SQUID_MGR_INQUIRER_H */
+

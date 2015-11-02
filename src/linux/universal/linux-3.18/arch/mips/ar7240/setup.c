@@ -126,15 +126,16 @@ const char
 
 	char *chip;
 	u32 id;
-	u32 qca=0;
+	u32 qca = 0;
+	u32 tp = 0;
 	u32 rev = 0;
+	u32 ver = 1;
 	static char str[64];
 	id = ar7240_reg_rd(AR7240_REV_ID) & AR7240_REV_ID_MASK;
 
 	switch (id) {
 	case AR7240_REV_1_0:
 		chip = "7240";
-		rev = 0;
 		break;
 	case AR7240_REV_1_1:
 		chip = "7240";
@@ -146,11 +147,9 @@ const char
 		break;
 	case AR7241_REV_1_0:
 		chip = "7241";
-		rev = 0;
 		break;
 	case AR7242_REV_1_0:
 		chip = "7242";
-		rev = 0;
 		break;
 	case AR7241_REV_1_1:
 		chip = "7241";
@@ -162,7 +161,6 @@ const char
 		break;
 	case AR9330_REV_1_0:
 		chip = "9330";
-		rev = 0;
 		break;
 	case AR9330_REV_1_1:
 		chip = "9330";
@@ -174,7 +172,6 @@ const char
 		break;
 	case AR9331_REV_1_0:
 		chip = "9331";
-		rev = 0;
 		break;
 	case AR9331_REV_1_1:
 		chip = "9331";
@@ -186,7 +183,6 @@ const char
 		break;
 	case AR9344_REV_1_0:
 		chip = "9344";
-		rev = 0;
 		break;
 	case AR9344_REV_1_1:
 		chip = "9344";
@@ -202,7 +198,6 @@ const char
 		break;
 	case AR9342_REV_1_0:
 		chip = "9342";
-		rev = 0;
 		break;
 	case AR9342_REV_1_1:
 		chip = "9342";
@@ -218,7 +213,6 @@ const char
 		break;
 	case AR9341_REV_1_0:
 		chip = "9341";
-		rev = 0;
 		break;
 	case AR9341_REV_1_1:
 		chip = "9341";
@@ -234,7 +228,11 @@ const char
 		break;
 	case QCA9533_REV_1_0:
 		chip = "9533";
-		rev = 0;
+		qca = 1;
+		break;
+	case QCA9533_V2:
+		chip = "9533";
+		ver = 2;
 		qca = 1;
 		break;
 	case QCA9533_REV_1_1:
@@ -255,7 +253,6 @@ const char
 
 	case QCA9556_REV_1_0:
 		chip = "9556";
-		rev = 0;
 		qca = 1;
 		break;
 	case QCA9556_REV_1_1:
@@ -273,10 +270,8 @@ const char
 		rev = 3;
 		qca = 1;
 		break;
-
 	case QCA9558_REV_1_0:
 		chip = "9558";
-		rev = 0;
 		qca = 1;
 		break;
 	case QCA9558_REV_1_1:
@@ -294,10 +289,52 @@ const char
 		rev = 3;
 		qca = 1;
 		break;
+
+	case QCA9563_REV_1_0:
+		chip = "9563";
+		qca = 1;
+		break;
+	case QCA9563_REV_1_1:
+		chip = "9563";
+		rev = 1;
+		qca = 1;
+		break;
+	case QCA9563_REV_1_2:
+		chip = "9563";
+		rev = 2;
+		qca = 1;
+		break;
+	case QCA9563_REV_1_3:
+		chip = "9563";
+		rev = 3;
+		qca = 1;
+		break;
+	case TP9343_REV_1_0:
+		chip = "9343";
+		tp = 1;
+		break;
+	case TP9343_REV_1_1:
+		chip = "9343";
+		rev = 1;
+		tp = 1;
+		break;
+	case TP9343_REV_1_2:
+		chip = "9343";
+		rev = 2;
+		tp = 1;
+		break;
+	case TP9343_REV_1_3:
+		chip = "9343";
+		rev = 3;
+		tp = 1;
+		break;
 	default:
 		chip = "724x";
 	}
-	sprintf(str, "%s %s%s rev 1.%u (0x%04x)",qca ? "Qualcomm Atheros" : "Atheros", qca ? "QCA" : "AR",chip, rev, id);
+	if (tp)
+		sprintf(str, "%s %s%s ver %u rev 1.%u (0x%04x)",qca ? "Qualcomm Atheros" : "Atheros", "TP", chip, ver, rev, id);
+	else 
+		sprintf(str, "%s %s%s ver %u rev 1.%u (0x%04x)",qca ? "Qualcomm Atheros" : "Atheros", qca ? "QCA" : "AR",chip, ver, rev, id);
 	return str;
 }
 
@@ -345,6 +382,103 @@ EXPORT_SYMBOL(get_wmac_mem_len);
 
 #include "hack.h"
 
+
+static void __init qca956x_clocks_init(void)
+{
+	unsigned long ref_rate;
+	unsigned long cpu_rate;
+	unsigned long ddr_rate;
+	unsigned long ahb_rate;
+	u32 pll, out_div, ref_div, nint, hfrac, lfrac, clk_ctrl, postdiv;
+	u32 cpu_pll, ddr_pll;
+	u32 bootstrap;
+
+	bootstrap = ar7240_reg_rd(ATH_RESET_BASE + QCA956X_RESET_REG_BOOTSTRAP);
+	if (bootstrap &	QCA956X_BOOTSTRAP_REF_CLK_40)
+		ref_rate = 40 * 1000 * 1000;
+	else
+		ref_rate = 25 * 1000 * 1000;
+
+	pll = ar7240_reg_rd(ATH_PLL_BASE + QCA956X_PLL_CPU_CONFIG_REG);
+	out_div = (pll >> QCA956X_PLL_CPU_CONFIG_OUTDIV_SHIFT) &
+		  QCA956X_PLL_CPU_CONFIG_OUTDIV_MASK;
+	ref_div = (pll >> QCA956X_PLL_CPU_CONFIG_REFDIV_SHIFT) &
+		  QCA956X_PLL_CPU_CONFIG_REFDIV_MASK;
+
+	pll = ar7240_reg_rd(ATH_PLL_BASE + QCA956X_PLL_CPU_CONFIG1_REG);
+	nint = (pll >> QCA956X_PLL_CPU_CONFIG1_NINT_SHIFT) &
+	       QCA956X_PLL_CPU_CONFIG1_NINT_MASK;
+	hfrac = (pll >> QCA956X_PLL_CPU_CONFIG1_NFRAC_H_SHIFT) &
+	       QCA956X_PLL_CPU_CONFIG1_NFRAC_H_MASK;
+	lfrac = (pll >> QCA956X_PLL_CPU_CONFIG1_NFRAC_L_SHIFT) &
+	       QCA956X_PLL_CPU_CONFIG1_NFRAC_L_MASK;
+
+	cpu_pll = nint * ref_rate / ref_div;
+	cpu_pll += (lfrac * ref_rate) / ((ref_div * 25) << 13);
+	cpu_pll += (hfrac >> 13) * ref_rate / ref_div;
+	cpu_pll /= (1 << out_div);
+
+	pll = ar7240_reg_rd(ATH_PLL_BASE + QCA956X_PLL_DDR_CONFIG_REG);
+	out_div = (pll >> QCA956X_PLL_DDR_CONFIG_OUTDIV_SHIFT) &
+		  QCA956X_PLL_DDR_CONFIG_OUTDIV_MASK;
+	ref_div = (pll >> QCA956X_PLL_DDR_CONFIG_REFDIV_SHIFT) &
+		  QCA956X_PLL_DDR_CONFIG_REFDIV_MASK;
+	pll = ar7240_reg_rd(ATH_PLL_BASE + QCA956X_PLL_DDR_CONFIG1_REG);
+	nint = (pll >> QCA956X_PLL_DDR_CONFIG1_NINT_SHIFT) &
+	       QCA956X_PLL_DDR_CONFIG1_NINT_MASK;
+	hfrac = (pll >> QCA956X_PLL_DDR_CONFIG1_NFRAC_H_SHIFT) &
+	       QCA956X_PLL_DDR_CONFIG1_NFRAC_H_MASK;
+	lfrac = (pll >> QCA956X_PLL_DDR_CONFIG1_NFRAC_L_SHIFT) &
+	       QCA956X_PLL_DDR_CONFIG1_NFRAC_L_MASK;
+
+	ddr_pll = nint * ref_rate / ref_div;
+	ddr_pll += (lfrac * ref_rate) / ((ref_div * 25) << 13);
+	ddr_pll += (hfrac >> 13) * ref_rate / ref_div;
+	ddr_pll /= (1 << out_div);
+
+	clk_ctrl = ar7240_reg_rd(ATH_PLL_BASE + QCA956X_PLL_CLK_CTRL_REG);
+
+	postdiv = (clk_ctrl >> QCA956X_PLL_CLK_CTRL_CPU_POST_DIV_SHIFT) &
+		  QCA956X_PLL_CLK_CTRL_CPU_POST_DIV_MASK;
+
+	if (clk_ctrl & QCA956X_PLL_CLK_CTRL_CPU_PLL_BYPASS)
+		cpu_rate = ref_rate;
+	else if (clk_ctrl & QCA956X_PLL_CLK_CTRL_CPU_DDRCLK_FROM_CPUPLL)
+		cpu_rate = ddr_pll / (postdiv + 1);
+	else
+		cpu_rate = cpu_pll / (postdiv + 1);
+
+	postdiv = (clk_ctrl >> QCA956X_PLL_CLK_CTRL_DDR_POST_DIV_SHIFT) &
+		  QCA956X_PLL_CLK_CTRL_DDR_POST_DIV_MASK;
+
+	if (clk_ctrl & QCA956X_PLL_CLK_CTRL_DDR_PLL_BYPASS)
+		ddr_rate = ref_rate;
+	else if (clk_ctrl & QCA956X_PLL_CLK_CTRL_CPU_DDRCLK_FROM_DDRPLL)
+		ddr_rate = cpu_pll / (postdiv + 1);
+	else
+		ddr_rate = ddr_pll / (postdiv + 1);
+
+	postdiv = (clk_ctrl >> QCA956X_PLL_CLK_CTRL_AHB_POST_DIV_SHIFT) &
+		  QCA956X_PLL_CLK_CTRL_AHB_POST_DIV_MASK;
+
+	if (clk_ctrl & QCA956X_PLL_CLK_CTRL_AHB_PLL_BYPASS)
+		ahb_rate = ref_rate;
+	else if (clk_ctrl & QCA956X_PLL_CLK_CTRL_AHBCLK_FROM_DDRPLL)
+		ahb_rate = ddr_pll / (postdiv + 1);
+	else
+		ahb_rate = cpu_pll / (postdiv + 1);
+
+
+	ath_ref_clk_freq = ref_rate;
+	ar71xx_ref_freq = ref_rate;
+	ar7240_cpu_freq = cpu_rate;
+	ar7240_ddr_freq = ddr_rate;
+	ar7240_ahb_freq = ahb_rate;
+	printk(KERN_INFO "ref %d, cpu %d, ddr %d, ahb %d\n",ref_rate,ar7240_cpu_freq,ar7240_ddr_freq,ar7240_ahb_freq);
+}
+
+
+
 static void wasp_sys_frequency(void)
 {
 	uint32_t pll, out_div, ref_div, nint, frac, clk_ctrl;
@@ -352,7 +486,10 @@ static void wasp_sys_frequency(void)
 
 	if (ar7240_cpu_freq)
 		return;
-
+	if (is_qca956x()) {
+		qca956x_clocks_init();
+		return;
+	}
 	if ((ar7240_reg_rd(ATH_BOOTSTRAP_REG) & ATH_REF_CLK_40)) {
 		ref = (40 * 1000000);
 	} else {
@@ -367,7 +504,6 @@ static void wasp_sys_frequency(void)
 	pll = ar7240_reg_rd(CPU_DPLL2_ADDRESS);
 
 	if (!is_qca955x() && !is_qca953x() && CPU_DPLL2_LOCAL_PLL_GET(pll)) {
-
 		out_div = CPU_DPLL2_OUTDIV_GET(pll);
 
 		pll = ar7240_reg_rd(CPU_DPLL_ADDRESS);
@@ -459,11 +595,11 @@ static void ar7240_sys_frequency(void)
 	pll = ar7240_reg_rd(AR7240_PLL_CONFIG);
 
 	pll_div = ((pll >> PLL_DIV_SHIFT) & PLL_DIV_MASK);
-	ref_div = (pll >> REF_DIV_SHIFT) & REF_DIV_MASK;
+	ref_div = ((pll >> REF_DIV_SHIFT) & REF_DIV_MASK) * 2;
 	ddr_div = ((pll >> DDR_DIV_SHIFT) & DDR_DIV_MASK) + 1;
 	ahb_div = (((pll >> AHB_DIV_SHIFT) & AHB_DIV_MASK) + 1) * 2;
-
-	freq = pll_div * ref_div * 5000000;
+	
+	freq = (pll_div * 40000000) / ref_div;
 
 	ar7240_cpu_freq = freq;
 	ar7240_ddr_freq = freq / ddr_div;
@@ -631,8 +767,15 @@ void __init plat_mem_setup(void)
 		serial_print("QCA9558\n");
 		ar71xx_soc = AR71XX_SOC_QCA9558;
 		ar71xx_soc_rev = id & QCA955X_REV_ID_REVISION_MASK;
+	} else if (is_qca9563()) {
+		serial_print("QCA9563\n");
+		ar71xx_soc = AR71XX_SOC_QCA9563;
+		ar71xx_soc_rev = id & QCA956X_REV_ID_REVISION_MASK;
+	} else if (is_tp9343()) {
+		serial_print("TP9343\n");
+		ar71xx_soc = AR71XX_SOC_TP9343;
+		ar71xx_soc_rev = id & QCA956X_REV_ID_REVISION_MASK;
 	} else {
-//                      serial_print("ARFOOO\n");
 
 	}
 

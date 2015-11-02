@@ -1,31 +1,28 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #include "squid.h"
 
-#if HAVE_STDIO_H
-#include <stdio.h>
-#endif
+#include <cassert>
+#include <cerrno>
+#include <csignal>
+#include <cstring>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
-#if HAVE_ASSERT_H
-#include <assert.h>
-#endif
 #if HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 #if HAVE_SYS_STAT_H
 #include <sys/stat.h>
-#endif
-#if HAVE_SIGNAL_H
-#include <signal.h>
-#endif
-#if HAVE_ERRNO_H
-#include <errno.h>
-#endif
-#if HAVE_STRING_H
-#include <string.h>
 #endif
 #if HAVE_PATHS_H
 #include <paths.h>
@@ -34,7 +31,7 @@
 #include "defines.h"
 
 /* parse buffer - ie, length of longest expected line */
-#define	LOGFILE_BUF_LEN		65536
+#define LOGFILE_BUF_LEN     65536
 
 static void
 rotate(const char *path, int rotate_count)
@@ -108,6 +105,9 @@ main(int argc, char *argv[])
         exit(1);
     }
     setbuf(stdout, NULL);
+    /* XXX stderr should not be closed, but in order to support squid must be
+     * able to collect and manage modules's stderr first.
+     */
     close(2);
     t = open(_PATH_DEVNULL, O_RDWR);
     assert(t > -1);
@@ -122,7 +122,7 @@ main(int argc, char *argv[])
                 /* try to detect the 32-bit file too big write error and rotate */
                 int err = ferror(fp);
                 clearerr(fp);
-                if (err < 0) {
+                if (err != 0) {
                     /* file too big - recover by rotating the logs and starting a new one.
                      * out of device space - recover by rotating and hoping that rotation count drops a big one.
                      */
@@ -179,3 +179,4 @@ main(int argc, char *argv[])
     fp = NULL;
     exit(0);
 }
+

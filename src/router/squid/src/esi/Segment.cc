@@ -1,44 +1,20 @@
-
 /*
- * DEBUG: section 86    ESI processing
- * AUTHOR: Robert Collins
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- ;  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 86    ESI processing */
 
 #include "squid.h"
 #include "Debug.h"
 #include "esi/Segment.h"
 #include "SquidString.h"
 
-CBDATA_TYPE(ESISegment);
+CBDATA_CLASS_INIT(ESISegment);
 
-/* ESISegment */
 void
 ESISegmentFreeList (ESISegment::Pointer &head)
 {
@@ -149,22 +125,6 @@ ESISegment::ListAppend (ESISegment::Pointer &head, char const *s, size_t len)
     head->tail()->listAppend (s, len);
 }
 
-void *
-ESISegment::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (ESISegment));
-    void *rv;
-    CBDATA_INIT_TYPE(ESISegment);
-    rv = (void *)cbdataAlloc (ESISegment);
-    return rv;
-}
-
-void
-ESISegment::operator delete (void *address)
-{
-    cbdataFree (address);
-}
-
 /* XXX: if needed, make this iterative */
 ESISegment::Pointer
 ESISegment::cloneList () const
@@ -211,9 +171,6 @@ ESISegment::tail()
     return result.getRaw();
 }
 
-ESISegment::ESISegment() : len(0), next(NULL)
-{}
-
 ESISegment::ESISegment(ESISegment const &old) : len (0), next(NULL)
 {
     append (old.buf, old.len);
@@ -237,3 +194,4 @@ ESISegment::dumpOne() const
     temp.limitInit(buf, len);
     debugs(86, 9, "ESISegment::dumpOne: \"" << temp << "\"");
 }
+

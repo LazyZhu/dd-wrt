@@ -201,6 +201,9 @@
 /* Define to 1 if Net-SNMP should be enabled. */
 #undef HAVE_NETSNMP
 
+/* Define to 1 if 'session.localname' exist. */
+#undef HAVE_NETSNMP_SESSION_LOCALNAME
+
 /* Define to 1 if you have the <net/if.h> header file. */
 #undef HAVE_NET_IF_H
 
@@ -264,8 +267,11 @@
 /* Define to 1 if you have the <resolv.h> header file. */
 #undef HAVE_RESOLV_H
 
-/* Define to 1 if you have the DNS functions */
-#undef HAVE_RES_QUERY
+/* Define if res_mkquery exists */
+#undef HAVE_RES_MKQUERY
+
+/* Define if res_send exists */
+#undef HAVE_RES_SEND
 
 /* Define to 1 if union 'semun' exists. */
 #undef HAVE_SEMUN
@@ -278,12 +284,6 @@
 
 /* Define to 1 if you have the `sigqueue' function. */
 #undef HAVE_SIGQUEUE
-
-/* Define to 1 if SNMP should be enabled. */
-#undef HAVE_SNMP
-
-/* Define to 1 if 'session.localname' exist. */
-#undef HAVE_SNMP_SESSION_LOCALNAME
 
 /* Define to 1 if 'sockaddr_storage.ss_family' exists. */
 #undef HAVE_SOCKADDR_STORAGE_SS_FAMILY
@@ -495,6 +495,9 @@
 /* Define to 1 if you have the <ws2tcpip.h> header file. */
 #undef HAVE_WS2TCPIP_H
 
+/* Define to 1 if you have the <zone.h> header file. */
+#undef HAVE_ZONE_H
+
 /* Define to 1 if macro '__VA_ARGS__' exists. */
 #undef HAVE___VA_ARGS__
 
@@ -567,6 +570,9 @@
 /* Define to 1 if you are using Mac OS X. */
 #undef MAC_OS_X
 
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+#undef NO_MINUS_C_MINUS_O
+
 /* Define to 1 if OPENIPMI depricated functions is used. */
 #undef OPENIPMI_DEPRECATED
 
@@ -596,9 +602,6 @@
 
 /* The size of `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P
-
-/* Disabling debugging messages from Net-SNMP library */
-#undef SNMP_NO_DEBUGGING
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

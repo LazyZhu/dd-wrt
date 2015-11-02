@@ -1,47 +1,23 @@
 /*
- * DEBUG: section 28    Access Control
- * AUTHOR: Duane Wessels
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
- *
- * Copyright (c) 2003, Robert Collins <robertc@squid-cache.org>
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
+/* DEBUG: section 28    Access Control */
+
 #include "squid.h"
-#include "acl/HttpHeaderData.h"
-#include "acl/Checklist.h"
 #include "acl/Acl.h"
+#include "acl/Checklist.h"
+#include "acl/HttpHeaderData.h"
 #include "acl/RegexData.h"
-#include "cache_cf.h"
-#include "Debug.h"
-#include "wordlist.h"
+#include "base/RegexPattern.h"
 #include "ConfigParser.h"
+#include "Debug.h"
 #include "HttpHeaderTools.h"
+#include "SBuf.h"
 
 /* Construct an ACLHTTPHeaderData that uses an ACLRegex rule with the value of the
  * selected header from a given request.
@@ -49,7 +25,7 @@
  * TODO: This can be generalised by making the type of the regex_rule into a
  * template parameter - so that we can use different rules types in future.
  */
-ACLHTTPHeaderData::ACLHTTPHeaderData() : hdrId(HDR_BAD_HDR), regex_rule(new ACLRegexData)
+ACLHTTPHeaderData::ACLHTTPHeaderData() : hdrId(Http::HdrType::BAD_HDR), regex_rule(new ACLRegexData)
 {}
 
 ACLHTTPHeaderData::~ACLHTTPHeaderData()
@@ -66,49 +42,48 @@ ACLHTTPHeaderData::match(HttpHeader* hdr)
     debugs(28, 3, "aclHeaderData::match: checking '" << hdrName << "'");
 
     String value;
-    if (hdrId != HDR_BAD_HDR) {
+    if (hdrId != Http::HdrType::BAD_HDR) {
         if (!hdr->has(hdrId))
             return false;
         value = hdr->getStrOrList(hdrId);
     } else {
-        if (!hdr->getByNameIfPresent(hdrName.termedBuf(), value))
+        if (!hdr->getByNameIfPresent(hdrName, value))
             return false;
     }
 
-    // By now, we know the header is present, but:
-    // HttpHeader::get*() return an undefined String for empty header values;
-    // String::termedBuf() returns NULL for undefined Strings; and
-    // ACLRegexData::match() always fails on NULL strings.
-    // This makes it possible to detect an empty header value using regex:
-    const char *cvalue = value.defined() ? value.termedBuf() : "";
-    return regex_rule->match(cvalue);
+    SBuf cvalue(value);
+    return regex_rule->match(cvalue.c_str());
 }
 
-wordlist *
-ACLHTTPHeaderData::dump()
+SBufList
+ACLHTTPHeaderData::dump() const
 {
-    wordlist *W = NULL;
-    wordlistAdd(&W, hdrName.termedBuf());
-    wordlist * regex_dump = regex_rule->dump();
-    wordlistAddWl(&W, regex_dump);
-    wordlistDestroy(&regex_dump);
-    return W;
+    SBufList sl;
+    sl.push_back(SBuf(hdrName));
+#if __cplusplus >= 201103L
+    sl.splice(sl.end(), regex_rule->dump());
+#else
+    // temp is needed until c++11 move-constructor
+    SBufList temp = regex_rule->dump();
+    sl.splice(sl.end(), temp);
+#endif
+    return sl;
 }
 
 void
 ACLHTTPHeaderData::parse()
 {
-    char* t = strtokFile();
+    char* t = ConfigParser::strtokFile();
     assert (t != NULL);
     hdrName = t;
-    hdrId = httpHeaderIdByNameDef(hdrName.rawBuf(), hdrName.size());
+    hdrId = Http::HeaderLookupTable.lookup(hdrName).id;
     regex_rule->parse();
 }
 
 bool
 ACLHTTPHeaderData::empty() const
 {
-    return (hdrId == HDR_BAD_HDR && hdrName.undefined()) || regex_rule->empty();
+    return (hdrId == Http::HdrType::BAD_HDR && hdrName.isEmpty()) || regex_rule->empty();
 }
 
 ACLData<HttpHeader*> *
@@ -121,3 +96,4 @@ ACLHTTPHeaderData::clone() const
     result->hdrName = hdrName;
     return result;
 }
+

@@ -34,13 +34,14 @@
 #define CODE_PATTERN_ERROR 9999
 static int upgrade_ret;
 
-#ifdef HAVE_X86
 static char *getdisc(void)	// works only for squashfs 
 {
 	int i;
-	static char ret[4];
-	unsigned char *disks[] = { "sda2", "sdb2", "sdc2", "sdd2", "sde2", "sdf2", "sdg2", "sdh2", "sdi2" };
-	for (i = 0; i < 9; i++) {
+	static char ret[8];
+	unsigned char *disks[] = { "sda2", "sdb2", "sdc2", "sdd2", "sde2", "sdf2", "sdg2", "sdh2",
+		"sdi2", "mmcblk0p2"
+	};
+	for (i = 0; i < 10; i++) {
 		char dev[64];
 
 		sprintf(dev, "/dev/%s", disks[i]);
@@ -52,17 +53,21 @@ static char *getdisc(void)	// works only for squashfs
 		char buf[4];
 
 		fread(buf, 4, 1, in);
-		if (buf[0] == 'h' && buf[1] == 's' && buf[2] == 'q' && buf[3] == 't') {
+		if ((buf[0] == 't' && buf[1] == 'q' && buf[2] == 's' && buf[3] == 'h')
+		    || (buf[0] == 'h' && buf[1] == 's' && buf[2] == 'q' && buf[3] == 't')) {
 			fclose(in);
 			// filesystem detected
-			strncpy(ret, disks[i], 3);
+			if (strlen(disks[i]) == 4)
+				strncpy(ret, disks[i], 3);
+			else
+				strncpy(ret, disks[i], 7);
 			return ret;
 		}
 		fclose(in);
 	}
 	return NULL;
 }
-#endif
+
 void
 // do_upgrade_cgi(char *url, FILE *stream)
 do_upgrade_cgi(struct mime_handler *handler, char *url, webs_t stream, char *query)	// jimmy, https,
@@ -210,11 +215,10 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 	linuxsize += getc(fifo) * 256 * 256 * 256;
 
 	char drive[64];
-#ifdef HAVE_RB600
-	sprintf(drive, "/dev/sda");
-#else
-	sprintf(drive, "/dev/%s", getdisc());
-#endif
+	char *drv = getdisc();
+	if (!drv)
+		return -1;
+	sprintf(drive, "/dev/%s", drv);
 	fprintf(stderr, "Write Linux %d to %s\n", linuxsize, drive);
 	//backup nvram
 #ifndef HAVE_EROUTER
@@ -224,7 +228,10 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 		char *mem = malloc(65536);
 		fread(mem, 65536, 1, in);
 		fclose(in);
-		in = fopen(drive, "r+b");
+		FILE *in = fopen(drive, "r+b");
+		int f_flags = fcntl(fileno(in), F_GETFL);
+		f_flags |= O_SYNC;
+		fcntl(fileno(in), F_SETFL, f_flags);
 		fseeko(in, 0, SEEK_END);
 		off_t mtdlen = ftello(in);
 		fseeko(in, mtdlen - (65536 * 2), SEEK_SET);
@@ -237,17 +244,36 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 #endif
 	fprintf(stderr, "write system\n");
 	FILE *out = fopen(drive, "r+b");
+	int f_flags = fcntl(fileno(out), F_GETFL);
+	f_flags |= O_SYNC;
+	fcntl(fileno(out), F_SETFL, f_flags);
+	fprintf(stderr, "new file flags %X\n", f_flags);
+	if (out == -1) {
+		ret = ENOMEM;
+		fprintf(stderr, "cannot open file descriptor for %s\n", drive);
+		goto err;
+	}
 	char *flashbuf = (char *)malloc(linuxsize);
 	if (!flashbuf)		// not enough memory, use direct way
 	{
+		fprintf(stderr, "writing %d bytes without caching\n", linuxsize);
 		for (i = 0; i < linuxsize; i++)
 			putc(getc(fifo), out);
 	} else {
 		//read into temp buffer
-		fread(flashbuf, linuxsize, 1, fifo);
-		fwrite(flashbuf, linuxsize, 1, out);
+		int elements = fread(flashbuf, 1, linuxsize, fifo);
+		if (elements != linuxsize) {
+			fclose(out);
+			free(flashbuf);
+			ret = ENOMEM;
+			goto err;
+		}
+		fprintf(stderr, "writing %d bytes\n", linuxsize);
+		int written = fwrite(flashbuf, 1, linuxsize, out);
+		fprintf(stderr, "%d bytes written\n", written);
 		free(flashbuf);
 	}
+	fprintf(stderr, "flush and sync descriptor\n");
 	fflush(out);
 	fsync(fileno(out));
 	fclose(out);
@@ -341,11 +367,10 @@ do_upgrade_post(char *url, webs_t stream, int len, char *boundary)	// jimmy,
 	if (nvram_match("sv_restore_defaults", "1")) {
 		unlink("/usr/local/nvram/nvram.bin");
 		char drive[64];
-#ifdef HAVE_RB600
-		sprintf(drive, "/dev/sda");
-#else
-		sprintf(drive, "/dev/%s", getdisc());
-#endif
+		char *drv = getdisc();
+		if (!drv)
+			return;
+		sprintf(drive, "/dev/%s", drv);
 		FILE *in = fopen(drive, "r+b");
 		fseeko(in, 0, SEEK_END);
 		off_t mtdlen = ftell(in);
@@ -365,18 +390,8 @@ do_upgrade_post(char *url, webs_t stream, int len, char *boundary)	// jimmy,
 	/*
 	 * Slurp anything remaining in the request 
 	 */
-	while ((len--) > 0) {
-#ifdef HAVE_HTTPS
-		if (do_ssl) {
-			wfgets(buf, 1, stream);
-		} else {
-			(void)fgetc(stream->fp);
-		}
-#else
-		(void)fgetc(stream->fp);
-#endif
-	}
-#endif
+	wfgets(buf, len, stream);
 	fprintf(stderr, "upgrade done()\n");
+#endif
 
 }

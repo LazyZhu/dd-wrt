@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2014 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2015 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -835,27 +835,42 @@ static void add_hosts_entry(struct crec *cache, struct all_addr *addr, int addrl
      Only insert each unique address once into this hashing structure.
 
      This complexity avoids O(n^2) divergent CPU use whilst reading
-     large (10000 entry) hosts files. */
+     large (10000 entry) hosts files. 
+
+     Note that we only do this process when bulk-reading hosts files, 
+     for incremental reads, rhash is NULL, and we use cache lookups
+     instead.
+  */
   
-  /* hash address */
-  for (j = 0, i = 0; i < addrlen; i++)
-    j = (j*2 +((unsigned char *)addr)[i]) % hashsz;
-  
-  for (lookup = rhash[j]; lookup; lookup = lookup->next)
-    if ((lookup->flags & cache->flags & (F_IPV4 | F_IPV6)) &&
-	memcmp(&lookup->addr.addr, addr, addrlen) == 0)
-      {
-	cache->flags &= ~F_REVERSE;
-	break;
-      }
-  
-  /* maintain address hash chain, insert new unique address */
-  if (!lookup)
+  if (rhash)
     {
-      cache->next = rhash[j];
-      rhash[j] = cache;
+      /* hash address */
+      for (j = 0, i = 0; i < addrlen; i++)
+	j = (j*2 +((unsigned char *)addr)[i]) % hashsz;
+      
+      for (lookup = rhash[j]; lookup; lookup = lookup->next)
+	if ((lookup->flags & cache->flags & (F_IPV4 | F_IPV6)) &&
+	    memcmp(&lookup->addr.addr, addr, addrlen) == 0)
+	  {
+	    cache->flags &= ~F_REVERSE;
+	    break;
+	  }
+      
+      /* maintain address hash chain, insert new unique address */
+      if (!lookup)
+	{
+	  cache->next = rhash[j];
+	  rhash[j] = cache;
+	}
     }
-  
+  else
+    {
+      /* incremental read, lookup in cache */
+      lookup = cache_find_by_addr(NULL, addr, 0, cache->flags & (F_IPV4 | F_IPV6));
+      if (lookup && lookup->flags & F_HOSTS)
+	cache->flags &= ~F_REVERSE;
+    }
+
   cache->uid = index;
   memcpy(&cache->addr.addr, addr, addrlen);  
   cache_hash(cache);
@@ -912,7 +927,7 @@ static int gettok(FILE *f, char *token)
     }
 }
 
-static int read_hostsfile(char *filename, unsigned int index, int cache_size, struct crec **rhash, int hashsz)
+int read_hostsfile(char *filename, unsigned int index, int cache_size, struct crec **rhash, int hashsz)
 {  
   FILE *f = fopen(filename, "r");
   char *token = daemon->namebuff, *domain_suffix = NULL;
@@ -958,7 +973,7 @@ static int read_hostsfile(char *filename, unsigned int index, int cache_size, st
       addr_count++;
       
       /* rehash every 1000 names. */
-      if ((name_count - cache_size) > 1000)
+      if (rhash && ((name_count - cache_size) > 1000))
 	{
 	  rehash(name_count);
 	  cache_size = name_count;
@@ -1005,7 +1020,9 @@ static int read_hostsfile(char *filename, unsigned int index, int cache_size, st
     } 
 
   fclose(f);
-  rehash(name_count);
+  
+  if (rhash)
+    rehash(name_count); 
   
   my_syslog(LOG_INFO, _("read %s - %d addresses"), filename, addr_count);
   
@@ -1116,16 +1133,22 @@ void cache_reload(void)
     {
       if (daemon->cachesize > 0)
 	my_syslog(LOG_INFO, _("cleared cache"));
-      return;
     }
-    
-  if (!option_bool(OPT_NO_HOSTS))
-    total_size = read_hostsfile(HOSTSFILE, SRC_HOSTS, total_size, (struct crec **)daemon->packet, revhashsz);
-  	   
-  daemon->addn_hosts = expand_filelist(daemon->addn_hosts);
-  for (ah = daemon->addn_hosts; ah; ah = ah->next)
-    if (!(ah->flags & AH_INACTIVE))
-      total_size = read_hostsfile(ah->fname, ah->index, total_size, (struct crec **)daemon->packet, revhashsz);
+  else
+    {
+      if (!option_bool(OPT_NO_HOSTS))
+	total_size = read_hostsfile(HOSTSFILE, SRC_HOSTS, total_size, (struct crec **)daemon->packet, revhashsz);
+      
+      daemon->addn_hosts = expand_filelist(daemon->addn_hosts);
+      for (ah = daemon->addn_hosts; ah; ah = ah->next)
+	if (!(ah->flags & AH_INACTIVE))
+	  total_size = read_hostsfile(ah->fname, ah->index, total_size, (struct crec **)daemon->packet, revhashsz);
+    }
+
+#ifdef HAVE_INOTIFY
+  set_dynamic_inotify(AH_HOSTS, total_size, (struct crec **)daemon->packet, revhashsz);
+#endif
+  
 } 
 
 #ifdef HAVE_DHCP
@@ -1344,7 +1367,7 @@ int cache_make_stat(struct txt_record *t)
 		}
 	    port = prettyprint_addr(&serv->addr, daemon->addrbuff);
 	    lenp = p++; /* length */
-	    bytes_avail = (p - buff) + bufflen;
+	    bytes_avail = bufflen - (p - buff );
 	    bytes_needed = snprintf(p, bytes_avail, "%s#%d %u %u", daemon->addrbuff, port, queries, failed_queries);
 	    if (bytes_needed >= bytes_avail)
 	      {
@@ -1358,7 +1381,7 @@ int cache_make_stat(struct txt_record *t)
 		lenp = p - 1;
 		buff = new;
 		bufflen = newlen;
-		bytes_avail = (p - buff) + bufflen;
+		bytes_avail =  bufflen - (p - buff );
 		bytes_needed = snprintf(p, bytes_avail, "%s#%d %u %u", daemon->addrbuff, port, queries, failed_queries);
 	      }
 	    *lenp = bytes_needed;
@@ -1375,6 +1398,20 @@ int cache_make_stat(struct txt_record *t)
   *buff = len;
   return 1;
 }
+
+/* There can be names in the cache containing control chars, don't 
+   mess up logging or open security holes. */
+static char *sanitise(char *name)
+{
+  unsigned char *r;
+  if (name)
+    for (r = (unsigned char *)name; *r; r++)
+      if (!isprint((int)*r))
+	return "<name unprintable>";
+
+  return name;
+}
+
 
 void dump_cache(time_t now)
 {
@@ -1429,9 +1466,9 @@ void dump_cache(time_t now)
 	    *a = 0;
 	    if (strlen(n) == 0 && !(cache->flags & F_REVERSE))
 	      n = "<Root>";
-	    p += sprintf(p, "%-30.30s ", n);
+	    p += sprintf(p, "%-30.30s ", sanitise(n));
 	    if ((cache->flags & F_CNAME) && !is_outdated_cname_pointer(cache))
-	      a = cache_get_cname_target(cache);
+	      a = sanitise(cache_get_cname_target(cache));
 #ifdef HAVE_DNSSEC
 	    else if (cache->flags & F_DS)
 	      {
@@ -1505,7 +1542,13 @@ char *record_source(unsigned int index)
   for (ah = daemon->addn_hosts; ah; ah = ah->next)
     if (ah->index == index)
       return ah->fname;
-  
+
+#ifdef HAVE_INOTIFY
+  for (ah = daemon->dynamic_dirs; ah; ah = ah->next)
+     if (ah->index == index)
+       return ah->fname;
+#endif
+
   return "<unknown>";
 }
 
@@ -1557,6 +1600,8 @@ void log_query(unsigned int flags, char *name, struct all_addr *addr, char *arg)
   
   if (!option_bool(OPT_LOG))
     return;
+
+  name = sanitise(name);
 
   if (addr)
     {

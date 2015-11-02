@@ -11,6 +11,7 @@
 #endif
 #define AR7240_SPI_CE_LOW       0x60000
 #define AR7240_SPI_CE_HIGH      0x60100
+#define AR7240_SPI_CMD_WRSR         0x01
 #if 0
 #define AR7240_SPI_CMD_WREN         0x06
 #define AR7240_SPI_CMD_RD_STATUS    0x05
@@ -53,10 +54,10 @@
 }while(0);
 
 
-#define ar7240_spi_send_addr(_addr) do {                    \
-    ar7240_spi_bit_banger(((addr & 0xff0000) >> 16));                 \
-    ar7240_spi_bit_banger(((addr & 0x00ff00) >> 8));                 \
-    ar7240_spi_bit_banger(addr & 0x0000ff);                 \
+#define ar7240_spi_send_addr(__a) do {				\
+	ar7240_spi_bit_banger(((__a & 0xff0000) >> 16));	\
+	ar7240_spi_bit_banger(((__a & 0x00ff00) >> 8));		\
+	ar7240_spi_bit_banger(__a & 0x0000ff);			\
 }while(0);
 
 #define ar7240_spi_delay_8()    ar7240_spi_bit_banger(0)

@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////
+﻿////////////////////////////////////////////////////////////////////////////////
 //Chinese (Traditional) translation file - DD-WRT V23/V24 2008/11/08 UTF-8    //
 ////////////////////////////////////////////////////////////////////////////////
 // ** COMMON SHARE LABEL **//
@@ -88,12 +88,12 @@ share.manual="手動";
 share.port="埠";
 share.ssid="SSID";
 share.channel="頻道";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="信號";
 share.noise="雜訊";
 share.beacon="信標";
 share.openn="打開";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="速率";
 share.rate="速率";
 share.txrate="傳輸速率";

@@ -1,35 +1,12 @@
 /*
- * DEBUG: section 86    ESI processing
- * AUTHOR: Robert Collins
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- ;  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
- * Copyright (c) 2003, Robert Collins <robertc@squid-cache.org>
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 86    ESI processing */
 
 #include "squid.h"
 
@@ -38,8 +15,8 @@
  */
 #if (USE_SQUID_ESI == 1)
 
-#include "client_side_request.h"
 #include "client_side.h"
+#include "client_side_request.h"
 #include "clientStream.h"
 #include "comm/Connection.h"
 #include "errorpage.h"
@@ -52,12 +29,12 @@
 #include "esi/Expression.h"
 #include "esi/Segment.h"
 #include "esi/VarState.h"
+#include "fatal.h"
 #include "HttpHdrSc.h"
 #include "HttpHdrScTarget.h"
 #include "HttpReply.h"
 #include "HttpRequest.h"
 #include "ip/Address.h"
-#include "Mem.h"
 #include "MemBuf.h"
 #include "profiler/Profiler.h"
 #include "SquidConfig.h"
@@ -104,10 +81,11 @@ typedef ESIContext::esiKick_t esiKick_t;
 
 /* some core operators */
 
-/* esiComment */
-
-struct esiComment : public ESIElement {
+class esiComment : public ESIElement
+{
     MEMPROXY_CLASS(esiComment);
+
+public:
     ~esiComment();
     esiComment();
     Pointer makeCacheable() const;
@@ -116,8 +94,6 @@ struct esiComment : public ESIElement {
     void render(ESISegment::Pointer);
     void finish();
 };
-
-MEMPROXY_CLASS_INLINE(esiComment);
 
 #include "esi/Literal.h"
 
@@ -129,28 +105,24 @@ MEMPROXY_CLASS_INLINE(esiComment);
 
 class esiRemove : public ESIElement
 {
+    MEMPROXY_CLASS(esiRemove);
 
 public:
-    void *operator new (size_t byteCount);
-    void operator delete (void *address);
+    esiRemove() : ESIElement() {}
+    virtual ~esiRemove() {}
 
-    esiRemove();
-    void render(ESISegment::Pointer);
-    bool addElement (ESIElement::Pointer);
-    Pointer makeCacheable() const;
-    Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
-    void finish();
+    virtual void render(ESISegment::Pointer);
+    virtual bool addElement (ESIElement::Pointer);
+    virtual Pointer makeCacheable() const;
+    virtual Pointer makeUsable(esiTreeParentPtr, ESIVarState &) const;
+    virtual void finish() {}
 };
 
-CBDATA_TYPE (esiRemove);
-static FREE esiRemoveFree;
-static ESIElement * esiRemoveNew(void);
-
-/* esiTry */
-
-struct esiTry : public ESIElement {
+class esiTry : public ESIElement
+{
     MEMPROXY_CLASS(esiTry);
 
+public:
     esiTry(esiTreeParentPtr aParent);
     ~esiTry();
 
@@ -181,15 +153,13 @@ private:
     esiProcessResult_t bestAttemptRV() const;
 };
 
-MEMPROXY_CLASS_INLINE(esiTry);
-
 #include "esi/Var.h"
 
-/* esiChoose */
-
-struct esiChoose : public ESIElement {
+class esiChoose : public ESIElement
+{
     MEMPROXY_CLASS(esiChoose);
 
+public:
     esiChoose(esiTreeParentPtr);
     ~esiChoose();
 
@@ -217,12 +187,11 @@ private:
     void selectElement();
 };
 
-MEMPROXY_CLASS_INLINE(esiChoose);
-
-/* esiWhen */
-
-struct esiWhen : public esiSequence {
+class esiWhen : public esiSequence
+{
     MEMPROXY_CLASS(esiWhen);
+
+public:
     esiWhen(esiTreeParentPtr aParent, int attributes, const char **attr, ESIVarState *);
     ~esiWhen();
     Pointer makeCacheable() const;
@@ -240,13 +209,7 @@ private:
     void evaluate();
 };
 
-MEMPROXY_CLASS_INLINE(esiWhen);
-
-/* esiOtherwise */
-
 struct esiOtherwise : public esiSequence {
-    //    void *operator new (size_t byteCount);
-    //    void operator delete (void *address);
     esiOtherwise(esiTreeParentPtr aParent) : esiSequence (aParent) {}
 };
 
@@ -276,27 +239,11 @@ ESIStreamContext::ESIStreamContext() : finished(false), include (NULL), localbuf
 /* ESIContext */
 static ESIContext *ESIContextNew(HttpReply *, clientStreamNode *, ClientHttpRequest *);
 
-void *
-ESIContext::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (ESIContext));
-    CBDATA_INIT_TYPE(ESIContext);
-    ESIContext *result = cbdataAlloc(ESIContext);
-    return result;
-}
-
-void
-ESIContext::operator delete (void *address)
-{
-    ESIContext *t = static_cast<ESIContext *>(address);
-    cbdataFree(t);
-}
-
 void
 ESIContext::setError()
 {
     errorpage = ERR_ESI;
-    errorstatus = HTTP_INTERNAL_SERVER_ERROR;
+    errorstatus = Http::scInternalServerError;
     flags.error = 1;
 }
 
@@ -350,8 +297,6 @@ ESIContext::fixupOutboundTail()
 esiKick_t
 ESIContext::kick ()
 {
-    assert (this);
-
     if (flags.kicked) {
         debugs(86, 5, "esiKick: Re-entered whilst in progress");
         // return ESI_KICK_INPROGRESS;
@@ -450,9 +395,9 @@ esiStreamRead (clientStreamNode *thisNode, ClientHttpRequest *http)
     switch (context->kick ()) {
 
     case ESIContext::ESI_KICK_FAILED:
-        /* this can not happen - processing can't fail until we have data,
-         * and when we come here we have sent data to the client
-         */
+    /* this can not happen - processing can't fail until we have data,
+     * and when we come here we have sent data to the client
+     */
 
     case ESIContext::ESI_KICK_SENT:
 
@@ -541,21 +486,21 @@ esiStreamStatus (clientStreamNode *thisNode, ClientHttpRequest *http)
 }
 
 static int
-esiAlwaysPassthrough(http_status sline)
+esiAlwaysPassthrough(Http::StatusCode sline)
 {
     int result;
 
     switch (sline) {
 
-    case HTTP_CONTINUE: /* Should never reach us... but squid needs to alter to accomodate this */
+    case Http::scContinue: /* Should never reach us... but squid needs to alter to accomodate this */
 
-    case HTTP_SWITCHING_PROTOCOLS: /* Ditto */
+    case Http::scSwitchingProtocols: /* Ditto */
 
-    case HTTP_PROCESSING: /* Unknown - some extension */
+    case Http::scProcessing: /* Unknown - some extension */
 
-    case HTTP_NO_CONTENT: /* no body, no esi */
+    case Http::scNoContent: /* no body, no esi */
 
-    case HTTP_NOT_MODIFIED: /* ESI does not affect assembled page headers, so 304s are valid */
+    case Http::scNotModified: /* ESI does not affect assembled page headers, so 304s are valid */
         result = 1;
         /* unreached */
         break;
@@ -888,16 +833,16 @@ ESIContextNew (HttpReply *rep, clientStreamNode *thisNode, ClientHttpRequest *ht
     rv->rep = rep;
     rv->cbdataLocker = rv;
 
-    if (esiAlwaysPassthrough(rep->sline.status)) {
+    if (esiAlwaysPassthrough(rep->sline.status())) {
         rv->flags.passthrough = 1;
     } else {
         /* remove specific headers for ESI to prevent
          * downstream cache confusion */
         HttpHeader *hdr = &rep->header;
-        hdr->delById(HDR_ACCEPT_RANGES);
-        hdr->delById(HDR_ETAG);
-        hdr->delById(HDR_CONTENT_LENGTH);
-        hdr->delById(HDR_CONTENT_MD5);
+        hdr->delById(Http::HdrType::ACCEPT_RANGES);
+        hdr->delById(Http::HdrType::ETAG);
+        hdr->delById(Http::HdrType::CONTENT_LENGTH);
+        hdr->delById(Http::HdrType::CONTENT_MD5);
         rv->tree = new esiSequence (rv, true);
         rv->thisNode = thisNode;
         rv->http = http;
@@ -969,9 +914,9 @@ ESIContext::ParserState::top()
 }
 
 ESIContext::ParserState::ParserState() :
-        stackdepth(0),
-        parsing(0),
-        inited_(false)
+    stackdepth(0),
+    parsing(0),
+    inited_(false)
 {}
 
 bool
@@ -1071,7 +1016,7 @@ ESIContext::start(const char *el, const char **attr, size_t attrCount)
 
     case ESIElement::ESI_ELEMENT_REMOVE:
         /* Put on the stack to allow skipping of 'invalid' markup */
-        element = esiRemoveNew ();
+        element = new esiRemove();
         break;
 
     case ESIElement::ESI_ELEMENT_TRY:
@@ -1323,7 +1268,7 @@ ESIContext::process ()
     /* parsing:
      * read through buffered, skipping plain text, and skipping any
      * <...> entry that is not an <esi: entry.
-     * when it's found, hand an esiLiteral of the preceeding data to our current
+     * when it's found, hand an esiLiteral of the preceding data to our current
      * context
      */
 
@@ -1451,7 +1396,7 @@ ESIContext::freeResources ()
     /* don't touch incoming, it's a pointer into buffered anyway */
 }
 
-ErrorState *clientBuildError (err_type, http_status, char const *, Ip::Address &, HttpRequest *);
+ErrorState *clientBuildError (err_type, Http::StatusCode, char const *, Ip::Address &, HttpRequest *);
 
 /* This can ONLY be used before we have sent *any* data to the client */
 void
@@ -1539,11 +1484,10 @@ esiLiteral::~esiLiteral()
     cbdataReferenceDone (varState);
 }
 
-esiLiteral::esiLiteral(ESISegment::Pointer aSegment)
+esiLiteral::esiLiteral(ESISegment::Pointer aSegment) :
+    buffer(aSegment),
+    varState(nullptr)
 {
-    buffer = aSegment;
-    /* we've been handed a complete, processed string */
-    varState = NULL;
     /* Nothing to do */
     flags.donevars = 1;
 }
@@ -1613,7 +1557,7 @@ esiLiteral::process (int dovars)
 }
 
 esiLiteral::esiLiteral(esiLiteral const &old) : buffer (old.buffer->cloneList()),
-        varState (NULL)
+    varState (NULL)
 {
     flags.donevars = 0;
 }
@@ -1634,42 +1578,6 @@ esiLiteral::makeUsable(esiTreeParentPtr , ESIVarState &newVarState) const
 }
 
 /* esiRemove */
-void
-esiRemoveFree (void *data)
-{
-    esiRemove *thisNode = (esiRemove *)data;
-    debugs(86, 5, "esiRemoveFree " << thisNode);
-}
-
-void *
-esiRemove::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (esiRemove));
-    void *rv;
-    CBDATA_INIT_TYPE_FREECB(esiRemove, esiRemoveFree);
-    rv = (void *)cbdataAlloc (esiRemove);
-    return rv;
-}
-
-void
-esiRemove::operator delete (void *address)
-{
-    cbdataFree (address);
-}
-
-ESIElement *
-esiRemoveNew ()
-{
-    return new esiRemove;
-}
-
-esiRemove::esiRemove()
-{}
-
-void
-esiRemove::finish()
-{}
-
 void
 esiRemove::render(ESISegment::Pointer output)
 {
@@ -1710,8 +1618,8 @@ esiTry::~esiTry()
 }
 
 esiTry::esiTry(esiTreeParentPtr aParent) :
-        parent(aParent),
-        exceptbuffer(NULL)
+    parent(aParent),
+    exceptbuffer(NULL)
 {
     memset(&flags, 0, sizeof(flags));
 }
@@ -1720,7 +1628,6 @@ void
 esiTry::render(ESISegment::Pointer output)
 {
     /* Try renders from it's children */
-    assert (this);
     assert (attempt.getRaw());
     assert (except.getRaw());
     debugs(86, 5, "esiTryRender: Rendering Try " << this);
@@ -1788,7 +1695,6 @@ esiProcessResult_t
 esiTry::process (int dovars)
 {
     esiProcessResult_t rv = ESI_PROCESS_PENDING_MAYFAIL;
-    assert (this);
 
     if (!attempt.getRaw()) {
         debugs(86, DBG_CRITICAL, "esiTryProcess: Try has no attempt element - ESI template is invalid (section 3.4)");
@@ -1968,70 +1874,16 @@ esiTry::finish()
     except = NULL;
 }
 
-/* esiAttempt */
-#if 0
-void *
-esiAttempt::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (esiAttempt));
-
-}
-
-void
-esiAttempt::operator delete (void *address)
-{
-    cbdataFree (address);
-}
-
-#endif
-
-/* esiExcept */
-#if 0
-void *
-esiExcept::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (esiExcept));
-    void *rv;
-    CBDATA_INIT_TYPE_FREECB(esiExcept, esiSequence::Free);
-    rv = (void *)cbdataAlloc (esiExcept);
-    return rv;
-}
-
-void
-esiExcept::operator delete (void *address)
-{
-    cbdataFree (address);
-}
-
-#endif
-
-/* ESIVar */
-#if 0
-void *
-esiVar::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (esiVar));
-    void *rv;
-    CBDATA_INIT_TYPE_FREECB(esiVar, esiSequence::Free);
-    rv = (void *)cbdataAlloc (esiVar);
-    return rv;
-}
-
-void
-esiVar::operator delete (void *address)
-{
-    cbdataFree (address);
-}
-
-#endif
-
 /* esiChoose */
 esiChoose::~esiChoose()
 {
     debugs(86, 5, "esiChoose::~esiChoose " << this);
 }
 
-esiChoose::esiChoose(esiTreeParentPtr aParent) : elements (), chosenelement (-1),parent (aParent)
+esiChoose::esiChoose(esiTreeParentPtr aParent) :
+    elements(),
+    chosenelement(-1),
+    parent(aParent)
 {}
 
 void
@@ -2335,10 +2187,10 @@ ElementList::size() const
 
 /* esiWhen */
 esiWhen::esiWhen(esiTreeParentPtr aParent, int attrcount, const char **attr,ESIVarState *aVar) :
-        esiSequence(aParent),
-        testValue(false),
-        unevaluatedExpression(NULL),
-        varState(NULL)
+    esiSequence(aParent),
+    testValue(false),
+    unevaluatedExpression(NULL),
+    varState(NULL)
 {
     char const *expression = NULL;
 
@@ -2394,10 +2246,10 @@ esiWhen::evaluate()
 }
 
 esiWhen::esiWhen(esiWhen const &old) :
-        esiSequence(old),
-        testValue(false),
-        unevaluatedExpression(NULL),
-        varState(NULL)
+    esiSequence(old),
+    testValue(false),
+    unevaluatedExpression(NULL),
+    varState(NULL)
 {
     if (old.unevaluatedExpression)
         unevaluatedExpression = xstrdup(old.unevaluatedExpression);
@@ -2421,26 +2273,6 @@ esiWhen::makeUsable(esiTreeParentPtr newParent, ESIVarState &newVarState) const
     return result;
 }
 
-/* esiOtherwise */
-#if 0
-void *
-esiOtherwise::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (esiOtherwise));
-    void *rv;
-    CBDATA_INIT_TYPE_FREECB(esiOtherwise, esiSequence::Free);
-    rv = (void *)cbdataAlloc (esiOtherwise);
-    return rv;
-}
-
-void
-esiOtherwise::operator delete (void *address)
-{
-    cbdataFree (address);
-}
-
-#endif
-
 /* TODO: implement surrogate targeting and control processing */
 int
 esiEnableProcessing (HttpReply *rep)
@@ -2451,14 +2283,12 @@ esiEnableProcessing (HttpReply *rep)
         HttpHdrScTarget *sctusable =
             rep->surrogate_control->getMergedTarget(Config.Accel.surrogate_id);
 
-        if (!sctusable || !sctusable->hasContent())
-            /* Nothing generic or targeted at us, or no
-             * content processing requested
-             */
-            return 0;
-
-        if (sctusable->content().pos("ESI/1.0") != NULL)
+        // found something targeted at us
+        if (sctusable &&
+                sctusable->hasContent() &&
+                sctusable->content().pos("ESI/1.0")) {
             rv = 1;
+        }
 
         delete sctusable;
     }
@@ -2467,3 +2297,4 @@ esiEnableProcessing (HttpReply *rep)
 }
 
 #endif /* USE_SQUID_ESI == 1 */
+

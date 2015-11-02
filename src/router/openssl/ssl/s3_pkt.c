@@ -231,7 +231,8 @@ int ssl3_read_n(SSL *s, int n, int max, int extend)
         return -1;
     }
 
-    if (!s->read_ahead)
+    /* We always act like read_ahead is set for DTLS */
+    if (!s->read_ahead && !SSL_IS_DTLS(s))
         /* ignore max parameter */
         max = n;
     else {
@@ -360,11 +361,22 @@ static int ssl3_get_record(SSL *s)
             if (version != s->version) {
                 SSLerr(SSL_F_SSL3_GET_RECORD, SSL_R_WRONG_VERSION_NUMBER);
                 if ((s->version & 0xFF00) == (version & 0xFF00)
-                    && !s->enc_write_ctx && !s->write_hash)
+                    && !s->enc_write_ctx && !s->write_hash) {
+                    if (rr->type == SSL3_RT_ALERT) {
+                        /*
+                         * The record is using an incorrect version number, but
+                         * what we've got appears to be an alert. We haven't
+                         * read the body yet to check whether its a fatal or
+                         * not - but chances are it is. We probably shouldn't
+                         * send a fatal alert back. We'll just end.
+                         */
+                         goto err;
+                    }
                     /*
                      * Send back error using their minor version number :-)
                      */
                     s->version = (unsigned short)version;
+                }
                 al = SSL_AD_PROTOCOL_VERSION;
                 goto f_err;
             }
@@ -707,6 +719,10 @@ int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
                 packlen *= 4;
 
             wb->buf = OPENSSL_malloc(packlen);
+            if (!wb->buf) {
+                SSLerr(SSL_F_SSL3_WRITE_BYTES, ERR_R_MALLOC_FAILURE);
+                return -1;
+            }
             wb->len = packlen;
         } else if (tot == len) { /* done? */
             OPENSSL_free(wb->buf); /* free jumbo buffer */
@@ -780,7 +796,7 @@ int ssl3_write_bytes(SSL *s, int type, const void *buf_, int len)
 
             i = ssl3_write_pending(s, type, &buf[tot], nw);
             if (i <= 0) {
-                if (i < 0) {
+                if (i < 0 && (!s->wbio || !BIO_should_retry(s->wbio))) {
                     OPENSSL_free(wb->buf);
                     wb->buf = NULL;
                 }
@@ -1425,7 +1441,7 @@ int ssl3_read_bytes(SSL *s, int type, unsigned char *buf, int len, int peek)
             cb(s, SSL_CB_READ_ALERT, j);
         }
 
-        if (alert_level == 1) { /* warning */
+        if (alert_level == SSL3_AL_WARNING) {
             s->s3->warn_alert = alert_descr;
             if (alert_descr == SSL_AD_CLOSE_NOTIFY) {
                 s->shutdown |= SSL_RECEIVED_SHUTDOWN;
@@ -1448,7 +1464,7 @@ int ssl3_read_bytes(SSL *s, int type, unsigned char *buf, int len, int peek)
             else if (alert_descr == SSL_AD_MISSING_SRP_USERNAME)
                 return (0);
 #endif
-        } else if (alert_level == 2) { /* fatal */
+        } else if (alert_level == SSL3_AL_FATAL) {
             char tmp[16];
 
             s->rwstate = SSL_NOTHING;

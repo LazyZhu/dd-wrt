@@ -71,18 +71,17 @@
 		};
 
 		internal-regs {
+			rtc@10300 {
+				/* No crystal connected to the internal RTC */
+				status = "disabled";
+			};
 			serial@12000 {
 				status = "okay";
 			};
 			serial@12100 {
 				status = "okay";
 			};
-			pinctrl {
-				led_pins: led-pins-0 {
-					marvell,pins = "mpp49", "mpp51", "mpp53";
-					marvell,function = "gpio";
-				};
-			};
+
 			leds {
 				compatible = "gpio-leds";
 				pinctrl-names = "default";
@@ -185,5 +184,12 @@
 				status = "okay";
 			};
 		};
+	};
+};
+
+&pinctrl {
+	led_pins: led-pins-0 {
+		marvell,pins = "mpp49", "mpp51", "mpp53";
+		marvell,function = "gpio";
 	};
 };

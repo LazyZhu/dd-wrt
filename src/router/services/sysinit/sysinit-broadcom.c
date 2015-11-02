@@ -230,6 +230,7 @@ static void loadWlModule(void)	// set wled params, get boardflags,
 		nvram_set("wl0gpio0", "135");
 		break;
 	case ROUTER_NETGEAR_WNR3500L:
+	case ROUTER_NETGEAR_WNR3500LV2:
 		nvram_set("ledbh0", "7");
 		break;
 	case ROUTER_WRT320N:
@@ -267,6 +268,7 @@ static void loadWlModule(void)	// set wled params, get boardflags,
 	case ROUTER_NETGEAR_WNDR3300:
 	case ROUTER_NETGEAR_WNDR3400:
 	case ROUTER_NETGEAR_WNR3500L:
+	case ROUTER_NETGEAR_WNR3500LV2:
 	case ROUTER_NETGEAR_WNR2000V2:
 	case ROUTER_ASUS_WL500W:
 	case ROUTER_WRT610NV2:
@@ -301,9 +303,11 @@ static void loadWlModule(void)	// set wled params, get boardflags,
 			nvram_set("pci/2/1/macaddr", mac);
 		}
 		nvram_set("partialboots", "0");
+		nvram_commit();
 	case ROUTER_LINKSYS_EA2700:
 		nvram_set("bootpartition", "0");
 		nvram_set("partialboots", "0");
+		nvram_commit();
 		insmod("emf igs wl");	// load module
 		break;
 	case ROUTER_WRT600N:
@@ -772,6 +776,7 @@ void start_sysinit(void)
 
 #ifdef HAVE_BCMMODERN
 	case ROUTER_NETGEAR_WNR3500L:
+	case ROUTER_NETGEAR_WNR3500LV2:
 	case ROUTER_WRT320N:
 	case ROUTER_ASUS_RTN16:
 		basic_params = vlan_1_2;
@@ -1412,12 +1417,12 @@ void start_sysinit(void)
 		else if (nvram_match("wl0_country_code", "CN"))
 			set_regulation(0, "CN", "1");
 		else
-			set_regulation(0, "DE", "0");
+			set_regulation(0, "EU", "66");
 
 		if (nvram_match("wl1_country_code", "Q2"))
 			set_regulation(1, "US", "0");
 		else if (nvram_match("wl1_country_code", "EU"))
-			set_regulation(1, "EU", "13");
+			set_regulation(1, "EU", "38");
 		else if (nvram_match("wl1_country_code", "TW"))
 			set_regulation(1, "TW", "13");
 		else if (nvram_match("wl1_country_code", "CN"))
@@ -1956,7 +1961,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain", "Q2"))
 			set_regulation(0, "US", "0");
 		else if (nvram_match("regulation_domain", "EU"))
-			set_regulation(0, "DE", "0");
+			set_regulation(0, "EU", "66");
 		else if (nvram_match("regulation_domain", "TW"))
 			set_regulation(0, "TW", "13");
 		else if (nvram_match("regulation_domain", "CN"))
@@ -1969,7 +1974,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain_5G", "Q2"))
 			set_regulation(1, "US", "0");
 		else if (nvram_match("regulation_domain_5G", "EU"))
-			set_regulation(1, "EU", "13");
+			set_regulation(1, "EU", "38");
 		else if (nvram_match("regulation_domain_5G", "TW"))
 			set_regulation(1, "TW", "13");
 		else if (nvram_match("regulation_domain_5G", "CN"))
@@ -2092,7 +2097,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain", "Q2"))
 			set_regulation(0, "US", "0");
 		else if (nvram_match("regulation_domain", "EU"))
-			set_regulation(0, "DE", "0");
+			set_regulation(0, "EU", "66");
 		else if (nvram_match("regulation_domain", "TW"))
 			set_regulation(0, "TW", "13");
 		else if (nvram_match("regulation_domain", "CN"))
@@ -2105,7 +2110,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain_5G", "Q2"))
 			set_regulation(1, "US", "0");
 		else if (nvram_match("regulation_domain_5G", "EU"))
-			set_regulation(1, "DE", "0");
+			set_regulation(1, "EU", "38");
 		else if (nvram_match("regulation_domain_5G", "TW"))
 			set_regulation(1, "TW", "13");
 		else if (nvram_match("regulation_domain_5G", "CN"))
@@ -2849,6 +2854,7 @@ void start_sysinit(void)
 		break;
 
 	case ROUTER_NETGEAR_WNR3500L:	//usb power fix (gpio 12)
+	case ROUTER_NETGEAR_WNR3500LV2:
 		if (nvram_match("boardflags", "0x00001710")) {
 			nvram_set("boardflags", "0x00000710");
 			need_reboot = 1;
@@ -2902,6 +2908,7 @@ void start_sysinit(void)
 			case ROUTER_WRT300NV11:
 			case ROUTER_BUFFALO_WZRG144NH:
 			case ROUTER_NETGEAR_WNR3500L:
+			case ROUTER_NETGEAR_WNR3500LV2:
 			case ROUTER_BELKIN_F7D3301:
 			case ROUTER_BELKIN_F7D4301:
 			case ROUTER_BELKIN_F5D8235V3:
@@ -2997,6 +3004,7 @@ void start_sysinit(void)
 			case ROUTER_WRT300NV11:
 			case ROUTER_BUFFALO_WZRG144NH:
 			case ROUTER_NETGEAR_WNR3500L:
+			case ROUTER_NETGEAR_WNR3500LV2:
 			case ROUTER_LINKSYS_E3200:
 			case ROUTER_LINKSYS_E4200:
 			case ROUTER_NETGEAR_WNDR4000:

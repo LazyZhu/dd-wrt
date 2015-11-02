@@ -24,14 +24,13 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/device.h>
-#include <linux/sysdev.h>
 #include <linux/timer.h>
 #include <linux/ctype.h>
 #include <linux/slab.h>
 #include <linux/leds.h>
 #include <linux/usb.h>
 
-#include "leds.h"
+#include <linux/leds.h>
 
 #define DEV_BUS_ID_SIZE		32
 

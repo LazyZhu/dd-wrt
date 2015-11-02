@@ -1,62 +1,13 @@
-
 /*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
 #ifndef SQUID_ENUMS_H
 #define SQUID_ENUMS_H
-
-typedef enum {
-    LOG_TAG_NONE,
-    LOG_TCP_HIT,
-    LOG_TCP_MISS,
-    LOG_TCP_REFRESH_UNMODIFIED, // refresh from origin revalidated existing entry
-    LOG_TCP_REFRESH_FAIL_OLD,   // refresh from origin failed, stale reply sent
-    LOG_TCP_REFRESH_FAIL_ERR,   // refresh from origin failed, error forwarded
-    LOG_TCP_REFRESH_MODIFIED,   // refresh from origin replaced existing entry
-    LOG_TCP_CLIENT_REFRESH_MISS,
-    LOG_TCP_IMS_HIT,
-    LOG_TCP_SWAPFAIL_MISS,
-    LOG_TCP_NEGATIVE_HIT,
-    LOG_TCP_MEM_HIT,
-    LOG_TCP_DENIED,
-    LOG_TCP_DENIED_REPLY,
-    LOG_TCP_OFFLINE_HIT,
-    LOG_TCP_REDIRECT,
-    LOG_UDP_HIT,
-    LOG_UDP_MISS,
-    LOG_UDP_DENIED,
-    LOG_UDP_INVALID,
-    LOG_UDP_MISS_NOFETCH,
-    LOG_ICP_QUERY,
-    LOG_TYPE_MAX
-} log_type;
 
 enum fd_type {
     FD_NONE,
@@ -79,34 +30,6 @@ typedef enum {
     PEER_PARENT,
     PEER_MULTICAST
 } peer_t;
-
-typedef enum {
-    CC_BADHDR = -1,
-    CC_PUBLIC = 0,
-    CC_PRIVATE,
-    CC_NO_CACHE,
-    CC_NO_STORE,
-    CC_NO_TRANSFORM,
-    CC_MUST_REVALIDATE,
-    CC_PROXY_REVALIDATE,
-    CC_MAX_AGE,
-    CC_S_MAXAGE,
-    CC_MAX_STALE,
-    CC_MIN_FRESH,
-    CC_ONLY_IF_CACHED,
-    CC_STALE_IF_ERROR,
-    CC_OTHER,
-    CC_ENUM_END
-} http_hdr_cc_type;
-
-typedef enum {
-    SC_NO_STORE,
-    SC_NO_STORE_REMOTE,
-    SC_MAX_AGE,
-    SC_CONTENT,
-    SC_OTHER,
-    SC_ENUM_END
-} http_hdr_sc_type;
 
 typedef enum _mem_status_t {
     NOT_IN_MEMORY,
@@ -148,7 +71,7 @@ enum {
     DELAY_SENDING,
     RELEASE_REQUEST,
     REFRESH_REQUEST,
-    ENTRY_CACHABLE,
+    ENTRY_CACHABLE_RESERVED_FOR_FUTURE_USE,
     ENTRY_DISPATCHED,
     KEY_PRIVATE,
     ENTRY_FWD_HDR_WAIT,
@@ -163,8 +86,8 @@ enum {
  * its status
  */
 typedef enum {
-    STREAM_NONE,		/* No particular status */
-    STREAM_COMPLETE,		/* All data has been flushed, no more reads allowed */
+    STREAM_NONE,        /* No particular status */
+    STREAM_COMPLETE,        /* All data has been flushed, no more reads allowed */
     /* an unpredicted end has occured, no more
      * reads occured, but no need to tell
      * downstream that an error occured
@@ -191,41 +114,6 @@ enum {
     SNMP_C_COMMUNITY
 };
 #endif /* SQUID_SNMP */
-
-typedef enum {
-    MEM_NONE,
-    MEM_2K_BUF,
-    MEM_4K_BUF,
-    MEM_8K_BUF,
-    MEM_16K_BUF,
-    MEM_32K_BUF,
-    MEM_64K_BUF,
-    MEM_ACL_DENY_INFO_LIST,
-    MEM_ACL_NAME_LIST,
-#if USE_CACHE_DIGESTS
-    MEM_CACHE_DIGEST,
-#endif
-    MEM_CLIENT_INFO,
-    MEM_LINK_LIST,
-    MEM_DLINK_NODE,
-    MEM_DREAD_CTRL,
-    MEM_DWRITE_Q,
-    MEM_HTTP_HDR_CONTENT_RANGE,
-    MEM_MD5_DIGEST,
-    MEM_NETDBENTRY,
-    MEM_NET_DB_NAME,
-    MEM_RELIST,
-    // IMPORTANT: leave this here. pools above are initialized early with memInit()
-    MEM_DONTFREE,
-    // following pools are initialized late by their component if needed (or never)
-    MEM_FQDNCACHE_ENTRY,
-    MEM_FWD_SERVER,
-#if !USE_DNSHELPER
-    MEM_IDNS_QUERY,
-#endif
-    MEM_IPCACHE_ENTRY,
-    MEM_MAX
-} mem_type;
 
 enum {
     STORE_LOG_CREATE,
@@ -334,3 +222,4 @@ typedef enum {
 #endif /* USE_HTCP */
 
 #endif /* SQUID_ENUMS_H */
+

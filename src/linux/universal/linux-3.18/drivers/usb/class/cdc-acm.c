@@ -118,6 +118,29 @@ static void acm_release_minor(struct acm *acm)
 	mutex_unlock(&acm_table_lock);
 }
 
+static int interay_serial_ctrl_msg(struct acm *acm, int request, int value,	void *buf, int len)
+{
+	int retval;
+
+	retval = usb_autopm_get_interface(acm->control);
+	if (retval)
+		return retval;
+
+	retval = usb_control_msg(acm->dev, usb_sndctrlpipe(acm->dev, 0),
+		request, USB_TYPE_VENDOR | USB_RECIP_INTERFACE,
+		value,
+		acm->control->altsetting[0].desc.bInterfaceNumber,
+		buf, len, 5000);
+
+	dev_dbg(&acm->control->dev,
+			"%s - rq 0x%02x, val %#x, len %#x, result %d\n",
+			__func__, request, value, len, retval);
+
+	usb_autopm_put_interface(acm->control);
+
+	return retval < 0 ? retval : 0;
+}
+
 /*
  * Functions for ACM control messages.
  */
@@ -937,6 +960,12 @@ static int acm_tty_ioctl(struct tty_struct *tty,
 	struct acm *acm = tty->driver_data;
 	int rv = -ENOIOCTLCMD;
 
+	#define SET_MODE_RS232 0x54ED
+	#define SET_MODE_RS485 0x54EE
+	#define SET_MODE_RS422 0x54EF
+
+	#define SET_ACTIVE_PROTOCOL_CMD 0
+
 	switch (cmd) {
 	case TIOCGSERIAL: /* gets serial port data */
 		rv = get_serial_info(acm, (struct serial_struct __user *) arg);
@@ -955,6 +984,11 @@ static int acm_tty_ioctl(struct tty_struct *tty,
 		break;
 	case TIOCGICOUNT:
 		rv = get_serial_usage(acm, (struct serial_icounter_struct __user *) arg);
+		break;
+	case SET_MODE_RS232:
+	case SET_MODE_RS485:
+	case SET_MODE_RS422:
+		return interay_serial_ctrl_msg(acm, SET_ACTIVE_PROTOCOL_CMD, cmd - SET_MODE_RS232, NULL, 0);
 		break;
 	}
 
@@ -1091,6 +1125,7 @@ static int acm_probe(struct usb_interface *intf,
 	unsigned long quirks;
 	int num_rx_buf;
 	int i;
+	unsigned int elength = 0;
 	int combined_interfaces = 0;
 	struct device *tty_dev;
 	int rv = -ENOMEM;
@@ -1132,13 +1167,22 @@ static int acm_probe(struct usb_interface *intf,
 	}
 
 	while (buflen > 0) {
+		elength = buffer[0];
+		if (!elength) {
+			dev_err(&intf->dev, "skipping garbage byte\n");
+			elength = 1;
+			goto next_desc;
+		}
 		if (buffer[1] != USB_DT_CS_INTERFACE) {
 			dev_err(&intf->dev, "skipping garbage\n");
 			goto next_desc;
 		}
+		elength = buffer[0];
 
 		switch (buffer[2]) {
 		case USB_CDC_UNION_TYPE: /* we've found it */
+			if (elength < sizeof(struct usb_cdc_union_desc))
+				goto next_desc;
 			if (union_header) {
 				dev_err(&intf->dev, "More than one "
 					"union descriptor, skipping ...\n");
@@ -1147,31 +1191,38 @@ static int acm_probe(struct usb_interface *intf,
 			union_header = (struct usb_cdc_union_desc *)buffer;
 			break;
 		case USB_CDC_COUNTRY_TYPE: /* export through sysfs*/
+			if (elength < sizeof(struct usb_cdc_country_functional_desc))
+				goto next_desc;
 			cfd = (struct usb_cdc_country_functional_desc *)buffer;
 			break;
 		case USB_CDC_HEADER_TYPE: /* maybe check version */
 			break; /* for now we ignore it */
 		case USB_CDC_ACM_TYPE:
+			if (elength < 4)
+				goto next_desc;
 			ac_management_function = buffer[3];
 			break;
 		case USB_CDC_CALL_MANAGEMENT_TYPE:
+			if (elength < 5)
+				goto next_desc;
 			call_management_function = buffer[3];
 			call_interface_num = buffer[4];
 			if ((quirks & NOT_A_MODEM) == 0 && (call_management_function & 3) != 3)
 				dev_err(&intf->dev, "This device cannot do calls on its own. It is not a modem.\n");
 			break;
 		default:
-			/* there are LOTS more CDC descriptors that
+			/*
+			 * there are LOTS more CDC descriptors that
 			 * could legitimately be found here.
 			 */
 			dev_dbg(&intf->dev, "Ignoring descriptor: "
-					"type %02x, length %d\n",
-					buffer[2], buffer[0]);
+					"type %02x, length %ud\n",
+					buffer[2], elength);
 			break;
 		}
 next_desc:
-		buflen -= buffer[0];
-		buffer += buffer[0];
+		buflen -= elength;
+		buffer += elength;
 	}
 
 	if (!union_header) {
@@ -1469,6 +1520,11 @@ skip_countries:
 		goto alloc_fail8;
 	}
 
+	if (quirks & CLEAR_HALT_CONDITIONS) {
+		usb_clear_halt(usb_dev, usb_rcvbulkpipe(usb_dev, epread->bEndpointAddress));
+		usb_clear_halt(usb_dev, usb_sndbulkpipe(usb_dev, epwrite->bEndpointAddress));
+	}
+
 	return 0;
 alloc_fail8:
 	if (acm->country_codes) {
@@ -1744,6 +1800,10 @@ static const struct usb_device_id acm_ids[] = {
 	},
 	{ USB_DEVICE(0x1576, 0x03b1), /* Maretron USB100 */
 	.driver_info = NO_UNION_NORMAL, /* reports zero length descriptor */
+	},
+
+	{ USB_DEVICE(0x2912, 0x0001), /* ATOL FPrint */
+	.driver_info = CLEAR_HALT_CONDITIONS,
 	},
 
 	/* Nokia S60 phones expose two ACM channels. The first is

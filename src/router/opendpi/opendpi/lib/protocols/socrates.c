@@ -2,7 +2,7 @@
  * socrates.c
  *
  * Copyright (C) 2009-2011 by ipoque GmbH
- * Copyright (C) 2011-13 - ntop.org
+ * Copyright (C) 2011-15 - ntop.org
  *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the OpenDPI and PACE technology by ipoque GmbH
@@ -22,31 +22,26 @@
  * 
  */
 
-
 #include "ndpi_protocols.h"
 #ifdef NDPI_PROTOCOL_SOCRATES
 
-
 static void ndpi_socrates_add_connection(struct ndpi_detection_module_struct
-										   *ndpi_struct, struct ndpi_flow_struct *flow)
+					 *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-	ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_SOCRATES, NDPI_REAL_PROTOCOL);
+	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SOCRATES, NDPI_PROTOCOL_UNKNOWN);
 }
 
 static void ndpi_search_socrates(struct ndpi_detection_module_struct
-							*ndpi_struct, struct ndpi_flow_struct *flow)
+				 *ndpi_struct, struct ndpi_flow_struct *flow)
 {
 	struct ndpi_packet_struct *packet = &flow->packet;
-	
-//      struct ndpi_id_struct         *src=ndpi_struct->src;
-//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
 
-
+	//      struct ndpi_id_struct         *src=ndpi_struct->src;
+	//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
 
 	NDPI_LOG(NDPI_PROTOCOL_SOCRATES, ndpi_struct, NDPI_LOG_DEBUG, "search socrates.\n");
 	if (packet->udp != NULL) {
-		if (packet->payload_packet_len > 9 && packet->payload[0] == 0xfe
-			&& packet->payload[packet->payload_packet_len - 1] == 0x05) {
+		if (packet->payload_packet_len > 9 && packet->payload[0] == 0xfe && packet->payload[packet->payload_packet_len - 1] == 0x05) {
 			NDPI_LOG(NDPI_PROTOCOL_SOCRATES, ndpi_struct, NDPI_LOG_DEBUG, "found fe.\n");
 
 			NDPI_LOG(NDPI_PROTOCOL_SOCRATES, ndpi_struct, NDPI_LOG_DEBUG, "len match.\n");
@@ -57,8 +52,7 @@ static void ndpi_search_socrates(struct ndpi_detection_module_struct
 
 		}
 	} else if (packet->tcp != NULL) {
-		if (packet->payload_packet_len > 13 && packet->payload[0] == 0xfe
-			&& packet->payload[packet->payload_packet_len - 1] == 0x05) {
+		if (packet->payload_packet_len > 13 && packet->payload[0] == 0xfe && packet->payload[packet->payload_packet_len - 1] == 0x05) {
 			NDPI_LOG(NDPI_PROTOCOL_SOCRATES, ndpi_struct, NDPI_LOG_DEBUG, "found fe.\n");
 			if (packet->payload_packet_len == ntohl(get_u_int32_t(packet->payload, 2))) {
 				NDPI_LOG(NDPI_PROTOCOL_SOCRATES, ndpi_struct, NDPI_LOG_DEBUG, "len match.\n");
@@ -70,11 +64,16 @@ static void ndpi_search_socrates(struct ndpi_detection_module_struct
 		}
 	}
 
-
-
-
 	NDPI_LOG(NDPI_PROTOCOL_SOCRATES, ndpi_struct, NDPI_LOG_DEBUG, "exclude socrates.\n");
 	NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_SOCRATES);
+}
+
+static void init_socrates_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("Socrates", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_SOCRATES, ndpi_search_socrates, NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_OR_UDP_WITH_PAYLOAD, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+
+	*id += 1;
 }
 
 #endif

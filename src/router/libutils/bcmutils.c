@@ -377,7 +377,7 @@ int has_mimo(char *prefix)
 int has_ac(char *prefix)
 {
 #ifdef HAVE_ATH10K
-	return is_ath10k(prefix);
+	return is_ath10k(prefix) || is_mvebu(prefix);
 #elif HAVE_ATH9K
 	return 0;
 #else
@@ -1793,6 +1793,102 @@ char *get_filter_services(void)
 	return services;
 }
 
+void free_filters(filters * filter)
+{
+	if (!filter)
+		return;
+	int count = 0;
+	while (filter[count].name != NULL) {
+		free(filter[count++].name);
+	}
+	free(filter);
+}
+
+filters *get_filters_list(void)
+{
+	char word[1024], *next;
+	char protocol[64], ports[64];
+	char delim[] = "<&nbsp;>";
+	char *services;
+	// services = nvram_safe_get("filter_services");
+	services = get_filter_services();
+	int count = 0;
+	split(word, services, next, delim) {
+		count++;
+	}
+	filters *s_filters = (filters *) malloc(sizeof(filters) * count + 1);
+	count = 0;
+	split(word, services, next, delim) {
+		int len = 0;
+		char *name, *prot, *port;
+		int from = 0, to = 0;
+		s_filters[count].name = NULL;
+		if ((name = strstr(word, "$NAME:")) == NULL || (prot = strstr(word, "$PROT:")) == NULL || (port = strstr(word, "$PORT:")) == NULL)
+			continue;
+
+		/*
+		 * $NAME 
+		 */
+		if (sscanf(name, "$NAME:%3d:", &len) != 1) {
+			free(services);
+			free_filters(s_filters);
+			return NULL;
+		}
+
+		strncpy(name, name + sizeof("$NAME:nnn:") - 1, len);
+		name[len] = '\0';
+		s_filters[count].name = strdup(name);
+
+		/*
+		 * $PROT 
+		 */
+		if (sscanf(prot, "$PROT:%3d:", &len) != 1) {
+			free(services);
+			free_filters(s_filters);
+			return NULL;
+		}
+
+		strncpy(protocol, prot + sizeof("$PROT:nnn:") - 1, len);
+		protocol[len] = '\0';
+		if (!strcmp(protocol, "tcp"))
+			s_filters[count].proto = 1;
+		if (!strcmp(protocol, "udp"))
+			s_filters[count].proto = 2;
+		if (!strcmp(protocol, "both"))
+			s_filters[count].proto = 3;
+		if (!strcmp(protocol, "l7"))
+			s_filters[count].proto = 4;
+		if (!strcmp(protocol, "dpi"))
+			s_filters[count].proto = 5;
+		if (!strcmp(protocol, "p2p"))
+			s_filters[count].proto = 6;
+
+		/*
+		 * $PORT 
+		 */
+		if (sscanf(port, "$PORT:%3d:", &len) != 1) {
+			free(services);
+			free_filters(s_filters);
+			return NULL;
+		}
+
+		strncpy(ports, port + sizeof("$PORT:nnn:") - 1, len);
+		ports[len] = '\0';
+
+		if (sscanf(ports, "%d:%d", &from, &to) != 2) {
+			free(services);
+			free_filters(s_filters);
+			return NULL;
+		}
+		s_filters[count].portfrom = from;
+		s_filters[count].portto = to;
+		count++;
+	}
+	s_filters[count].name = NULL;
+	free(services);
+	return s_filters;
+}
+
 int endswith(char *str, char *cmp)
 {
 	int cmp_len, str_len, i;
@@ -1848,7 +1944,7 @@ void addAction(char *action)
 		memset(actionstack, 0, strlen(services) + strlen(action) + 2);
 		strcpy(actionstack, action);
 		strcat(actionstack, " ");
-		strcat(actionstack, nvram_safe_get("action_service"));
+		strcat(actionstack, services);
 		nvram_set("action_service", actionstack);
 		free(actionstack);
 	} else {
@@ -1860,6 +1956,8 @@ void addAction(char *action)
 
 #ifdef NVRAM_SPACE_256
 #define NVRAMSPACE NVRAM_SPACE_256
+#elif HAVE_MVEBU
+#define NVRAMSPACE 0x10000
 #else
 #define NVRAMSPACE NVRAM_SPACE
 #endif

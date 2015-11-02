@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////////////////////
 //				Slovenian translation DD-WRT by Eko, last revision: 10.aug.2013, svn 22180	//
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -111,12 +111,12 @@ share.port="Vrata";
 share.ssid="SSID";
 share.channel="Kanal";
 share.frequency="Frekvenca";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="Signal";
 share.noise="Šum";
-share.beacon="beacon";
+share.beacon="Beacon";
 share.openn="Odprto";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="Hitrost";
 share.rate="Hitrost";
 share.txrate="TX hitrost";

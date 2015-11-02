@@ -1,44 +1,17 @@
-
 /*
- * DEBUG: section 86    ESI processing
- * AUTHOR: Robert Collins
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- ;  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
- * Copyright (c) 2003, Robert Collins <robertc@squid-cache.org>
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 86    ESI processing */
 
 #include "squid.h"
 #include "esi/VarState.h"
+#include "fatal.h"
 #include "HttpReply.h"
-#include "Mem.h"
-
-CBDATA_TYPE (ESIVarState);
-FREE ESIVarStateFree;
 
 char const *ESIVariableUserAgent::esiUserOs[]= {
     "WIN",
@@ -51,6 +24,8 @@ char const * esiBrowsers[]= {"MSIE",
                              "MOZILLA",
                              "OTHER"
                             };
+
+CBDATA_CLASS_INIT(ESIVarState);
 
 void
 ESIVarState::Variable::eval (ESIVarState &state, char const *subref, char const *found_default) const
@@ -155,46 +130,19 @@ ESIVarState::extractChar ()
     return rv;
 }
 
-/* ESIVarState */
-void
-esiVarStateFree (void *data)
-{
-    ESIVarState *thisNode = (ESIVarState*)data;
-    thisNode->freeResources();
-}
-
 ESIVarState::~ESIVarState()
 {
-    freeResources();
+    // freeResources
+    input = NULL;
+    ESISegmentFreeList(output);
+    hdr.clean();
 
-    while (variablesForCleanup.size())
-        delete variablesForCleanup.pop_back();
+    while (!variablesForCleanup.empty()) {
+        delete variablesForCleanup.back();
+        variablesForCleanup.pop_back();
+    }
 
     delete defaultVariable;
-}
-
-void
-ESIVarState::freeResources()
-{
-    input = NULL;
-    ESISegmentFreeList (output);
-    hdr.clean();
-}
-
-void *
-ESIVarState::operator new(size_t byteCount)
-{
-    assert (byteCount == sizeof (ESIVarState));
-    void *rv;
-    CBDATA_INIT_TYPE_FREECB(ESIVarState, esiVarStateFree);
-    rv = (void *)cbdataAlloc (ESIVarState);
-    return rv;
-}
-
-void
-ESIVarState::operator delete (void *address)
-{
-    cbdataFree (address);
 }
 
 char *
@@ -202,14 +150,14 @@ ESIVariableUserAgent::getProductVersion (char const *s)
 {
     char const *t;
     int len;
-    t = index (s,'/');
+    t = index(s,'/');
 
     if (!t || !*(++t))
-        return xstrdup ("");
+        return xstrdup("");
 
-    len = strcspn (t, " \r\n()<>@,;:\\\"/[]?={}");
+    len = strcspn(t, " \r\n()<>@,;:\\\"/[]?={}");
 
-    return xstrndup (t, len + 1);
+    return xstrndup(t, len + 1);
 }
 
 ESIVariableQuery::ESIVariableQuery(char const *uri) : query (NULL), query_sz (0), query_elements (0), query_string (NULL)
@@ -219,11 +167,11 @@ ESIVariableQuery::ESIVariableQuery(char const *uri) : query (NULL), query_sz (0)
 
     if (query_start && query_start[1] != '\0' ) {
         unsigned int n;
-        query_string = xstrdup (query_start + 1);
+        query_string = xstrdup(query_start + 1);
         query_elements = 1;
         char const *query_pos = query_start + 1;
 
-        while ((query_pos = strchr (query_pos, '&'))) {
+        while ((query_pos = strchr(query_pos, '&'))) {
             ++query_elements;
             ++query_pos;
         }
@@ -234,8 +182,8 @@ ESIVariableQuery::ESIVariableQuery(char const *uri) : query (NULL), query_sz (0)
         n = 0;
 
         while (query_pos) {
-            char const *next = strchr (query_pos, '&');
-            char const *div = strchr (query_pos, '=');
+            char const *next = strchr(query_pos, '&');
+            char const *div = strchr(query_pos, '=');
 
             if (next)
                 ++next;
@@ -249,19 +197,19 @@ ESIVariableQuery::ESIVariableQuery(char const *uri) : query (NULL), query_sz (0)
                 /* zero length between & and = or & and & */
                 continue;
 
-            query[n].var = xstrndup (query_pos, div - query_pos + 1) ;
+            query[n].var = xstrndup(query_pos, div - query_pos + 1) ;
 
             if (div == next) {
-                query[n].val = xstrdup ("");
+                query[n].val = xstrdup("");
             } else {
-                query[n].val = xstrndup (div + 1, next - div - 1);
+                query[n].val = xstrndup(div + 1, next - div - 1);
             }
 
             query_pos = next;
             ++n;
         }
     } else {
-        query_string = xstrdup ("");
+        query_string = xstrdup("");
     }
 
     if (query) {
@@ -292,8 +240,8 @@ ESIVariableQuery::~ESIVariableQuery()
 }
 
 ESIVarState::ESIVarState(HttpHeader const *aHeader, char const *uri) :
-        output(NULL),
-        hdr(hoReply)
+    output(NULL),
+    hdr(hoReply)
 {
     memset(&flags, 0, sizeof(flags));
 
@@ -371,8 +319,8 @@ ESIVariableUserAgent::ESIVariableUserAgent(ESIVarState &state)
      * In future, this may be better implemented as a regexp.
      */
 
-    if (state.header().has(HDR_USER_AGENT)) {
-        char const *s = state.header().getStr(HDR_USER_AGENT);
+    if (state.header().has(Http::HdrType::USER_AGENT)) {
+        char const *s = state.header().getStr(Http::HdrType::USER_AGENT);
         UserOs = identifyOs(s);
         char const *t, *t1;
 
@@ -383,14 +331,14 @@ ESIVariableUserAgent::ESIVariableUserAgent(ESIVarState &state)
             t = index (t, ' ');
 
             if (!t)
-                browserversion = xstrdup ("");
+                browserversion = xstrdup("");
             else {
-                t1 = index (t, ';');
+                t1 = index(t, ';');
 
                 if (!t1)
-                    browserversion = xstrdup (t + 1);
+                    browserversion = xstrdup(t + 1);
                 else
-                    browserversion = xstrndup (t + 1, t1-t);
+                    browserversion = xstrndup(t + 1, t1-t);
             }
         } else if (strstr (s, "Mozilla")) {
             browser = ESI_BROWSER_MOZILLA;
@@ -402,7 +350,7 @@ ESIVariableUserAgent::ESIVariableUserAgent(ESIVarState &state)
     } else {
         UserOs = ESI_OS_OTHER;
         browser = ESI_BROWSER_OTHER;
-        browserversion = xstrdup ("");
+        browserversion = xstrdup("");
     }
 }
 
@@ -428,11 +376,11 @@ ESIVariableCookie::eval (ESIVarState &state, char const *subref, char const *fou
     const char *s = NULL;
     state.cookieUsed();
 
-    if (state.header().has(HDR_COOKIE)) {
+    if (state.header().has(Http::HdrType::COOKIE)) {
         if (!subref)
-            s = state.header().getStr (HDR_COOKIE);
+            s = state.header().getStr (Http::HdrType::COOKIE);
         else {
-            String S = state.header().getListMember (HDR_COOKIE, subref, ';');
+            String S = state.header().getListMember (Http::HdrType::COOKIE, subref, ';');
 
             if (S.size())
                 ESISegment::ListAppend (state.getOutput(), S.rawBuf(), S.size());
@@ -452,8 +400,8 @@ ESIVariableHost::eval (ESIVarState &state, char const *subref, char const *found
     const char *s = NULL;
     state.hostUsed();
 
-    if (!subref && state.header().has(HDR_HOST)) {
-        s = state.header().getStr (HDR_HOST);
+    if (!subref && state.header().has(Http::HdrType::HOST)) {
+        s = state.header().getStr (Http::HdrType::HOST);
     } else
         s = found_default;
 
@@ -466,12 +414,12 @@ ESIVariableLanguage::eval (ESIVarState &state, char const *subref, char const *f
     char const *s = NULL;
     state.languageUsed();
 
-    if (state.header().has(HDR_ACCEPT_LANGUAGE)) {
+    if (state.header().has(Http::HdrType::ACCEPT_LANGUAGE)) {
         if (!subref) {
-            String S (state.header().getList (HDR_ACCEPT_LANGUAGE));
+            String S (state.header().getList (Http::HdrType::ACCEPT_LANGUAGE));
             ESISegment::ListAppend (state.getOutput(), S.rawBuf(), S.size());
         } else {
-            if (state.header().hasListMember (HDR_ACCEPT_LANGUAGE, subref, ',')) {
+            if (state.header().hasListMember (Http::HdrType::ACCEPT_LANGUAGE, subref, ',')) {
                 s = "true";
             } else {
                 s = "false";
@@ -515,8 +463,8 @@ ESIVariableReferer::eval (ESIVarState &state, char const *subref, char const *fo
     const char *s = NULL;
     state.refererUsed();
 
-    if (!subref && state.header().has(HDR_REFERER))
-        s = state.header().getStr (HDR_REFERER);
+    if (!subref && state.header().has(Http::HdrType::REFERER))
+        s = state.header().getStr (Http::HdrType::REFERER);
     else
         s = found_default;
 
@@ -529,9 +477,9 @@ ESIVariableUserAgent::eval (ESIVarState &state, char const *subref, char const *
     char const *s = NULL;
     state.useragentUsed();
 
-    if (state.header().has(HDR_USER_AGENT)) {
+    if (state.header().has(Http::HdrType::USER_AGENT)) {
         if (!subref)
-            s = state.header().getStr (HDR_USER_AGENT);
+            s = state.header().getStr (Http::HdrType::USER_AGENT);
         else {
             if (!strcmp (subref, "os")) {
                 s = esiUserOs[UserOs];
@@ -658,9 +606,9 @@ ESIVarState::doIt ()
 
 #define LOOKFORSTART 0
 ESIVariableProcessor::ESIVariableProcessor(char *aString, ESISegment::Pointer &aSegment, Trie &aTrie, ESIVarState *aState) :
-        string(aString), output (aSegment), variables(aTrie), varState (aState),
-        state(LOOKFORSTART), pos(0), var_pos(0), done_pos(0), found_subref (NULL),
-        found_default (NULL), currentFunction(NULL)
+    string(aString), output (aSegment), variables(aTrie), varState (aState),
+    state(LOOKFORSTART), pos(0), var_pos(0), done_pos(0), found_subref (NULL),
+    found_default (NULL), currentFunction(NULL)
 {
     len = strlen (string);
     vartype = varState->GetVar("",0);
@@ -882,10 +830,10 @@ ESIVarState::buildVary (HttpReply *rep)
     if (!tempstr[0])
         return;
 
-    String strVary (rep->header.getList (HDR_VARY));
+    String strVary (rep->header.getList (Http::HdrType::VARY));
 
     if (!strVary.size() || strVary[0] != '*') {
-        rep->header.putStr (HDR_VARY, tempstr);
+        rep->header.putStr (Http::HdrType::VARY, tempstr);
     }
 }
 

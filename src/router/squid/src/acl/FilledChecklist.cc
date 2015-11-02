@@ -1,57 +1,49 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #include "squid.h"
 #include "acl/FilledChecklist.h"
 #include "client_side.h"
 #include "comm/Connection.h"
 #include "comm/forward.h"
+#include "ExternalACLEntry.h"
 #include "HttpReply.h"
 #include "HttpRequest.h"
 #include "SquidConfig.h"
 #if USE_AUTH
-#include "auth/UserRequest.h"
 #include "auth/AclProxyAuth.h"
+#include "auth/UserRequest.h"
 #endif
 
 CBDATA_CLASS_INIT(ACLFilledChecklist);
 
-void *
-ACLFilledChecklist::operator new (size_t size)
-{
-    assert (size == sizeof(ACLFilledChecklist));
-    CBDATA_INIT_TYPE(ACLFilledChecklist);
-    ACLFilledChecklist *result = cbdataAlloc(ACLFilledChecklist);
-    return result;
-}
-
-void
-ACLFilledChecklist::operator delete (void *address)
-{
-    ACLFilledChecklist *t = static_cast<ACLFilledChecklist *>(address);
-    cbdataFree(t);
-}
-
 ACLFilledChecklist::ACLFilledChecklist() :
-        dst_peer(NULL),
-        dst_rdns(NULL),
-        request (NULL),
-        reply (NULL),
+    dst_rdns(NULL),
+    request (NULL),
+    reply (NULL),
 #if USE_AUTH
-        auth_user_request (NULL),
+    auth_user_request (NULL),
 #endif
 #if SQUID_SNMP
-        snmp_community(NULL),
+    snmp_community(NULL),
 #endif
-#if USE_SSL
-        sslErrors(NULL),
+#if USE_OPENSSL
+    sslErrors(NULL),
 #endif
-        extacl_entry (NULL),
-        conn_(NULL),
-        fd_(-1),
-        destinationDomainChecked_(false),
-        sourceDomainChecked_(false)
+    requestErrorType(ERR_MAX),
+    conn_(NULL),
+    fd_(-1),
+    destinationDomainChecked_(false),
+    sourceDomainChecked_(false)
 {
-    my_addr.SetEmpty();
-    src_addr.SetEmpty();
-    dst_addr.SetEmpty();
+    my_addr.setEmpty();
+    src_addr.setEmpty();
+    dst_addr.setEmpty();
     rfc931[0] = '\0';
 }
 
@@ -61,20 +53,73 @@ ACLFilledChecklist::~ACLFilledChecklist()
 
     safe_free(dst_rdns); // created by xstrdup().
 
-    if (extacl_entry)
-        cbdataReferenceDone(extacl_entry);
-
     HTTPMSGUNLOCK(request);
 
     HTTPMSGUNLOCK(reply);
 
     cbdataReferenceDone(conn_);
 
-#if USE_SSL
+#if USE_OPENSSL
     cbdataReferenceDone(sslErrors);
 #endif
 
     debugs(28, 4, HERE << "ACLFilledChecklist destroyed " << this);
+}
+
+static void
+showDebugWarning(const char *msg)
+{
+    static uint16_t count = 0;
+    if (count > 100)
+        return;
+
+    ++count;
+    debugs(28, DBG_IMPORTANT, "ALE missing " << msg);
+}
+
+void
+ACLFilledChecklist::syncAle() const
+{
+    // make sure the ALE fields used by Format::assemble to
+    // fill the old external_acl_type codes are set if any
+    // data on them exists in the Checklist
+
+    if (!al->cache.port && conn()) {
+        showDebugWarning("listening port");
+        al->cache.port = conn()->port;
+    }
+
+    if (request) {
+        if (!al->request) {
+            showDebugWarning("HttpRequest object");
+            al->request = request;
+            HTTPMSGLOCK(al->request);
+        }
+
+        if (!al->adapted_request) {
+            showDebugWarning("adapted HttpRequest object");
+            al->adapted_request = request;
+            HTTPMSGLOCK(al->adapted_request);
+        }
+
+        if (!al->url) {
+            showDebugWarning("URL");
+            al->url = xstrdup(request->url.absolute().c_str());
+        }
+    }
+
+    if (reply && !al->reply) {
+        showDebugWarning("HttpReply object");
+        al->reply = reply;
+        HTTPMSGLOCK(al->reply);
+    }
+
+#if USE_IDENT
+    if (*rfc931 && !al->cache.rfc931) {
+        showDebugWarning("IDENT");
+        al->cache.rfc931 = xstrdup(rfc931);
+    }
+#endif
 }
 
 ConnStateData *
@@ -146,36 +191,34 @@ ACLFilledChecklist::markSourceDomainChecked()
  *    checkCallback() will delete the list (i.e., self).
  */
 ACLFilledChecklist::ACLFilledChecklist(const acl_access *A, HttpRequest *http_request, const char *ident):
-        dst_peer(NULL),
-        dst_rdns(NULL),
-        request(NULL),
-        reply(NULL),
-#if USE_AUTh
-        auth_user_request(NULL),
+    dst_rdns(NULL),
+    request(NULL),
+    reply(NULL),
+#if USE_AUTH
+    auth_user_request(NULL),
 #endif
 #if SQUID_SNMP
-        snmp_community(NULL),
+    snmp_community(NULL),
 #endif
-#if USE_SSL
-        sslErrors(NULL),
+#if USE_OPENSSL
+    sslErrors(NULL),
 #endif
-        extacl_entry (NULL),
-        conn_(NULL),
-        fd_(-1),
-        destinationDomainChecked_(false),
-        sourceDomainChecked_(false)
+    requestErrorType(ERR_MAX),
+    conn_(NULL),
+    fd_(-1),
+    destinationDomainChecked_(false),
+    sourceDomainChecked_(false)
 {
-    my_addr.SetEmpty();
-    src_addr.SetEmpty();
-    dst_addr.SetEmpty();
+    my_addr.setEmpty();
+    src_addr.setEmpty();
+    dst_addr.setEmpty();
     rfc931[0] = '\0';
 
-    // cbdataReferenceDone() is in either fastCheck() or the destructor
-    if (A)
-        accessList = cbdataReference(A);
+    changeAcl(A);
 
     if (http_request != NULL) {
-        request = HTTPMSGLOCK(http_request);
+        request = http_request;
+        HTTPMSGLOCK(request);
 #if FOLLOW_X_FORWARDED_FOR
         if (Config.onoff.acl_uses_indirect_client)
             src_addr = request->indirect_client_addr;

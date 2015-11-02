@@ -68,6 +68,8 @@ void start_cron(void)
 
 	stop_cron();
 
+	update_timezone();
+
 	/*
 	 * Create cron's database directory 
 	 */

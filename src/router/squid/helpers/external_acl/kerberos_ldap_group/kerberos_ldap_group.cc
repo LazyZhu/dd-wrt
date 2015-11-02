@@ -1,4 +1,12 @@
 /*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
+/*
  * -----------------------------------------------------------------------------
  *
  * Author: Markus Moeller (markus_moeller at compuserve.com)
@@ -26,19 +34,19 @@
  *
  * -----------------------------------------------------------------------------
  */
-/*
- * Hosted at http://sourceforge.net/projects/squidkerbauth
- */
+
 #include "squid.h"
 #include "helpers/defines.h"
-#include "util.h"
 #include "rfc1738.h"
+#include "util.h"
 
-#ifdef HAVE_LDAP
+#if HAVE_LDAP
 
 #include "support.h"
-#ifdef HAVE_CTYPE_H
-#include <ctype.h>
+#include <cctype>
+
+#if HAVE_KRB5
+struct kstruct kparam;
 #endif
 
 void
@@ -57,6 +65,7 @@ init_args(struct main_args *margs)
     margs->rc_allow = 0;
     margs->AD = 0;
     margs->mdepth = 5;
+    margs->nokerberos = 0;
     margs->ddomain = NULL;
     margs->groups = NULL;
     margs->ndoms = NULL;
@@ -65,7 +74,7 @@ init_args(struct main_args *margs)
 
 void clean_gd(struct gdstruct *gdsp);
 void clean_nd(struct ndstruct *ndsp);
-void clean_ls(struct ndstruct *lssp);
+void clean_ls(struct lsstruct *lssp);
 
 void
 clean_gd(struct gdstruct *gdsp)
@@ -78,22 +87,12 @@ clean_gd(struct gdstruct *gdsp)
             pp = p;
             p = p->next;
         }
-        if (p->group) {
-            xfree(p->group);
-            p->group = NULL;
-        }
-        if (p->domain) {
-            xfree(p->domain);
-            p->domain = NULL;
-        }
-        if (pp && pp->next) {
-            xfree(pp->next);
-            pp->next = NULL;
-        }
-        if (p == gdsp) {
-            xfree(gdsp);
-            gdsp = NULL;
-        }
+        safe_free(p->group);
+        safe_free(p->domain);
+        if (pp)
+            safe_free(pp->next);
+        if (p == gdsp)
+            safe_free(gdsp);
         p = gdsp;
     }
 }
@@ -109,22 +108,12 @@ clean_nd(struct ndstruct *ndsp)
             pp = p;
             p = p->next;
         }
-        if (p->netbios) {
-            xfree(p->netbios);
-            p->netbios = NULL;
-        }
-        if (p->domain) {
-            xfree(p->domain);
-            p->domain = NULL;
-        }
-        if (pp && pp->next) {
-            xfree(pp->next);
-            pp->next = NULL;
-        }
-        if (p == ndsp) {
-            xfree(ndsp);
-            ndsp = NULL;
-        }
+        safe_free(p->netbios);
+        safe_free(p->domain);
+        if (pp)
+            safe_free(pp->next);
+        if (p == ndsp)
+            safe_free(ndsp);
         p = ndsp;
     }
 }
@@ -140,22 +129,12 @@ clean_ls(struct lsstruct *lssp)
             pp = p;
             p = p->next;
         }
-        if (p->lserver) {
-            xfree(p->lserver);
-            p->lserver = NULL;
-        }
-        if (p->domain) {
-            xfree(p->domain);
-            p->domain = NULL;
-        }
-        if (pp && pp->next) {
-            xfree(pp->next);
-            pp->next = NULL;
-        }
-        if (p == lssp) {
-            xfree(lssp);
-            lssp = NULL;
-        }
+        safe_free(p->lserver);
+        safe_free(p->domain);
+        if (pp)
+            safe_free(pp->next);
+        if (p == lssp)
+            safe_free(lssp);
         p = lssp;
     }
 }
@@ -163,50 +142,17 @@ clean_ls(struct lsstruct *lssp)
 void
 clean_args(struct main_args *margs)
 {
-    if (margs->glist) {
-        xfree(margs->glist);
-        margs->glist = NULL;
-    }
-    if (margs->ulist) {
-        xfree(margs->ulist);
-        margs->ulist = NULL;
-    }
-    if (margs->tlist) {
-        xfree(margs->tlist);
-        margs->tlist = NULL;
-    }
-    if (margs->nlist) {
-        xfree(margs->nlist);
-        margs->nlist = NULL;
-    }
-    if (margs->llist) {
-        xfree(margs->llist);
-        margs->llist = NULL;
-    }
-    if (margs->luser) {
-        xfree(margs->luser);
-        margs->luser = NULL;
-    }
-    if (margs->lpass) {
-        xfree(margs->lpass);
-        margs->lpass = NULL;
-    }
-    if (margs->lbind) {
-        xfree(margs->lbind);
-        margs->lbind = NULL;
-    }
-    if (margs->lurl) {
-        xfree(margs->lurl);
-        margs->lurl = NULL;
-    }
-    if (margs->ssl) {
-        xfree(margs->ssl);
-        margs->ssl = NULL;
-    }
-    if (margs->ddomain) {
-        xfree(margs->ddomain);
-        margs->ddomain = NULL;
-    }
+    safe_free(margs->glist);
+    safe_free(margs->ulist);
+    safe_free(margs->tlist);
+    safe_free(margs->nlist);
+    safe_free(margs->llist);
+    safe_free(margs->luser);
+    safe_free(margs->lpass);
+    safe_free(margs->lbind);
+    safe_free(margs->lurl);
+    safe_free(margs->ssl);
+    safe_free(margs->ddomain);
     if (margs->groups) {
         clean_gd(margs->groups);
         margs->groups = NULL;
@@ -230,16 +176,20 @@ main(int argc, char *const argv[])
     char *user, *domain, *group;
     char *up=NULL, *dp=NULL, *np=NULL;
     char *nuser, *nuser8 = NULL, *netbios;
-    char *c;
     int opt;
     struct main_args margs;
+#if HAVE_KRB5
+    krb5_error_code code = 0;
+
+    kparam.context = NULL;
+#endif
 
     setbuf(stdout, NULL);
     setbuf(stdin, NULL);
 
     init_args(&margs);
 
-    while (-1 != (opt = getopt(argc, argv, "diasg:D:N:S:u:U:t:T:p:l:b:m:h"))) {
+    while (-1 != (opt = getopt(argc, argv, "diasng:D:N:S:u:U:t:T:p:l:b:m:h"))) {
         switch (opt) {
         case 'd':
             debug_enabled = 1;
@@ -252,6 +202,9 @@ main(int argc, char *const argv[])
             break;
         case 's':
             margs.ssl = (char *) "yes";
+            break;
+        case 'n':
+            margs.nokerberos = 1;
             break;
         case 'g':
             margs.glist = xstrdup(optarg);
@@ -296,9 +249,10 @@ main(int argc, char *const argv[])
             fprintf(stderr, "squid_kerb_ldap [-d] [-i] -g group list [-D domain] [-N netbios domain map] [-s] [-u ldap user] [-p ldap user password] [-l ldap url] [-b ldap bind path] [-a] [-m max depth] [-h]\n");
             fprintf(stderr, "-d full debug\n");
             fprintf(stderr, "-i informational messages\n");
+            fprintf(stderr, "-n do not use Kerberos to authenticate to AD. Requires -u , -p and -l option\n");
             fprintf(stderr, "-g group list\n");
             fprintf(stderr, "-t group list (only group name hex UTF-8 format)\n");
-            fprintf(stderr, "-T group list (all in hex UTF-8 format - except seperator @)\n");
+            fprintf(stderr, "-T group list (all in hex UTF-8 format - except separator @)\n");
             fprintf(stderr, "-D default domain\n");
             fprintf(stderr, "-N netbios to dns domain map\n");
             fprintf(stderr, "-S ldap server to dns domain map\n");
@@ -318,7 +272,7 @@ main(int argc, char *const argv[])
             fprintf(stderr, "group   - In this case group can be used for all keberised and non kerberised ldap servers\n");
             fprintf(stderr, "group@  - In this case group can be used for all keberised ldap servers\n");
             fprintf(stderr, "group@domain  - In this case group can be used for ldap servers of domain domain\n");
-            fprintf(stderr, "group1@domain1:group2@domain2:group3@:group4  - A list is build with a colon as seperator\n");
+            fprintf(stderr, "group1@domain1:group2@domain2:group3@:group4  - A list is build with a colon as separator\n");
             fprintf(stderr, "Group membership is determined with AD servers through the users memberof attribute which\n");
             fprintf(stderr, "is followed to the top (e.g. if the group is a member of a group)\n");
             fprintf(stderr, "Group membership is determined with non AD servers through the users memberuid (assuming\n");
@@ -327,7 +281,7 @@ main(int argc, char *const argv[])
             fprintf(stderr, "server - In this case server can be used for all Kerberos domains\n");
             fprintf(stderr, "server@  - In this case server can be used for all Kerberos domains\n");
             fprintf(stderr, "server@domain  - In this case server can be used for Kerberos domain domain\n");
-            fprintf(stderr, "server1a@domain1:server1b@domain1:server2@domain2:server3@:server4 - A list is build with a colon as seperator\n");
+            fprintf(stderr, "server1a@domain1:server1b@domain1:server2@domain2:server3@:server4 - A list is build with a colon as separator\n");
             clean_args(&margs);
             exit(0);
         default:
@@ -340,7 +294,7 @@ main(int argc, char *const argv[])
     if (create_gd(&margs)) {
         if ( margs.glist != NULL ) {
             debug((char *) "%s| %s: FATAL: Error in group list: %s\n", LogTime(), PROGRAM, margs.glist ? margs.glist : "NULL");
-            SEND_ERR("");
+            SEND_BH("");
             clean_args(&margs);
             exit(1);
         } else {
@@ -350,35 +304,62 @@ main(int argc, char *const argv[])
     }
     if (create_nd(&margs)) {
         debug((char *) "%s| %s: FATAL: Error in netbios list: %s\n", LogTime(), PROGRAM, margs.nlist ? margs.nlist : "NULL");
-        SEND_ERR("");
+        SEND_BH("");
         clean_args(&margs);
         exit(1);
     }
     if (create_ls(&margs)) {
         debug((char *) "%s| %s: Error in ldap server list: %s\n", LogTime(), PROGRAM, margs.llist ? margs.llist : "NULL");
-        SEND_ERR("");
+        SEND_BH("");
         clean_args(&margs);
         exit(1);
     }
+
+#if HAVE_KRB5
+    /*
+     * Initialise Kerberos
+     */
+
+    code = krb5_init_context(&kparam.context);
+    for (int i=0; i<MAX_DOMAINS; i++) {
+        kparam.mem_ccache[i]=NULL;
+        kparam.cc[i]=NULL;
+        kparam.ncache=0;
+    }
+    if (code) {
+        error((char *) "%s| %s: ERROR: Error while initialising Kerberos library : %s\n", LogTime(), PROGRAM, error_message(code));
+        SEND_BH("");
+        clean_args(&margs);
+        exit(1);
+    }
+#endif
+
     while (1) {
+        char *c;
         if (fgets(buf, sizeof(buf) - 1, stdin) == NULL) {
             if (ferror(stdin)) {
                 debug((char *) "%s| %s: FATAL: fgets() failed! dying..... errno=%d (%s)\n", LogTime(), PROGRAM, ferror(stdin),
                       strerror(ferror(stdin)));
 
-                SEND_ERR("");
+                SEND_BH(strerror(ferror(stdin)));
                 clean_args(&margs);
-                exit(1);	/* BIIG buffer */
+#if HAVE_KRB5
+                krb5_cleanup();
+#endif
+                exit(1);    /* BIIG buffer */
             }
-            SEND_ERR("");
+            SEND_BH("fgets NULL");
             clean_args(&margs);
+#if HAVE_KRB5
+            krb5_cleanup();
+#endif
             exit(0);
         }
         c = (char *) memchr(buf, '\n', sizeof(buf) - 1);
         if (c) {
             *c = '\0';
         } else {
-            SEND_ERR("Invalid input. CR missing");
+            SEND_BH("Invalid input. CR missing");
             debug((char *) "%s| %s: ERR\n", LogTime(), PROGRAM);
             continue;
         }
@@ -386,7 +367,7 @@ main(int argc, char *const argv[])
         user = strtok(buf, " \n");
         if (!user) {
             debug((char *) "%s| %s: INFO: No Username given\n", LogTime(), PROGRAM);
-            SEND_ERR("Invalid request. No Username");
+            SEND_BH("Invalid request. No Username");
             continue;
         }
         rfc1738_unescape(user);
@@ -413,8 +394,8 @@ main(int argc, char *const argv[])
                 log((char *) "%s| %s: INFO: Got User: %s Netbios Name: %s\n", LogTime(), PROGRAM, up, np);
             domain = get_netbios_name(&margs, netbios);
             user = nuser;
-            xfree(up);
-            xfree(np);
+            safe_free(up);
+            safe_free(np);
         } else if (domain) {
             strup(domain);
             *domain = '\0';
@@ -436,10 +417,14 @@ main(int argc, char *const argv[])
         else
             log((char *) "%s| %s: INFO: Got User: %s Domain: %s\n", LogTime(), PROGRAM, up, domain ? dp : "NULL");
 
-        xfree(up);
-        xfree(dp);
+        safe_free(up);
+        safe_free(dp);
         if (!strcmp(user, "QQ") && domain && !strcmp(domain, "QQ")) {
             clean_args(&margs);
+#if HAVE_KRB5
+            krb5_cleanup();
+#endif
+
             exit(-1);
         }
         if (gopt) {
@@ -452,12 +437,12 @@ main(int argc, char *const argv[])
                 }
                 margs.glist = xstrdup(group);
                 if (create_gd(&margs)) {
-                    SEND_ERR("Error in group list");
+                    SEND_BH("Error in group list");
                     debug((char *) "%s| %s: FATAL: Error in group list: %s\n", LogTime(), PROGRAM, margs.glist ? margs.glist : "NULL");
                     continue;
                 }
             } else {
-                SEND_ERR("No group list received on stdin");
+                SEND_BH("No group list received on stdin");
                 debug((char *) "%s| %s: FATAL: No group list received on stdin\n", LogTime(), PROGRAM);
                 continue;
             }
@@ -477,14 +462,13 @@ void
 strup(char *s)
 {
     while (*s) {
-        *s = toupper((unsigned char) *s);
+        *s = (char)toupper((unsigned char) *s);
         ++s;
     }
 }
 
 #else
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 int
 main(int argc, char *const argv[])
 {
@@ -499,3 +483,4 @@ main(int argc, char *const argv[])
     }
 }
 #endif
+

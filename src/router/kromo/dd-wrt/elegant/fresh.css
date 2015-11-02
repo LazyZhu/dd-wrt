@@ -211,6 +211,7 @@ table[summary="ports forwardig table"] input[size="10"]{
 	font-size: smaller;
 	line-height: 1.33em;
 	margin-top: 0.57em;
+	height:9.240em;
 }
 .message {
 	border-radius: 6px;

@@ -38,18 +38,20 @@ case $1 in
   fi
   echo -n $$ > "${PIDFILE}"
   echo "PID file created"
+
   echo "Attempting initial connect..."
   logger -t vpn "Attempting initial PPTP connect"
   pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn nodetach
   echo "Initial connection dropped"
   sleep $REDIALT
+
   while [ 1 ];
   do
    echo "Attempting [re]connect..."
    logger -t vpn "Attempting PPTP [re]connect"
    killall pptp 2>/dev/null
    sleep 2
-   killall -9 pptp 2>/dev/null
+   killall -9 pppd 2>/dev/null
    sleep 1
    pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn nodetach
    echo "Connection dropped... "
@@ -73,18 +75,20 @@ case $1 in
    echo "Removing PID file"
    rm -f "${PIDFILE}"
   fi
+
   echo -n $$ > "${PIDFILE}"
   echo "PID file created"
   echo "Attempting initial connect"
   pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn debug dump nodetach
   echo "Initial connection dropped"
   sleep $REDIALT
+
   while [ 1 ];
   do
-   echo "Attempting connect... "
-   killall pptp 2>/dev/null
+   echo "Attempting connect..."
+   killall pppd 2>/dev/null
    sleep 2
-   killall -9 pptp 2>/dev/null
+   killall -9 pppd 2>/dev/null
    sleep 1
    pptp $PPTPSERVER file /tmp/pptpd_client/options.vpn debug dump nodetach
    echo "Connection dropped... "
@@ -100,7 +104,7 @@ case $1 in
   sleep 2
   kill -9 $VPNPID 2>/dev/null
 
-  PPTPPID=`pidof -s pptp`
+  PPTPPID=`pidof -s pppd`
   echo "Killing PPTP PID $PPTPPID"
   kill $PPTPPID
   sleep 2
@@ -119,10 +123,10 @@ case $1 in
   echo " " 
   echo "   start  -  Starts the Client" 
   echo "   stop   -  Stops the Client" 
-  echo "   go     -  Run the Client interactively (for debugging)" 
   echo "   debug  -  Run the Client interactively (in full debug mode)" 
   echo " " 
  ;; 
 esac
 
 return $RESP
+

@@ -1,7 +1,12 @@
 /*
- * DEBUG: section 49    SNMP Interface
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 49    SNMP Interface */
 
 #ifndef SQUID_SNMPX_FORWARDER_H
 #define SQUID_SNMPX_FORWARDER_H
@@ -21,6 +26,8 @@ namespace Snmp
  */
 class Forwarder: public Ipc::Forwarder
 {
+    CBDATA_CLASS(Forwarder);
+
 public:
     Forwarder(const Pdu& aPdu, const Session& aSession, int aFd,
               const Ip::Address& anAddress);
@@ -38,8 +45,6 @@ private:
 private:
     int fd; ///< client connection descriptor
     AsyncCall::Pointer closer; ///< comm_close handler for the connection
-
-    CBDATA_CLASS2(Forwarder);
 };
 
 void SendResponse(unsigned int requestId, const Pdu& pdu);
@@ -47,3 +52,4 @@ void SendResponse(unsigned int requestId, const Pdu& pdu);
 } // namespace Snmp
 
 #endif /* SQUID_SNMPX_FORWARDER_H */
+

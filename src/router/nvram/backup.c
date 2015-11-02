@@ -40,6 +40,8 @@
 
 #ifdef NVRAM_SPACE_256
 #define NVRAMSPACE NVRAM_SPACE_256
+#elif HAVE_MVEBU
+#define NVRAMSPACE 0x10000
 #else
 #define NVRAMSPACE NVRAM_SPACE
 #endif
@@ -283,6 +285,12 @@ static char *filter[] = { "lan_ifnames",
 	"modelDescription",
 	"loader_version",
 	"gs_sku_id",
+	"et_txq_thresh",
+	"sn",
+	"um_board_id",
+	"rgmii_port",
+	"strap_p5_mode",
+	"territory_code",
 	NULL
 };
 
@@ -298,7 +306,7 @@ int nvram_critical(char *name)
 			return 1;
 		}
 	}
-	if (strncmp(name, "sb/", 3) && strncmp(name, "pci/", 4) && strncmp(name, "0:", 2) && strncmp(name, "1:", 2) && strncmp(name, "2:", 2) && !strstr(name,"_hwaddr"))
+	if (strncmp(name, "sb/", 3) && strncmp(name, "pci/", 4)  && strncmp(name, "pcie/", 5) && strncmp(name, "0:", 2) && strncmp(name, "1:", 2) && strncmp(name, "2:", 2) && !strstr(name,"_hwaddr"))
 		return 0;
 	else
 		return 1;

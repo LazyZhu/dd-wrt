@@ -22,13 +22,13 @@
  * These functions are not time critical.
  */
 
-#ifndef lint
-static const char rcsid[] _U_ =
-    "@(#) $Header: /tcpdump/master/libpcap/nametoaddr.c,v 1.73 2003/12/24 09:14:21 itojun Exp $ (LBL)";
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
+
+#ifdef DECNETLIB
+#include <sys/types.h>
+#include <netdnet/dnetdb.h>
 #endif
 
 #ifdef WIN32
@@ -44,21 +44,21 @@ static const char rcsid[] _U_ =
 #include <netinet/in.h>
 #endif /* WIN32 */
 
-/*
- * XXX - why was this included even on UNIX?
- */
-#ifdef __MINGW32__
-#include "IP6_misc.h"
-#endif
-
 #ifndef WIN32
 #ifdef HAVE_ETHER_HOSTTON
+/*
+ * XXX - do we need any of this if <netinet/if_ether.h> doesn't declare
+ * ether_hostton()?
+ */
 #ifdef HAVE_NETINET_IF_ETHER_H
 struct mbuf;		/* Squelch compiler warnings on some platforms for */
 struct rtentry;		/* declarations in <net/if.h> */
 #include <net/if.h>	/* for "struct ifnet" in "struct arpcom" on Solaris */
 #include <netinet/if_ether.h>
 #endif /* HAVE_NETINET_IF_ETHER_H */
+#ifdef NETINET_ETHER_H_DECLARES_ETHER_HOSTTON
+#include <netinet/ether.h>
+#endif /* NETINET_ETHER_H_DECLARES_ETHER_HOSTTON */
 #endif /* HAVE_ETHER_HOSTTON */
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -67,13 +67,13 @@ struct rtentry;		/* declarations in <net/if.h> */
 #include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <memory.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "pcap-int.h"
 
 #include "gencode.h"
-#include <pcap-namedb.h>
+#include <pcap/namedb.h>
 
 #ifdef HAVE_OS_PROTO_H
 #include "os-proto.h"
@@ -209,6 +209,52 @@ pcap_nametoport(const char *name, int *port, int *proto)
 	return 0;
 }
 
+/*
+ * Convert a string in the form PPP-PPP, where correspond to ports, to
+ * a starting and ending port in a port range.
+ * Return 0 on failure.
+ */
+int
+pcap_nametoportrange(const char *name, int *port1, int *port2, int *proto)
+{
+	u_int p1, p2;
+	char *off, *cpy;
+	int save_proto;
+
+	if (sscanf(name, "%d-%d", &p1, &p2) != 2) {
+		if ((cpy = strdup(name)) == NULL)
+			return 0;
+
+		if ((off = strchr(cpy, '-')) == NULL) {
+			free(cpy);
+			return 0;
+		}
+
+		*off = '\0';
+
+		if (pcap_nametoport(cpy, port1, proto) == 0) {
+			free(cpy);
+			return 0;
+		}
+		save_proto = *proto;
+
+		if (pcap_nametoport(off + 1, port2, proto) == 0) {
+			free(cpy);
+			return 0;
+		}
+		free(cpy);
+
+		if (*proto != save_proto)
+			*proto = PROTO_UNDEF;
+	} else {
+		*port1 = p1;
+		*port2 = p2;
+		*proto = PROTO_UNDEF;
+	}
+
+	return 1;
+}
+
 int
 pcap_nametoproto(const char *str)
 {
@@ -224,7 +270,7 @@ pcap_nametoproto(const char *str)
 #include "ethertype.h"
 
 struct eproto {
-	char *s;
+	const char *s;
 	u_short p;
 };
 
@@ -259,6 +305,30 @@ int
 pcap_nametoeproto(const char *s)
 {
 	struct eproto *p = eproto_db;
+
+	while (p->s != 0) {
+		if (strcmp(p->s, s) == 0)
+			return p->p;
+		p += 1;
+	}
+	return PROTO_UNDEF;
+}
+
+#include "llc.h"
+
+/* Static data base of LLC values. */
+static struct eproto llc_db[] = {
+	{ "iso", LLCSAP_ISONS },
+	{ "stp", LLCSAP_8021D },
+	{ "ipx", LLCSAP_IPX },
+	{ "netbeui", LLCSAP_NETBEUI },
+	{ (char *)0, 0 }
+};
+
+int
+pcap_nametollc(const char *s)
+{
+	struct eproto *p = llc_db;
 
 	while (p->s != 0) {
 		if (strcmp(p->s, s) == 0)
@@ -312,7 +382,7 @@ __pcap_atodn(const char *s, bpf_u_int32 *addr)
 
 	u_int node, area;
 
-	if (sscanf((char *)s, "%d.%d", &area, &node) != 2)
+	if (sscanf(s, "%d.%d", &area, &node) != 2)
 		bpf_error("malformed decnet address '%s'", s);
 
 	*addr = (area << AREASHIFT) & AREAMASK;
@@ -322,7 +392,15 @@ __pcap_atodn(const char *s, bpf_u_int32 *addr)
 }
 
 /*
- * Convert 's' which has the form "xx:xx:xx:xx:xx:xx" into a new
+ * Convert 's', which can have the one of the forms:
+ *
+ *	"xx:xx:xx:xx:xx:xx"
+ *	"xx.xx.xx.xx.xx.xx"
+ *	"xx-xx-xx-xx-xx-xx"
+ *	"xxxx.xxxx.xxxx"
+ *	"xxxxxxxxxxxx"
+ *
+ * (or various mixes of ':', '.', and '-') into a new
  * ethernet address.  Assumes 's' is well formed.
  */
 u_char *
@@ -332,9 +410,11 @@ pcap_ether_aton(const char *s)
 	register u_int d;
 
 	e = ep = (u_char *)malloc(6);
+	if (e == NULL)
+		return (NULL);
 
 	while (*s) {
-		if (*s == ':')
+		if (*s == ':' || *s == '.' || *s == '-')
 			s += 1;
 		d = xdtoi(*s++);
 		if (isxdigit((unsigned char)*s)) {
@@ -381,18 +461,13 @@ pcap_ether_hostton(const char *name)
 }
 #else
 
-/*
- * XXX - perhaps this should, instead, be declared in "lbl/os-XXX.h" files,
- * for those OS versions that don't declare it, rather than being declared
- * here?  That way, for example, we could declare it on FreeBSD 2.x (which
- * doesn't declare it), but not on FreeBSD 3.x (which declares it like
- * this) or FreeBSD 4.x (which declares it with its first argument as
- * "const char *", so no matter how we declare it here, it'll fail to
- * compile on one of 3.x or 4.x).
- */
-#if !defined(sgi) && !defined(__NetBSD__) && !defined(__FreeBSD__) && \
-       !defined(_UNICOSMP)
-extern int ether_hostton(char *, struct ether_addr *);
+#if !defined(HAVE_DECL_ETHER_HOSTTON) || !HAVE_DECL_ETHER_HOSTTON
+#ifndef HAVE_STRUCT_ETHER_ADDR
+struct ether_addr {
+	unsigned char ether_addr_octet[6];
+};
+#endif
+extern int ether_hostton(const char *, struct ether_addr *);
 #endif
 
 /* Use the os supplied routines */
@@ -403,7 +478,7 @@ pcap_ether_hostton(const char *name)
 	u_char a[6];
 
 	ap = NULL;
-	if (ether_hostton((char *)name, (struct ether_addr *)a) == 0) {
+	if (ether_hostton(name, (struct ether_addr *)a) == 0) {
 		ap = (u_char *)malloc(6);
 		if (ap != NULL)
 			memcpy((char *)ap, (char *)a, 6);

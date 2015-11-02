@@ -1,5 +1,4 @@
-/*
- * sysinit-northstar.c
+/* sysinit-northstar.c
  *
  * Copyright (C) 2012 Sebastian Gottschall <gottschall@dd-wrt.com>
  *
@@ -81,6 +80,7 @@ static void set_regulation(int card, char *code, char *rev)
 	case ROUTER_NETGEAR_R6300V2:
 	case ROUTER_NETGEAR_R7000:
 	case ROUTER_DLINK_DIR868:
+	case ROUTER_DLINK_DIR860:
 		sprintf(path, "pci/%d/1/regrev", card + 1);
 		nvram_set(path, rev);
 		sprintf(path, "pci/%d/1/ccode", card + 1);
@@ -102,7 +102,7 @@ void start_sysinit(void)
 	time_t tm = 0;
 	struct nvram_param *extra_params = NULL;
 
-	insmod("softdog");
+//      insmod("softdog");
 	/*
 	 * Setup console 
 	 */
@@ -122,7 +122,7 @@ void start_sysinit(void)
 				fclose(fp);
 				fp = fopen("/tmp/nvramcopy", "wb");
 				fwrite(temp, 1, 65536, fp);
-				sysprintf("mtd -f write /tmp/nvramcopy nvram");
+				eval("mtd", "-f", "write", "/tmp/nvramcopy nvram");
 				sys_reboot();
 			}
 			fclose(fp);
@@ -494,20 +494,17 @@ void start_sysinit(void)
 				{"aa5g", "7"},
 				{"pdoffset80ma0", "256"},
 				{"pdoffset80ma1", "256"},
-				{"cckbw20ul2gpo", "0"},
 				{"pdoffset80ma2", "256"},
 				{"papdcap5g", "0"},
 				{"tssiposslope5g", "1"},
 				{"tempcorrx", "0x3f"},
 				{"mcslr5glpo", "0"},
-				{"mcsbw402gpo", "2571386880"},
 				{"sar5g", "15"},
 				{"rxgains5gmelnagaina0", "7"},
 				{"rxgains5gmelnagaina1", "7"},
 				{"rxgains5gmelnagaina2", "7"},
 				{"mcslr5ghpo", "0"},
 				{"rxgainerr5ga0", "63,63,63,63"},
-				{"mcsbw202gpo", "2571386880"},
 				{"rxgainerr5ga1", "31,31,31,31"},
 				{"rxgainerr5ga2", "31,31,31,31"},
 				{"pcieingress_war", "15"},
@@ -528,7 +525,6 @@ void start_sysinit(void)
 				{"mcsbw205ghpo", "0xFC652000"},
 				{"measpower", "0x7f"},
 				{"rxgains5ghelnagaina0", "7"},
-				{"ofdmlrbw202gpo", "0"},
 				{"rxgains5ghelnagaina1", "7"},
 				{"rxgains5ghelnagaina2", "7"},
 				{"gainctrlsph", "0"},
@@ -537,7 +533,6 @@ void start_sysinit(void)
 				{"mcsbw1605gmpo", "0"},
 				{"epagain5g", "0"},
 				{"mcsbw405gmpo", "0xEC300000"},
-				{"cckbw202gpo", "0"},
 				{"rxchain", "7"},
 				{"sb40and80lr5glpo", "0"},
 				{"sb20in80and160lr5glpo", "0"},
@@ -564,7 +559,6 @@ void start_sysinit(void)
 				{"mcsbw1605glpo", "0"},
 				{"sb40and80hr5ghpo", "0"},
 				{"mcsbw405glpo", "0xEC30000"},
-				{"dot11agofdmhrbw202gpo", "17408"},
 				{"rxgains5gmtrisoa0", "15"},
 				{"sb20in80and160hr5ghpo", "0"},
 				{"mcsbw1605ghpo", "0"},
@@ -615,7 +609,7 @@ void start_sysinit(void)
 		break;
 	case ROUTER_NETGEAR_R6300V2:
 
-		if (nvram_get("pci/1/1/venid") == NULL) {
+		if (nvram_get("pci/1/1/ddwrt") == NULL) {
 			if (!sv_valid_hwaddr(nvram_safe_get("pci/1/1/macaddr"))
 			    || startswith(nvram_safe_get("pci/1/1/macaddr"), "00:90:4C")
 			    || !sv_valid_hwaddr(nvram_safe_get("pci/2/1/macaddr"))
@@ -825,7 +819,7 @@ void start_sysinit(void)
 				nvram_nset(extra_params->value, "pci/2/1/%s", extra_params->name);
 				extra_params++;
 			}
-			nvram_set("pci/1/1/venid", "0x14E4");
+			nvram_set("pci/1/1/ddwrt", "1");
 			nvram_commit();
 		}
 		nvram_unset("et1macaddr");
@@ -839,7 +833,7 @@ void start_sysinit(void)
 		break;
 	case ROUTER_NETGEAR_R7000:
 
-		if (nvram_get("pci/1/1/venid") == NULL) {
+		if (nvram_get("pci/1/1/ddwrt") == NULL) {
 			if (!sv_valid_hwaddr(nvram_safe_get("pci/1/1/macaddr"))
 			    || startswith(nvram_safe_get("pci/1/1/macaddr"), "00:90:4C")
 			    || !sv_valid_hwaddr(nvram_safe_get("pci/2/1/macaddr"))
@@ -923,6 +917,10 @@ void start_sysinit(void)
 				{"devid", "0x43a1"},
 				{"mcsbw402gpo", "0xA976A600"},
 				{"mcsbw202gpo", "0xA976A600"},
+				{"venid", "0x14E4"},
+				{"tempthresh", "120"},
+				{"txchain", "7"},
+				{"rxchain", "7"},
 				{0, 0}
 			};
 			/*
@@ -960,49 +958,32 @@ void start_sysinit(void)
 				{"tempsense_option", "0x3"},
 				{"devid", "0x43a2"},
 				{"femctrl", "3"},
-				{"epagain2g", "0"},
 				{"aa5g", "0"},
-				{"rxgains2gelnagaina0", "0"},
-				{"rxgains2gelnagaina1", "0"},
 				{"pdoffset80ma0", "0"},
-				{"rxgains2gelnagaina2", "0"},
 				{"pdoffset80ma1", "0"},
-				{"cckbw20ul2gpo", "0"},
 				{"pdoffset80ma2", "0"},
 				{"papdcap5g", "0"},
 				{"tssiposslope5g", "1"},
 				{"tempcorrx", "0x3f"},
 				{"mcslr5glpo", "0"},
-				{"mcsbw402gpo", "0"},
-				{"pdoffset2g40ma0", "15"},
 				{"sar5g", "15"},
-				{"pdoffset2g40ma1", "15"},
-				{"pdoffset2g40ma2", "15"},
 				{"pa5ga0", "0xFF4C,0x1808,0xFD1B,0xFF4C,0x18CF,0xFD0C,0xFF4A,0x1920,0xFD08,0xFF4C,0x1949,0xFCF6"},
 				{"pa5ga1", "0xFF4A,0x18AC,0xFD0B,0xFF44,0x1904,0xFCFF,0xFF56,0x1A09,0xFCFC,0xFF4F,0x19AB,0xFCEF"},
 				{"rxgains5gmelnagaina0", "3"},
 				{"pa5ga2", "0xFF4C,0x1896,0xFD11,0xFF43,0x192D,0xFCF5,0xFF50,0x19EE,0xFCF1,0xFF52,0x19C6,0xFCF1"},
 				{"rxgains5gmelnagaina1", "4"},
 				{"rxgains5gmelnagaina2", "4"},
-				{"mcsbw1605hpo", "0"},
 				{"mcslr5ghpo", "0"},
 				{"rxgainerr5ga0", "63,63,63,63"},
-				{"mcsbw202gpo", "0"},
 				{"rxgainerr5ga1", "31,31,31,31"},
 				{"rxgainerr5ga2", "31,31,31,31"},
-				{"rxgains2gtrisoa0", "0"},
-				{"rxgains2gtrisoa1", "0"},
 				{"pdoffset40ma0", "4369"},
-				{"rxgains2gtrisoa2", "0"},
 				{"pdoffset40ma1", "4369"},
 				{"pdoffset40ma2", "4369"},
 				{"sb40and80lr5gmpo", "0"},
 				{"rxgains5gelnagaina0", "4"},
 				{"rxgains5gelnagaina1", "4"},
-				{"noiselvl2ga0", "31"},
 				{"rxgains5gelnagaina2", "4"},
-				{"noiselvl2ga1", "31"},
-				{"noiselvl2ga2", "31"},
 				{"agbg0", "0"},
 				{"mcsbw205glpo", "0xBA768600"},
 				{"agbg1", "0"},
@@ -1016,23 +997,15 @@ void start_sysinit(void)
 				{"mcsbw205ghpo", "0xBA768600"},
 				{"measpower", "0x7f"},
 				{"rxgains5ghelnagaina0", "3"},
-				{"ofdmlrbw202gpo", "0"},
 				{"rxgains5ghelnagaina1", "3"},
 				{"rxgains5ghelnagaina2", "4"},
 				{"gainctrlsph", "0"},
 				{"sb40and80hr5gmpo", "0"},
 				{"sb20in80and160hr5gmpo", "0"},
 				{"mcsbw1605gmpo", "0"},
-				{"pa2ga0", "0xfe72,0x14c0,0xfac7"},
-				{"pa2ga1", "0xfe80,0x1472,0xfabc"},
-				{"pa2ga2", "0xfe82,0x14bf,0xfad9"},
 				{"epagain5g", "0"},
 				{"mcsbw405gmpo", "0xBA768600"},
-				{"rxgainerr2ga0", "63"},
 				{"boardtype", "0x621"},
-				{"rxgainerr2ga1", "31"},
-				{"rxgainerr2ga2", "31"},
-				{"cckbw202gpo", "0"},
 				{"rxchain", "7"},
 				{"sb40and80lr5glpo", "0"},
 				{"maxp5ga0", "106,106,106,106"},
@@ -1042,9 +1015,7 @@ void start_sysinit(void)
 				{"sb20in80and160lr5glpo", "0"},
 				{"sb40and80lr5ghpo", "0"},
 				{"mcsbw805glpo", "0xBA768600"},
-				{"pdgain2g", "4"},
 				{"sb20in80and160lr5ghpo", "0"},
-				{"tssifloor2g", "0x3ff"},
 				{"tempsense_slope", "0xff"},
 				{"mcsbw805ghpo", "0xBA768600"},
 				{"antswitch", "0"},
@@ -1052,23 +1023,16 @@ void start_sysinit(void)
 				{"aga1", "0"},
 				{"rawtempsense", "0x1ff"},
 				{"aga2", "0"},
-				{"tempthresh", "255"},
-				{"tworangetssi2g", "0"},
+				{"tempthresh", "120"},
 				{"dot11agduphrpo", "0"},
 				{"sb40and80hr5glpo", "0"},
 				{"sromrev", "11"},
 				{"boardnum", "20507"},
 				{"sb20in40lrpo", "0"},
-				{"rxgains2gtrelnabypa0", "0"},
-				{"rxgains2gtrelnabypa1", "0"},
 				{"sb20in80and160hr5glpo", "0"},
 				{"mcsbw1605glpo", "0"},
-				{"rxgains2gtrelnabypa2", "0"},
 				{"sb40and80hr5ghpo", "0"},
 				{"mcsbw405glpo", "0xBA768600"},
-				{"rpcal2g", "0"},
-				{"dot11agofdmhrbw202gpo", "0"},
-				{"aa2g", "7"},
 				{"boardrev", "0x1451"},
 				{"mcsbw1605ghpo", "0"},
 				{"rxgains5gmtrisoa0", "5"},
@@ -1076,14 +1040,9 @@ void start_sysinit(void)
 				{"rxgains5gmtrisoa1", "4"},
 				{"rxgains5gmtrisoa2", "4"},
 				{"rxgains5gmtrelnabypa0", "1"},
-				{"papdcap2g", "0"},
 				{"rxgains5gmtrelnabypa1", "1"},
 				{"rxgains5gmtrelnabypa2", "1"},
 				{"mcsbw405ghpo", "0xBA768600"},
-				{"tssiposslope2g", "1"},
-				{"maxp2ga0", "76"},
-				{"maxp2ga1", "76"},
-				{"maxp2ga2", "76"},
 				{"boardflags2", "0x300002"},
 				{"boardflags3", "0x10000000"},
 				{"rxgains5ghtrelnabypa0", "1"},
@@ -1093,13 +1052,12 @@ void start_sysinit(void)
 				{"rpcal5gb0", "0x7005"},
 				{"rpcal5gb1", "0x8403"},
 				{"rpcal5gb2", "0x6ff9"},
-				{"sar2g", "18"},
 				{"rpcal5gb3", "0x8509"},
 				{"temps_hysteresis", "15"},
 				{"rxgains5gtrelnabypa0", "1"},
 				{"rxgains5gtrelnabypa1", "1"},
 				{"rxgains5gtrelnabypa2", "1"},
-				{"pdoffset2g40mvalid", "1"},
+				{"venid", "0x14E4"},
 				{0, 0}
 			};
 
@@ -1114,7 +1072,7 @@ void start_sysinit(void)
 			nvram_set("wl_pcie_mrrs", "128");
 			nvram_set("wl0_pcie_mrrs", "128");
 			nvram_set("wl1_pcie_mrrs", "128");
-			nvram_set("pci/1/1/venid", "0x14E4");
+			nvram_set("pci/1/1/ddwrt", "1");
 			nvram_commit();
 		}
 		nvram_unset("et1macaddr");
@@ -1126,7 +1084,7 @@ void start_sysinit(void)
 		break;
 	case ROUTER_NETGEAR_EX6200:
 		nvram_set("vlan2hwname", "et0");
-		if (nvram_get("0:venid") == NULL) {
+		if (nvram_get("0:ddwrt") == NULL) {
 			if (!sv_valid_hwaddr(nvram_safe_get("0:macaddr"))
 			    || startswith(nvram_safe_get("0:macaddr"), "00:90:4C")
 			    || !sv_valid_hwaddr(nvram_safe_get("1:macaddr"))
@@ -1198,11 +1156,9 @@ void start_sysinit(void)
 			struct nvram_param ex6200_1params[] = {
 				{"tssiposslope5g", "1"},
 				{"sb20in80and160lr5ghpo", "0"},
-				{"rxgains2gtrisoa0", "7"},
 				{"ofdm5glpo", "0"},
 				{"boardflags", "0x30001000"},
 				{"antswitch", "0"},
-				{"sar2g", "0xFF"},
 				{"tempsense_slope", "0xff"},
 				{"mcsbw805glpo", "0x22000000"},
 				{"tempoffset", "255"},
@@ -1214,15 +1170,11 @@ void start_sysinit(void)
 				{"rawtempsense", "0x1ff"},
 				{"sb20in80and160hr5glpo", "0"},
 				{"femctrl", "1"},
-				{"dot11agofdmhrbw202gpo", "0"},
 				{"sb20in80and160hr5ghpo", "0"},
 				{"sb20in40lrpo", "0"},
 				{"rxgains5gmtrelnabypa0", "1"},
 				{"rxgains5gmtrelnabypa1", "1"},
-				{"papdcap2g", "0"},
-				{"pa2ga0", "0xFF35,0x18F7,0xFCF5"},
 				{"mcsbw405glpo", "0x22000000"},
-				{"mcsbw402gpo", "0"},
 				{"sb40and80hr5gmpo", "0"},
 				{"mcslr5glpo", "0"},
 				{"mcsbw1605glpo", "0"},
@@ -1231,8 +1183,6 @@ void start_sysinit(void)
 				{"rxgains5ghtrelnabypa0", "1"},
 				{"rxgains5ghtrelnabypa1", "1"},
 				{"mcsbw405ghpo", "0xDD975000"},
-				{"mcsbw202gpo", "0"},
-				{"ofdmlrbw202gpo", "0"},
 				{"mcslr5ghpo", "0"},
 				{"mcsbw1605ghpo", "0"},
 				{"devid", "0x43b1"},
@@ -1240,12 +1190,10 @@ void start_sysinit(void)
 				{"measpower1", "0x7f"},
 				{"measpower2", "0x7f"},
 				{"sb40and80lr5ghpo", "0"},
-				{"rxgains2gtrelnabypa0", "1"},
 				{"maxp5ga0", "78,78,78,100"},
 				{"maxp5ga1", "78,78,78,100"},
 				{"sar5g", "0xFF"},
 				{"gainctrlsph", "0"},
-				{"pdgain2g", "14"},
 				{"aga0", "0"},
 				{"subband5gver", "0x4"},
 				{"aga1", "0"},
@@ -1253,19 +1201,14 @@ void start_sysinit(void)
 				{"sb20in40hrpo", "0"},
 				{"noiselvl5ga0", "31,31,31,31"},
 				{"mcsbw205gmpo", "0x22000000"},
-				{"cckbw202gpo", "0"},
 				{"noiselvl5ga1", "31,31,31,31"},
 				{"agbg0", "0"},
 				{"agbg1", "0"},
 				{"sb40and80hr5ghpo", "0"},
-				{"epagain2g", "0"},
-				{"rxgains2gelnagaina0", "4"},
 				{"rxchain", "3"},
 				{"boardnum", "20771"},
-				{"tworangetssi2g", "0"},
 				{"papdcap5g", "0"},
 				{"dot11agduphrpo", "0"},
-				{"aa2g", "1"},
 				{"tempcorrx", "0x3f"},
 				{"rxgains5gtrelnabypa0", "1"},
 				{"regrev", "61"},
@@ -1274,11 +1217,8 @@ void start_sysinit(void)
 				{"boardvendor", "0x14e4"},
 				{"pdoffset80ma0", "0x0"},
 				{"pdoffset80ma1", "0x0"},
-				{"maxp2ga0", "0x50"},
 				{"pdoffset80ma2", "0x0"},
-				{"cckbw20ul2gpo", "0"},
 				{"temps_hysteresis", "15"},
-				{"tssiposslope2g", "1"},
 				{"rxgains5gmtrisoa0", "5"},
 				{"rxgains5gmtrisoa1", "4"},
 				{"tempthresh", "255"},
@@ -1290,7 +1230,6 @@ void start_sysinit(void)
 				{"rxgainerr5ga0", "0x3F,0x3F,0x3F,0x3F"},
 				{"rxgainerr5ga1", "0x1F,0x1F,0x1F,0x1F"},
 				{"pdoffset40ma0", "0x1111"},
-				{"rpcal2g", "0"},
 				{"pdoffset40ma1", "0x1111"},
 				{"mcsbw205glpo", "0x22000000"},
 				{"pdoffset40ma2", "0x1111"},
@@ -1322,7 +1261,6 @@ void start_sysinit(void)
 				{"mcslr5gmpo", "0"},
 				{"mcsbw1605gmpo", "0"},
 				{"sb20in80and160lr5glpo", "0"},
-				{"rxgainerr2ga0", "0x3F"},
 				{0, 0}
 			};
 
@@ -1337,7 +1275,11 @@ void start_sysinit(void)
 				extra_params++;
 			}
 
-			nvram_set("devpath0", "pci/1/1"), nvram_set("devpath1", "pci/2/1"), nvram_set("wl_pcie_mrrs", "128"), nvram_commit();
+			nvram_set("devpath0", "pci/1/1");
+			nvram_set("devpath1", "pci/2/1");
+			nvram_set("wl_pcie_mrrs", "128");
+			nvram_set("0:ddwrt", "1");
+			nvram_commit();
 		}
 		nvram_unset("et1macaddr");
 		set_gpio(0, 1);	//USB
@@ -1348,7 +1290,7 @@ void start_sysinit(void)
 		set_gpio(12, 1);	//green 5
 		break;
 	case ROUTER_NETGEAR_R8000:
-		if (nvram_get("0:venid") == NULL) {
+		if (nvram_get("0:ddwrt") == NULL) {
 			char mac[20];
 			strcpy(mac, nvram_safe_get("et2macaddr"));
 			MAC_ADD(mac);
@@ -1359,7 +1301,6 @@ void start_sysinit(void)
 			MAC_ADD(mac);
 			nvram_set("2:macaddr", mac);
 			struct nvram_param r8000_0params[] = {
-				{"venid", "0x14e4"},
 				{"watchdog", "3000"},
 				{"deadman_to", "720000000"},
 				{"rxgains5gmelnagaina0", "1"},
@@ -1655,6 +1596,7 @@ void start_sysinit(void)
 			nvram_set("devpath2", "pcie/2/4");
 			nvram_set("wl2_channel", "48");
 			nvram_set("wl0_channel", "161");
+			nvram_set("0:ddwrt", "1");
 
 			extra_params = r8000_0params;
 			while (extra_params->name) {
@@ -1675,9 +1617,6 @@ void start_sysinit(void)
 
 			nvram_commit();
 		}
-		set_regulation(0, "Q2", "86");
-		set_regulation(1, "Q2", "86");
-		set_regulation(2, "Q2", "86");
 		nvram_unset("et0macaddr");
 		nvram_unset("et1macaddr");
 		set_gpio(6, 1);	//reset button
@@ -1933,6 +1872,345 @@ void start_sysinit(void)
 		set_gpio(15, 1);	// fixup wifi button
 		set_gpio(2, 1);	// fixup ses button
 		break;
+	case ROUTER_ASUS_AC88U:
+		eval("mknod", "/dev/rtkswitch", "c", "233", "0");
+		insmod("rtl8365mb");
+		fprintf(stderr, "Reset RTL8365MB Switch\n");
+		usleep(400 * 1000);
+		int i, r;
+		for (i = 0; i < 10; ++i) {
+			set_gpio(10, 1);
+			if ((r = get_gpio(10)) != 1) {
+				fprintf(stderr, "\n! reset LED_RESET_SWITCH failed:%d, reset again !\n", r);
+				usleep(10 * 1000);
+			} else {
+				fprintf(stderr, "\nchk LED_RESET_SWITCH:%d\n", r);
+				break;
+			}
+		}
+
+		nvram_set("1:ledbh9", "0x7");
+		nvram_set("0:ledbh9", "0x7");
+		set_gpio(11, 1);	// fixup reset button
+		set_gpio(18, 1);	// fixup wifi button
+		set_gpio(20, 1);	// fixup ses button
+		break;
+	case ROUTER_ASUS_AC5300:
+		nvram_set("2:ledbh9", "0x7");
+		nvram_set("1:ledbh9", "0x7");
+		nvram_set("0:ledbh9", "0x7");
+		set_gpio(11, 1);	// fixup reset button
+		set_gpio(18, 1);	// fixup wifi button
+		set_gpio(20, 1);	// fixup ses button
+		break;
+	case ROUTER_ASUS_AC3200:
+		if (nvram_match("bl_version", "1.0.1.3")) {
+			nvram_set("0:mcsbw205glpo", "0x66644200");
+			nvram_set("0:mcsbw405glpo", "0x66643200");
+			nvram_set("bl_version", "1.0.1.5");
+			nvram_commit();
+		}
+
+		if (nvram_get("0:venid") == NULL) {
+
+			struct nvram_param ac3200_0_params[] = {
+				{"devpath0", "sb/1/"},
+				{"boardrev", "0x1421"},
+				{"boardvendor", "0x14e4"},
+				{"devid", "0x43bc"},
+				{"sromrev", "11"},
+				{"boardflags", "0x30040000"},
+				{"boardflags2", "0x00220102"},
+				{"venid", "0x14e4"},
+				{"boardflags3", "0x0"},
+				{"aa5g", "7"},
+				{"aga0", "0x0"},
+				{"aga1", "0x0"},
+				{"aga2", "0x0"},
+				{"txchain", "7"},
+				{"rxchain", "7"},
+				{"antswitch", "0"},
+				{"femctrl", "3"},
+				{"tssiposslope5g", "1"},
+				{"epagain5g", "0"},
+				{"pdgain5g", "4"},
+				{"tworangetssi5g", "0"},
+				{"papdcap5g", "0"},
+				{"gainctrlsph", "0"},
+				{"tempthresh", "125"},
+				{"tempoffset", "255"},
+				{"rawtempsense", "0x1ff"},
+				{"tempsense_slope", "0xff"},
+				{"tempcorrx", "0x3f"},
+				{"tempsense_option", "0x3"},
+				{"xtalfreq", "40000"},
+				{"phycal_tempdelta", "15"},
+				{"temps_period", "5"},
+				{"temps_hysteresis", "5"},
+				{"pdoffset40ma0", "4369"},
+				{"pdoffset40ma1", "4369"},
+				{"pdoffset40ma2", "4369"},
+				{"pdoffset80ma0", "0"},
+				{"pdoffset80ma1", "0"},
+				{"pdoffset80ma2", "0"},
+				{"subband5gver", "0x4"},
+				{"mcsbw1605glpo", "0"},
+				{"mcsbw1605gmpo", "0"},
+				{"mcsbw1605ghpo", "0"},
+				{"mcslr5glpo", "0"},
+				{"mcslr5gmpo", "0"},
+				{"mcslr5ghpo", "0"},
+				{"dot11agduphrpo", "0"},
+				{"dot11agduplrpo", "0"},
+				{"rxgains5gmelnagaina0", "2"},
+				{"rxgains5gmtrisoa0", "5"},
+				{"rxgains5gmtrelnabypa0", "1"},
+				{"rxgains5ghelnagaina0", "2"},
+				{"rxgains5ghtrisoa0", "5"},
+				{"rxgains5ghtrelnabypa0", "1"},
+				{"rxgains5gelnagaina0", "2"},
+				{"rxgains5gtrisoa0", "5"},
+				{"rxgains5gtrelnabypa0", "1"},
+				{"maxp5ga0", "94,94,90,90"},
+				{"rxgains5gmelnagaina1", "2"},
+				{"rxgains5gmtrisoa1", "5"},
+				{"rxgains5gmtrelnabypa1", "1"},
+				{"rxgains5ghelnagaina1", "2"},
+				{"rxgains5ghtrisoa1", "5"},
+				{"rxgains5ghtrelnabypa1", "1"},
+				{"rxgains5gelnagaina1", "2"},
+				{"rxgains5gtrisoa1", "5"},
+				{"rxgains5gtrelnabypa1", "1"},
+				{"maxp5ga1", "94,94,90,90"},
+				{"rxgains5gmelnagaina2", "2"},
+				{"rxgains5gmtrisoa2", "5"},
+				{"rxgains5gmtrelnabypa2", "1"},
+				{"rxgains5ghelnagaina2", "2"},
+				{"rxgains5ghtrisoa2", "5"},
+				{"rxgains5ghtrelnabypa2", "1"},
+				{"rxgains5gelnagaina2", "2"},
+				{"rxgains5gtrisoa2", "5"},
+				{"rxgains5gtrelnabypa2", "1"},
+				{"maxp5ga2", "94,94,90,90"},
+				{"ledbh10", "7"},
+				{0, 0}
+			};
+
+			struct nvram_param ac3200_1_params[] = {
+				{"devpath1", "sb/1/"},
+				{"boardrev", "0x1421"},
+				{"boardvendor", "0x14e4"},
+				{"devid", "0x43bb"},
+				{"sromrev", "11"},
+				{"boardflags", "0x20001000"},
+				{"boardflags2", "0x00100002"},
+				{"venvid", "0x14e4"},
+				{"boardflags3", "0x4000005"},
+				{"aa2g", "7"},
+				{"agbg0", "0x0"},
+				{"agbg1", "0x0"},
+				{"agbg2", "0x0"},
+				{"txchain", "7"},
+				{"rxchain", "7"},
+				{"antswitch", "0"},
+				{"femctrl", "3"},
+				{"tssiposslope2g", "1"},
+				{"epagain2g", "0"},
+				{"pdgain2g", "21"},
+				{"tworangetssi2g", "0"},
+				{"papdcap2g", "0"},
+				{"gainctrlsph", "0"},
+				{"tempthresh", "120"},
+				{"tempoffset", "255"},
+				{"rawtempsense", "0x1ff"},
+				{"tempsense_slope", "0xff"},
+				{"tempcorrx", "0x3f"},
+				{"tempsense_option", "0x3"},
+				{"xtalfreq", "40000"},
+				{"phycal_tempdelta", "15"},
+				{"temps_period", "5"},
+				{"temps_hysteresis", "5"},
+				{"pdoffset2g40ma0", "15"},
+				{"pdoffset2g40ma1", "15"},
+				{"pdoffset2g40ma2", "15"},
+				{"pdoffset2g40mvalid", "1"},
+				{"pdoffset40ma0", "0"},
+				{"pdoffset40ma1", "0"},
+				{"pdoffset40ma2", "0"},
+				{"pdoffset80ma0", "0"},
+				{"pdoffset80ma1", "0"},
+				{"pdoffset80ma2", "0"},
+				{"cckbw202gpo", "0"},
+				{"cckbw20ul2gpo", "0"},
+				{"dot11agofdmhrbw202gpo", "0x2000"},
+				{"ofdmlrbw202gpo", "0"},
+				{"dot11agduphrpo", "0"},
+				{"dot11agduplrpo", "0"},
+				{"maxp2ga0", "102"},
+				{"rxgains2gelnagaina0", "4"},
+				{"rxgains2gtrisoa0", "7"},
+				{"rxgains2gtrelnabypa0", "1"},
+				{"maxp2ga1", "102"},
+				{"rxgains2gelnagaina1", "4"},
+				{"rxgains2gtrisoa1", "7"},
+				{"rxgains2gtrelnabypa1", "1"},
+				{"maxp2ga2", "102"},
+				{"rxgains2gelnagaina2", "4"},
+				{"rxgains2gtrisoa2", "7"},
+				{"rxgains2gtrelnabypa2", "1"},
+				{"ledbh10", "7"},
+				{0, 0}
+			};
+			struct nvram_param ac3200_2_params[] = {
+				{"devpath2", "sb/1/"},
+				{"boardrev", "0x1421"},
+				{"boardvendor", "0x14e4"},
+				{"devid", "0x43bc"},
+				{"sromrev", "11"},
+				{"boardflags", "0x30040000"},
+				{"boardflags2", "0x00220102"},
+				{"venid", "0x14e4"},
+				{"boardflags3", "0x0"},
+				{"aa5g", "7"},
+				{"aga0", "0x0"},
+				{"aga1", "0x0"},
+				{"aga2", "0x0"},
+				{"txchain", "7"},
+				{"rxchain", "7"},
+				{"antswitch", "0"},
+				{"femctrl", "3"},
+				{"tssiposslope5g", "1"},
+				{"epagain5g", "0"},
+				{"pdgain5g", "4"},
+				{"tworangetssi5g", "0"},
+				{"papdcap5g", "0"},
+				{"gainctrlsph", "0"},
+				{"tempthresh", "120"},
+				{"tempoffset", "255"},
+				{"rawtempsense", "0x1ff"},
+				{"tempsense_slope", "0xff"},
+				{"tempcorrx", "0x3f"},
+				{"tempsense_option", "0x3"},
+				{"xtalfreq", "40000"},
+				{"phycal_tempdelta", "15"},
+				{"temps_period", "5"},
+				{"temps_hysteresis", "5"},
+				{"pdoffset40ma0", "4369"},
+				{"pdoffset40ma1", "4369"},
+				{"pdoffset40ma2", "4369"},
+				{"pdoffset80ma0", "0"},
+				{"pdoffset80ma1", "0"},
+				{"pdoffset80ma2", "0"},
+				{"subband5gver", "0x4"},
+				{"mcsbw1605glpo", "0"},
+				{"mcsbw1605gmpo", "0"},
+				{"mcsbw1605ghpo", "0"},
+				{"mcslr5glpo", "0"},
+				{"mcslr5gmpo", "0"},
+				{"mcslr5ghpo", "0"},
+				{"dot11agduphrpo", "0"},
+				{"dot11agduplrpo", "0"},
+				{"rxgains5gmelnagaina0", "2"},
+				{"rxgains5gmtrisoa0", "5"},
+				{"rxgains5gmtrelnabypa0", "1"},
+				{"rxgains5ghelnagaina0", "2"},
+				{"rxgains5ghtrisoa0", "5"},
+				{"rxgains5ghtrelnabypa0", "1"},
+				{"rxgains5gelnagaina0", "2"},
+				{"rxgains5gtrisoa0", "5"},
+				{"rxgains5gtrelnabypa0", "1"},
+				{"maxp5ga0", "90,90,106,106"},
+				{"rxgains5gmelnagaina1", "2"},
+				{"rxgains5gmtrisoa1", "5"},
+				{"rxgains5gmtrelnabypa1", "1"},
+				{"rxgains5ghelnagaina1", "2"},
+				{"rxgains5ghtrisoa1", "5"},
+				{"rxgains5ghtrelnabypa1", "1"},
+				{"rxgains5gelnagaina1", "2"},
+				{"rxgains5gtrisoa1", "5"},
+				{"rxgains5gtrelnabypa1", "1"},
+				{"maxp5ga1", "90,90,106,106"},
+				{"rxgains5gmelnagaina2", "2"},
+				{"rxgains5gmtrisoa2", "5"},
+				{"rxgains5gmtrelnabypa2", "1"},
+				{"rxgains5ghelnagaina2", "2"},
+				{"rxgains5ghtrisoa2", "5"},
+				{"rxgains5ghtrelnabypa2", "1"},
+				{"rxgains5gelnagaina2", "2"},
+				{"rxgains5gtrisoa2", "5"},
+				{"rxgains5gtrelnabypa2", "1"},
+				{"maxp5ga2", "90,90,106,106"},
+				{"ledbh10", "7"},
+				{0, 0}
+			};
+			nvram_set("devpath0", "pcie/1/3");
+			nvram_set("devpath1", "pcie/1/4");
+			nvram_set("devpath2", "pcie/2/1");
+			extra_params = ac3200_0_params;
+			while (extra_params->name) {
+				nvram_nset(extra_params->value, "0:%s", extra_params->name);
+				extra_params++;
+			}
+			extra_params = ac3200_1_params;
+			while (extra_params->name) {
+				nvram_nset(extra_params->value, "1:%s", extra_params->name);
+				extra_params++;
+			}
+
+			extra_params = ac3200_2_params;
+			while (extra_params->name) {
+				nvram_nset(extra_params->value, "2:%s", extra_params->name);
+				extra_params++;
+			}
+
+			nvram_set("0:maxp2ga0", "102");
+			nvram_set("0:maxp2ga1", "102");
+			nvram_set("0:maxp2ga2", "102");
+			nvram_set("0:cckbw202gpo", "0");
+			nvram_set("0:cckbw20ul2gpo", "0");
+			nvram_set("0:mcsbw202gpo", "0x87542000");
+			nvram_set("0:mcsbw402gpo", "0x87542000");
+			nvram_set("0:dot11agofdmhrbw202gpo", "0x2000");
+			nvram_set("0:ofdmlrbw202gpo", "0");
+			nvram_set("0:dot11agduphrpo", "0");
+			nvram_set("0:dot11agduplrpo", "0");
+
+			nvram_set("1:maxp5ga0", "94,94,90,90");
+			nvram_set("1:maxp5ga1", "94,94,90,90");
+			nvram_set("1:maxp5ga2", "94,94,90,90");
+			nvram_set("1:mcsbw205glpo", "0x66664200");
+			nvram_set("1:mcsbw405glpo", "0x66643200");
+			nvram_set("1:mcsbw805glpo", "0xA8643200");
+			nvram_set("1:mcsbw1605glpo", "0");
+			nvram_set("1:mcsbw205gmpo", "0x66664200");
+			nvram_set("1:mcsbw405gmpo", "0x66663200");
+			nvram_set("1:mcsbw805gmpo", "0x66663200");
+			nvram_set("1:mcsbw1605gmpo", "0");
+			nvram_set("1:mcsbw205ghpo", "0xfffda844");
+			nvram_set("1:mcsbw405ghpo", "0xfffda844");
+			nvram_set("1:mcsbw805ghpo", "0xfffda844");
+			nvram_set("1:mcsbw1605ghpo", "0");
+
+			nvram_set("2:maxp5ga0", "90,90,106,106");
+			nvram_set("2:maxp5ga1", "90,90,106,106");
+			nvram_set("2:maxp5ga2", "90,90,106,106");
+			nvram_set("2:mcsbw205glpo", "0");
+			nvram_set("2:mcsbw405glpo", "0");
+			nvram_set("2:mcsbw805glpo", "0");
+			nvram_set("2:mcsbw1605glpo", "0");
+			nvram_set("2:mcsbw205gmpo", "0xAA975420");
+			nvram_set("2:mcsbw405gmpo", "0xAA975420");
+			nvram_set("2:mcsbw805gmpo", "0xAA975420");
+			nvram_set("2:mcsbw1605gmpo", "0");
+			nvram_set("2:mcsbw205ghpo", "0xAA975420");
+			nvram_set("2:mcsbw405ghpo", "0xAA975420");
+			nvram_set("2:mcsbw805ghpo", "0xAA975420");
+			nvram_set("2:mcsbw1605ghpo", "0");
+
+			nvram_commit();
+
+		}
+		break;
 	case ROUTER_ASUS_AC67U:
 		if (!nvram_match("bl_version", "1.0.1.1"))
 			nvram_set("clkfreq", "800,666");
@@ -1949,7 +2227,7 @@ void start_sysinit(void)
 				break;
 			}
 			sleep(1);
-			sysprintf("/sbin/erase nvram");
+			eval("/sbin/erase", "nvram");
 			nvram_set("flash_active", "1");	// prevent recommit of value until reboot is done
 			sys_reboot();
 		}
@@ -2002,7 +2280,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain", "Q2"))
 			set_regulation(0, "US", "0");
 		else if (nvram_match("regulation_domain", "EU"))
-			set_regulation(0, "DE", "0");
+			set_regulation(0, "EU", "66");
 		else if (nvram_match("regulation_domain", "TW"))
 			set_regulation(0, "TW", "13");
 		else if (nvram_match("regulation_domain", "CN"))
@@ -2015,7 +2293,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain_5G", "Q2"))
 			set_regulation(1, "US", "0");
 		else if (nvram_match("regulation_domain_5G", "EU"))
-			set_regulation(1, "DE", "0");
+			set_regulation(1, "EU", "38");
 		else if (nvram_match("regulation_domain_5G", "TW"))
 			set_regulation(1, "TW", "13");
 		else if (nvram_match("regulation_domain_5G", "CN"))
@@ -2352,7 +2630,7 @@ void start_sysinit(void)
 				break;
 			}
 			sleep(1);
-			sysprintf("/sbin/erase nvram");
+			eval("/sbin/erase", "nvram");
 			nvram_set("flash_active", "1");	// prevent recommit of value until reboot is done
 			sys_reboot();
 		}
@@ -2399,7 +2677,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain", "Q2"))
 			set_regulation(0, "US", "0");
 		else if (nvram_match("regulation_domain", "EU"))
-			set_regulation(0, "DE", "0");
+			set_regulation(0, "EU", "66");
 		else if (nvram_match("regulation_domain", "TW"))
 			set_regulation(0, "TW", "13");
 		else if (nvram_match("regulation_domain", "CN"))
@@ -2412,7 +2690,7 @@ void start_sysinit(void)
 		else if (nvram_match("regulation_domain_5G", "Q2"))
 			set_regulation(1, "US", "0");
 		else if (nvram_match("regulation_domain_5G", "EU"))
-			set_regulation(1, "DE", "0");
+			set_regulation(1, "EU", "38");
 		else if (nvram_match("regulation_domain_5G", "TW"))
 			set_regulation(1, "TW", "13");
 		else if (nvram_match("regulation_domain_5G", "CN"))
@@ -2422,6 +2700,39 @@ void start_sysinit(void)
 
 		break;
 	case ROUTER_DLINK_DIR890:
+		if (!strncmp(nvram_safe_get("et0macaddr"), "00:90", 5)) {
+			char buf[64];
+			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
+			fread(buf, 1, 24, fp);
+			pclose(fp);
+			buf[24] = 0;
+			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			nvram_set("et0macaddr", &buf[7]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan24mac=", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			nvram_set("0:macaddr", &buf[10]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan5mac2=", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 5g mac 1 %s\n", &buf[10]);
+			nvram_set("2:macaddr", &buf[10]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan5mac=", "r");
+			fread(buf, 1, 26, fp);
+			pclose(fp);
+			buf[26] = 0;
+			fprintf(stderr, "set 5g mac 2 %s\n", &buf[9]);
+			nvram_set("1:macaddr", &buf[9]);
+			nvram_commit();
+		}
+		break;
+	case ROUTER_DLINK_DIR895:
 		if (!strncmp(nvram_safe_get("et0macaddr"), "00:90", 5)) {
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
@@ -2442,15 +2753,41 @@ void start_sysinit(void)
 			fread(buf, 1, 27, fp);
 			pclose(fp);
 			buf[27] = 0;
-			fprintf(stderr, "sysinit-northstar: set 5g mac 1 %s\n", &buf[10]);
-			nvram_set("1:macaddr", &buf[10]);
+			fprintf(stderr, "set 5g mac 1 %s\n", &buf[10]);
+			nvram_set("2:macaddr", &buf[10]);
 
 			fp = popen("cat /dev/mtdblock0|grep wlan5mac=", "r");
 			fread(buf, 1, 26, fp);
 			pclose(fp);
 			buf[26] = 0;
-			fprintf(stderr, "sysinit-northstar: set 5g mac 2 %s\n", &buf[9]);
-			nvram_set("2:macaddr", &buf[9]);
+			fprintf(stderr, "set 5g mac 2 %s\n", &buf[9]);
+			nvram_set("1:macaddr", &buf[9]);
+			nvram_commit();
+		}
+		break;
+	case ROUTER_DLINK_DIR885:
+		if (!strncmp(nvram_safe_get("et0macaddr"), "00:90", 5)) {
+			char buf[64];
+			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
+			fread(buf, 1, 24, fp);
+			pclose(fp);
+			buf[24] = 0;
+			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			nvram_set("et0macaddr", &buf[7]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan24mac=", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			nvram_set("0:macaddr", &buf[10]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan5mac=", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 5g mac 1 %s\n", &buf[10]);
+			nvram_set("1:macaddr", &buf[10]);
 			nvram_commit();
 		}
 		break;
@@ -2671,6 +3008,293 @@ void start_sysinit(void)
 		}
 		set_gpio(7, 1);	// fixup ses button
 
+		break;
+	case ROUTER_DLINK_DIR860:
+		if (nvram_get("devpath0") == NULL) {
+			nvram_set("devpath0", "pci/1/1/");
+			nvram_set("devpath1", "pci/2/1/");
+
+			char buf[64];
+			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
+			fread(buf, 1, 24, fp);
+			pclose(fp);
+			buf[24] = 0;
+			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			nvram_set("et0macaddr", &buf[7]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan5mac", "r");
+			fread(buf, 1, 26, fp);
+			pclose(fp);
+			buf[26] = 0;
+			fprintf(stderr, "set 5g mac %s\n", &buf[9]);
+			nvram_set("pci/2/0/macaddr", &buf[9]);
+			nvram_set("pci/2/1/macaddr", &buf[9]);
+			fp = popen("cat /dev/mtdblock0|grep wlan24mac", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			nvram_set("pci/1/0/macaddr", &buf[10]);
+			nvram_set("pci/1/1/macaddr", &buf[10]);
+			struct nvram_param dir860_1_1params[] = {
+				{"aa2g", "0x3"},
+				{"ag0", "0x0"},
+				{"ag1", "0x0"},
+				{"ag2", "0xff"},
+				{"ag3", "0xff"},
+				{"antswctl2g", "0x0"},
+				{"antswitch", "0x0"},
+				{"boardflags2", "0x9800"},
+				{"boardflags", "0x200"},
+				{"boardtype", "0x5e8"},
+				{"boardvendor", "0x14E4"},
+				{"bw40po", "0x0"},
+				{"bwduppo", "0x0"},
+				{"bxa2g", "0x0"},
+				{"cck2gpo", "0x1111"},
+				{"ccode", "0"},
+				{"cddpo", "0x0"},
+				{"devid", "0x43a9"},
+				{"extpagain2g", "0x2"},
+				{"itt2ga0", "0x20"},
+				{"itt2ga1", "0x20"},
+				{"ledbh0", "11"},
+				{"ledbh10", "11"},
+				{"ledbh11", "11"},
+				{"ledbh1", "11"},
+				{"ledbh2", "11"},
+				{"ledbh3", "11"},
+				{"ledbh4", "11"},
+				{"ledbh5", "11"},
+				{"ledbh6", "11"},
+				{"ledbh7", "11"},
+				{"ledbh8", "11"},
+				{"ledbh9", "11"},
+				{"leddc", "0xffff"},
+				{"maxp2ga0", "0x50"},
+				{"maxp2ga1", "0x50"},
+				{"mcs2gpo0", "0x7777"},
+				{"mcs2gpo1", "0x9777"},
+				{"mcs2gpo2", "0x7777"},
+				{"mcs2gpo3", "0x9777"},
+				{"mcs2gpo4", "0x9999"},
+				{"mcs2gpo5", "0xb999"},
+				{"mcs2gpo6", "0x9999"},
+				{"mcs2gpo7", "0xb999"},
+				{"ofdm2gpo", "0x97777777"},
+				{"opo", "0x0"},
+				{"pa2gw0a0", "0xFE31"},
+				{"pa2gw0a1", "0xFE4F"},
+				{"pa2gw1a0", "0x14E9"},
+				{"pa2gw1a1", "0x16DB"},
+				{"pa2gw2a0", "0xFA80"},
+				{"pa2gw2a1", "0xFA4C"},
+				{"pdetrange2g", "0x2"},
+				{"phycal_tempdelta", "0"},
+				{"regrev", "0"},
+				{"rssisav2g", "0x0"},
+				{"rssismc2g", "0x0"},
+				{"rssismf2g", "0x0"},
+				{"rxchain", "0x3"},
+				{"rxpo2g", "0x0"},
+				{"sromrev", "8"},
+				{"stbcpo", "0x0"},
+				{"tempoffset", "0"},
+				{"temps_period", "5"},
+				{"tempthresh", "120"},
+				{"tri2g", "0x0"},
+				{"triso2g", "0x4"},
+				{"tssipos2g", "0x1"},
+				{"txchain", "0x3"},
+				{"vendid", "0x14E4"},
+				{"venid", "0x14E4"},
+				{0, 0}
+			};
+
+			struct nvram_param dir860_2_1params[] = {
+				{"aa2g", "0"},
+				{"aa5g", "3"},
+				{"aga0", "0"},
+				{"aga1", "0"},
+				{"aga2", "0"},
+				{"agbg0", "0"},
+				{"agbg1", "0"},
+				{"agbg2", "0"},
+				{"antswitch", "0"},
+				{"boardflags2", "0x2"},
+				{"boardflags3", "0x0"},
+				{"boardflags", "0x10001000"},
+				{"boardnum", "0"},
+				{"boardrev", "0x1350"},
+				{"boardtype", "0x62f"},
+				{"boardvendor", "0x14E4"},
+				{"cckbw202gpo", "0"},
+				{"cckbw20ul2gpo", "0"},
+				{"ccode", "0"},
+				{"devid", "0x43b3"},
+				{"dot11agduphrpo", "0"},
+				{"dot11agduplrpo", "0"},
+				{"dot11agofdmhrbw202g", "17408"},
+				{"epagain2g", "0"},
+				{"epagain5g", "0"},
+				{"femctrl", "6"},
+				{"gainctrlsph", "0"},
+				{"maxp2ga0", "66"},
+				{"maxp2ga1", "66"},
+				{"maxp2ga2", "66"},
+				{"maxp5ga0", "78,78,78,78"},
+				{"maxp5ga1", "78,78,78,78"},
+				{"maxp5ga2", "78,78,78,78"},
+				{"mcsbw1605ghpo", "0"},
+				{"mcsbw1605glpo", "0"},
+				{"mcsbw1605gmpo", "0"},
+				{"mcsbw202gpo", "2571386880"},
+				{"mcsbw205ghpo", "2252472320"},
+				{"mcsbw205glpo", "2252472320"},
+				{"mcsbw205gmpo", "2252472320"},
+				{"mcsbw402gpo", "2571386880"},
+				{"mcsbw405ghpo", "2252472320"},
+				{"mcsbw405glpo", "2252472320"},
+				{"mcsbw405gmpo", "2252472320"},
+				{"mcsbw805ghpo", "2252472320"},
+				{"mcsbw805glpo", "2252472320"},
+				{"mcsbw805gmpo", "2252472320"},
+				{"mcslr5ghpo", "0"},
+				{"mcslr5glpo", "0"},
+				{"mcslr5gmpo", "0"},
+				{"measpower1", "0x7f"},
+				{"measpower2", "0x7f"},
+				{"measpower", "0x7f"},
+				{"noiselvl2ga0", "31"},
+				{"noiselvl2ga1", "31"},
+				{"noiselvl2ga2", "31"},
+				{"noiselvl5ga0", "31,31,31,31"},
+				{"noiselvl5ga1", "31,31,31,31"},
+				{"noiselvl5ga2", "31,31,31,31"},
+				{"ofdmlrbw202gpo", "0"},
+				{"pa2ga0", "0xff24,0x188e,0xfce6"},
+				{"pa2ga1", "0xff3e,0x15f9,0xfd36"},
+				{"pa2ga2", "0xff25,0x18a6,0xfce2"},
+				{"pa5ga0", "0xff72,0x17d1,0xfd29,0xff78,0x183b,0xfd27,0xff75,0x1866,0xfd20,0xff85,0x18c8,0xfd30"},
+				{"pa5ga1", "0xff4e,0x1593,0xfd4b,0xff61,0x1743,0xfd21,0xff6a,0x1721,0xfd41,0xff99,0x18e6,0xfd40"},
+				{"pa5ga2", "0xff4d,0x166c,0xfd2a,0xff52,0x168a,0xfd31,0xff5e,0x1768,0xfd25,0xff61,0x1744,0xfd32"},
+				{"papdcap2g", "0"},
+				{"papdcap5g", "0"},
+				{"pcieingress_war", "15"},
+				{"pdgain2g", "10"},
+				{"pdgain5g", "10"},
+				{"pdoffset40ma0", "12834"},
+				{"pdoffset40ma1", "12834"},
+				{"pdoffset40ma2", "12834"},
+				{"pdoffset80ma0", "256"},
+				{"pdoffset80ma1", "256"},
+				{"pdoffset80ma2", "256"},
+				{"phycal_tempdelta", "255"},
+				{"rawtempsense", "0x1ff"},
+				{"regrev", "0"},
+				{"rxchain", "3"},
+				{"rxgainerr2ga0", "63"},
+				{"rxgainerr2ga1", "31"},
+				{"rxgainerr2ga2", "31"},
+				{"rxgainerr5ga0", "63,63,63,63"},
+				{"rxgainerr5ga1", "31,31,31,31"},
+				{"rxgainerr5ga2", "31,31,31,31"},
+				{"rxgains2gelnagaina0", "0"},
+				{"rxgains2gelnagaina1", "0"},
+				{"rxgains2gelnagaina2", "0"},
+				{"rxgains2gtrelnabypa", "0"},
+				{"rxgains2gtrisoa0", "0"},
+				{"rxgains2gtrisoa1", "0"},
+				{"rxgains2gtrisoa2", "0"},
+				{"rxgains5gelnagaina0", "3"},
+				{"rxgains5gelnagaina1", "3"},
+				{"rxgains5gelnagaina2", "3"},
+				{"rxgains5ghelnagaina", "7"},
+				{"rxgains5ghtrelnabyp", "1"},
+				{"rxgains5ghtrisoa0", "15"},
+				{"rxgains5ghtrisoa1", "15"},
+				{"rxgains5ghtrisoa2", "15"},
+				{"rxgains5gmelnagaina", "7"},
+				{"rxgains5gmtrelnabyp", "1"},
+				{"rxgains5gmtrisoa0", "15"},
+				{"rxgains5gmtrisoa1", "15"},
+				{"rxgains5gmtrisoa2", "15"},
+				{"rxgains5gtrelnabypa", "1"},
+				{"rxgains5gtrisoa0", "6"},
+				{"rxgains5gtrisoa1", "6"},
+				{"rxgains5gtrisoa2", "6"},
+				{"sar2g", "18"},
+				{"sar5g", "15"},
+				{"sb20in40hrpo", "0"},
+				{"sb20in40lrpo", "0"},
+				{"sb20in80and160hr5gh", "0"},
+				{"sb20in80and160hr5gl", "0"},
+				{"sb20in80and160hr5gm", "0"},
+				{"sb20in80and160lr5gh", "0"},
+				{"sb20in80and160lr5gl", "0"},
+				{"sb20in80and160lr5gm", "0"},
+				{"sb40and80hr5ghpo", "0"},
+				{"sb40and80hr5glpo", "0"},
+				{"sb40and80hr5gmpo", "0"},
+				{"sb40and80lr5ghpo", "0"},
+				{"sb40and80lr5glpo", "0"},
+				{"sb40and80lr5gmpo", "0"},
+				{"sromrev", "11"},
+				{"subband5gver", "0x4"},
+				{"tempcorrx", "0x3f"},
+				{"tempoffset", "255"},
+				{"temps_hysteresis", "15"},
+				{"temps_period", "15"},
+				{"tempsense_option", "0x3"},
+				{"tempsense_slope", "0xff"},
+				{"tempthresh", "255"},
+				{"tssiposslope2g", "1"},
+				{"tssiposslope5g", "1"},
+				{"tworangetssi2g", "0"},
+				{"tworangetssi5g", "0"},
+				{"txchain", "3"},
+				{"vendid", "0x14E4"},
+				{"venid", "0x14E4"},
+				{0, 0}
+			};
+			struct nvram_param *t;
+			t = dir860_1_1params;
+			while (t->name) {
+				nvram_nset(t->value, "pci/1/1/%s", t->name);
+				t++;
+			}
+			t = dir860_2_1params;
+			while (t->name) {
+				nvram_nset(t->value, "pci/2/1/%s", t->name);
+				t++;
+			}
+
+		}
+		set_gpio(8, 1);	// fixup ses button
+
+		break;
+	case ROUTER_DLINK_DIR868C:
+		if (nvram_match("0:macaddr", "00:90:4C:0D:C0:18")) {
+			char buf[64];
+			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
+			fread(buf, 1, 24, fp);
+			pclose(fp);
+			buf[24] = 0;
+			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			nvram_set("et0macaddr", &buf[7]);
+			fp = popen("cat /dev/mtdblock0|grep wlan5mac", "r");
+			fread(buf, 1, 26, fp);
+			pclose(fp);
+			buf[26] = 0;
+			fprintf(stderr, "set 5g mac %s\n", &buf[9]);
+			nvram_set("1:macaddr", &buf[9]);
+			fp = popen("cat /dev/mtdblock0|grep wlan24mac", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			nvram_set("0:macaddr", &buf[10]);
+		}
 		break;
 	case ROUTER_DLINK_DIR868:
 	case ROUTER_DLINK_DIR865:
@@ -3092,9 +3716,13 @@ void start_sysinit(void)
 			nvram_set("acs_2g_ch_no_restrict", "1");
 			nvram_set("devpath0", "pci/1/1/");
 			nvram_set("devpath1", "pci/2/1/");
-			nvram_commit();
 		}
 		nvram_set("partialboots", "0");
+		nvram_commit();
+	case ROUTER_LINKSYS_EA6400:
+		nvram_set("partialboots", "0");
+		nvram_commit();
+		break;
 	case ROUTER_LINKSYS_EA6500V2:
 		if (nvram_get("0:aa2g") == NULL) {
 			struct nvram_param ea6500v2_1_1params[] = {
@@ -3281,9 +3909,9 @@ void start_sysinit(void)
 			nvram_set("acs_2g_ch_no_restrict", "1");
 			nvram_set("devpath0", "pci/1/1/");
 			nvram_set("devpath1", "pci/2/1/");
-			nvram_commit();
 		}
 		nvram_set("partialboots", "0");
+		nvram_commit();
 		break;
 	case ROUTER_LINKSYS_EA6900:
 		if (nvram_get("0:aa2g") == NULL) {
@@ -3481,9 +4109,9 @@ void start_sysinit(void)
 			nvram_set("acs_2g_ch_no_restrict", "1");
 			nvram_set("devpath0", "pci/1/1/");
 			nvram_set("devpath1", "pci/2/1/");
-			nvram_commit();
 		}
 		nvram_set("partialboots", "0");
+		nvram_commit();
 		break;
 	case ROUTER_TPLINK_ARCHERC9:
 		nvram_set("0:ledbh4", "7");
@@ -3499,6 +4127,47 @@ void start_sysinit(void)
 		nvram_set("1:ledbh10", "7");
 		set_gpio(12, 1);	// fixup ses button
 		break;
+	case ROUTER_TRENDNET_TEW828:
+		if (!nvram_match("et0macaddr", "00:00:00:00:00:00") || !nvram_match("image_second_offset", "16777216")) {
+			nvram_set("et2macaddr", nvram_safe_get("et0macaddr"));
+			nvram_set("et2mdcport", nvram_safe_get("et0mdcport"));
+			nvram_set("et2phyaddr", nvram_safe_get("et0phyaddr"));
+			nvram_set("et_txq_thresh", "1024");
+			nvram_set("et0macaddr", "00:00:00:00:00:00");
+			nvram_set("et0mdcport", "0");
+			nvram_set("et0phyaddr", "30");
+			nvram_set("et1macaddr", "00:00:00:00:00:00");
+			nvram_set("et1mdcport", "0");
+			nvram_set("et1phyaddr", "30");
+			nvram_set("vlan1hwname", "et2");
+			nvram_set("vlan1ports", "0 1 2 3 5 7 8*");
+			nvram_set("vlan2hwname", "et2");
+			nvram_set("vlan2ports", "4 8u");
+			nvram_set("image_second_offset", "16777216");
+			char *impbf_value;
+
+			nvram_unset("pcie/1/3/rpcal5gb0");
+			nvram_unset("pcie/1/4/rpcal2g");
+			nvram_unset("pcie/2/1/rpcal5gb3");
+
+			// 5G band1
+			impbf_value = nvram_get("sb/1/rpcal5gb0");
+			if (impbf_value && (strlen(impbf_value) > 0))
+				nvram_set("pcie/1/3/rpcal5gb0", impbf_value);
+
+			// 2.4G
+			impbf_value = nvram_get("sb/1/rpcal2g");
+			if (impbf_value && (strlen(impbf_value) > 0))
+				nvram_set("pcie/1/4/rpcal2g", impbf_value);
+
+			// 5G band4
+			impbf_value = nvram_get("sb/1/rpcal5gb3");
+			if (impbf_value && (strlen(impbf_value) > 0))
+				nvram_set("pcie/2/1/rpcal5gb3", impbf_value);
+
+			nvram_commit();
+		}
+		break;
 	case ROUTER_BUFFALO_WXR1900DHP:
 		nvram_set("0:ledbh12", "7");
 		nvram_set("1:ledbh12", "7");
@@ -3507,6 +4176,41 @@ void start_sysinit(void)
 		break;
 	case ROUTER_BUFFALO_WZR900DHP:
 	case ROUTER_BUFFALO_WZR600DHP2:
+		nvram_set("0:maxp2ga0", "0x70");
+		nvram_set("0:maxp2ga1", "0x70");
+		nvram_set("0:maxp2ga2", "0x70");
+		nvram_set("0:cckbw202gpo", "0x5555");
+		nvram_set("0:cckbw20ul2gpo", "0x5555");
+		nvram_set("0:legofdmbw202gpo", "0x97555555");
+		nvram_set("0:legofdmbw20ul2gpo", "0x97555555");
+		nvram_set("0:mcsbw202gpo", "0xFC955555");
+		nvram_set("0:mcsbw20ul2gpo", "0xFC955555");
+		nvram_set("0:mcsbw402gpo", "0xFFFF9999");
+		nvram_set("0:mcs32po", "0x9999");
+		nvram_set("0:legofdm40duppo", "0x4444");
+
+		nvram_set("1:maxp5ga0", "0x6A");
+		nvram_set("1:maxp5ga1", "0x6A");
+		nvram_set("1:maxp5ga2", "0x6A");
+		nvram_set("1:maxp5hga0", "0x6A");
+		nvram_set("1:maxp5hga1", "0x6A");
+		nvram_set("1:maxp5hga2", "0x6A");
+		nvram_set("1:legofdmbw205gmpo", "0x77777777");
+		nvram_set("1:legofdmbw20ul5gmpo", "0x77777777");
+		nvram_set("1:mcsbw205gmpo", "0x77777777");
+		nvram_set("1:mcsbw20ul5gmpo", "0x77777777");
+		nvram_set("1:mcsbw405gmpo", "0x77777777");
+		nvram_set("1:maxp5gha0", "0x6A");
+		nvram_set("1:maxp5gha1", "0x6A");
+		nvram_set("1:maxp5gha2", "0x6A");
+		nvram_set("1:legofdmbw205ghpo", "0x77777777");
+		nvram_set("1:legofdmbw20ul5ghpo", "0x77777777");
+		nvram_set("1:mcsbw205ghpo", "0x77777777");
+		nvram_set("1:mcsbw20ul5ghpo", "0x77777777");
+		nvram_set("1:mcsbw405ghpo", "0x77777777");
+		nvram_set("1:mcs32po", "0x7777");
+		nvram_set("1:legofdm40duppo", "0x0000");
+
 		nvram_set("0:boardflags2", "0x1000");
 		nvram_set("1:boardflags2", "0x00001000");
 		nvram_set("0:ledbh12", "7");
@@ -3537,9 +4241,9 @@ void start_sysinit(void)
 				out = NULL;
 				bp = NULL;
 				fp = NULL;
-				fprintf(stderr, "sysinit-northstar: update bootloader\n");
-				sysprintf("mtd -f write /tmp/cfe.bin boot");
-				fprintf(stderr, "sysinit-northstar: reboot\n");
+				fprintf(stderr, "update bootloader\n");
+				eval("mtd", "-f", "write", "/tmp/cfe.bin", "boot");
+				fprintf(stderr, "reboot\n");
 				sys_reboot();
 			}
 			if (fp)
@@ -3566,20 +4270,15 @@ void start_sysinit(void)
 	insmod("switch-core");
 	insmod("switch-robo");
 
-	int fd;
-
-	if ((fd = open("/proc/irq/163/smp_affinity", O_RDWR)) >= 0) {
-		close(fd);
 #ifndef HAVE_SAMBA
-		if (!nvram_match("samba3_enable", "1"))
+	if (!nvram_match("samba3_enable", "1"))
 #endif
-		{		// not set txworkq 
-			writeproc("/proc/irq/163/smp_affinity", "2");
-			writeproc("/proc/irq/169/smp_affinity", "2");
-		}
-		writeproc("/proc/irq/111/smp_affinity", "2");
-		writeproc("/proc/irq/112/smp_affinity", "2");
+	{			// not set txworkq 
+		set_smp_affinity(163, 2);
+		set_smp_affinity(169, 2);
 	}
+	set_smp_affinity(111, 2);
+	set_smp_affinity(112, 2);
 
 	/*
 	 * network drivers 
@@ -3595,7 +4294,8 @@ void start_sysinit(void)
 		nvram_set("lan_hwaddr", ether_etoa((unsigned char *)ifr.ifr_hwaddr.sa_data, eabuf));
 		close(s);
 	}
-
+	if (getRouterBrand() == ROUTER_ASUS_AC88U)
+		eval("rtkswitch", "1");
 	insmod("emf");
 	insmod("igs");
 #ifdef HAVE_DHDAP

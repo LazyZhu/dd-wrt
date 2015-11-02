@@ -35,6 +35,7 @@
 #include <code_pattern.h>
 #include <rc.h>
 #include <services.h>
+#include <broadcom.h>
 
 static char *get_wanface(void)
 {
@@ -48,7 +49,7 @@ static char *get_wanface(void)
 static int client_bridged_enabled(void)
 {
 	// enumerate all possible interfaces
-	char iflist[256];
+	char iflist[512];
 	iflist[0] = 0;		// workaround for bug in getIfList()
 	getIfList(iflist, NULL);
 
@@ -71,7 +72,7 @@ extern void add_client_mac_srvfilter(char *name, char *type, char *data, char *l
 extern void add_client_ip_srvfilter(char *name, char *type, char *data, char *level, int base, char *client);
 extern char *get_NFServiceMark(char *service, uint32 mark);
 
-#if !(defined(ARCH_broadcom) && !defined(HAVE_BCMMODERN))
+#if !defined(ARCH_broadcom) || defined(HAVE_BCMMODERN)
 extern char *get_tcfmark(uint32 mark);
 #endif
 
@@ -81,7 +82,7 @@ extern void add_client_classes(unsigned int base, unsigned int uprate, unsigned 
 extern void add_client_classes(unsigned int base, unsigned int level);
 #endif
 
-void svqos_reset_ports(void)
+static void svqos_reset_ports(void)
 {
 #ifndef HAVE_XSCALE
 #ifndef HAVE_MAGICBOX
@@ -148,7 +149,7 @@ void svqos_reset_ports(void)
 #endif
 }
 
-int svqos_set_ports(void)
+static int svqos_set_ports(void)
 {
 #ifndef HAVE_XSCALE
 #ifndef HAVE_MAGICBOX
@@ -247,7 +248,63 @@ static inline int is_in_bridge(char *interface)
 }
 #endif
 
-void aqos_tables(void)
+static char *s_downlist = NULL;
+static char *s_iflist = NULL;
+static int s_hasIF(char *list, char *ifname)
+{
+	char word[256];
+	char *next;
+	if (!list)
+		return 0;
+	foreach(word, list, next) {
+		if (!strcmp(word, ifname))
+			return 1;
+	}
+	return 0;
+}
+
+static void s_addIF(char **list, char *ifname)
+{
+	if (s_hasIF(*list, ifname))
+		return;
+
+	if (!*list) {
+		*list = strdup(ifname);
+	} else {
+		*list = realloc(*list, strlen(*list) + strlen(ifname) + 2);
+		sprintf(*list, "%s %s", *list, ifname);
+	}
+}
+
+static void s_clearIF(char **list)
+{
+	if (*list)
+		free(*list);
+	*list = NULL;
+}
+
+#define addIF(ifname) s_addIF(&s_iflist,ifname)
+#define hasIF(ifname) s_hasIF(s_iflist,ifname)
+#define clearIF() s_clearIF(&s_iflist)
+
+#define down_addIF(ifname) s_addIF(&s_downlist,ifname)
+#define down_hasIF(ifname) s_hasIF(s_downlist,ifname)
+#define down_clearIF() s_clearIF(&s_downlist)
+static void down_upIF(void)
+{
+	char word[256];
+	char *next;
+	if (!s_downlist)
+		return;
+	foreach(word, s_downlist, next) {
+#ifdef HAVE_ATH9K
+		if (!is_ath9k(word))
+#endif
+			eval("ifconfig", word, "up");
+	}
+}
+
+static void aqos_tables(void)
 {
 	FILE *outips = fopen("/tmp/aqos_ips", "wb");
 	FILE *outmacs = fopen("/tmp/aqos_macs", "wb");
@@ -256,11 +313,12 @@ void aqos_tables(void)
 	char *qos_mac = nvram_safe_get("svqos_macs");
 	char *qos_svcs = NULL;
 
-	char level[32], level2[32], level3[32], data[32], type[32], prio[32];
+	char level[32], level2[32], level3[32], data[32], type[32], prio[32], proto1[32], proto2[32], proto3[32], proto4[32], proto[32];
 	char srvname[32], srvtype[32], srvdata[32], srvlevel[32];
 
 	char nullmask[24];
 	strcpy(nullmask, qos_nfmark(0));
+	insmod("xt_physdev");
 
 	int base = 210;
 	int ret = 0;
@@ -315,12 +373,190 @@ void aqos_tables(void)
 	}
 	while ((qos_ipaddr = strpbrk(++qos_ipaddr, "|")) && qos_ipaddr++);
 
+	char *qos_devs = nvram_safe_get("svqos_devs");
+	do {
+		memset(proto, 0, sizeof(proto));
+		ret = sscanf(qos_devs, "%31s %31s %31s %31s %31s %31s |", data, level, level2, level3, prio, proto);
+		if (ret < 5)
+			break;
+		if (!strcmp(proto, "|") || !strcmp(proto, "none")) {
+			/* mark interface interface as priority / bandwidth limits based without any service filter */
+			addIF(data);
+		}
+		char chainname_in[32];
+		sprintf(chainname_in, "FILTER_%s_IN", data);
+		char chainname_out[32];
+		sprintf(chainname_out, "FILTER_%s_OUT", data);
+
+		eval("iptables", "-t", "mangle", "-F", chainname_in);
+		eval("iptables", "-t", "mangle", "-X", chainname_in);
+		eval("iptables", "-t", "mangle", "-N", chainname_in);
+
+		eval("iptables", "-t", "mangle", "-F", chainname_out);
+		eval("iptables", "-t", "mangle", "-X", chainname_out);
+		eval("iptables", "-t", "mangle", "-N", chainname_out);
+
+//              eval("iptables", "-t", "mangle", "-A", chainname_in, "-j", "CONNMARK", "--restore-mark");
+//              eval("iptables", "-t", "mangle", "-A", chainname_out, "-j", "CONNMARK", "--restore-mark");
+
+		if (nvram_match("wshaper_dev", "LAN")) {
+			if (nvram_nmatch("1", "%s_bridged", data)) {
+#ifdef HAVE_ATH9K
+				if (!is_ath9k(data))
+#endif
+					eval("ifconfig", data, "down");
+				down_addIF(data);
+				eval("iptables", "-t", "mangle", "-D", "INPUT", "-m", "physdev", "--physdev-in", data, "-j", "IMQ", "--todev", "0");
+				eval("iptables", "-t", "mangle", "-I", "INPUT", "1", "-m", "physdev", "--physdev-in", data, "-j", "IMQ", "--todev", "0");
+				eval("iptables", "-t", "mangle", "-D", "FORWARD", "-m", "physdev", "--physdev-in", data, "-j", "IMQ", "--todev", "0");
+				eval("iptables", "-t", "mangle", "-I", "FORWARD", "1", "-m", "physdev", "--physdev-in", data, "-j", "IMQ", "--todev", "0");
+			} else {
+				eval("iptables", "-t", "mangle", "-I", "INPUT", "1", "-i", data, "-j", "IMQ", "--todev", "0");
+				eval("iptables", "-t", "mangle", "-I", "FORWARD", "1", "-i", data, "-j", "IMQ", "--todev", "0");
+			}
+		}
+
+		if (nvram_nmatch("1", "%s_bridged", data)) {
+//                      eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-m", "mark", "--mark", nullmask, "-m", "physdev", "--physdev-in", data, "-j", chainname_in);
+//                      eval("iptables", "-t", "mangle", "-D", "FILTER_OUT", "-m", "mark", "--mark", nullmask, "-m", "physdev", "--physdev-is-bridged", "--physdev-out", data, "-j", chainname_out);
+//                      eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "2", "-m", "mark", "--mark", nullmask, "-m", "physdev", "--physdev-in", data, "-j", chainname_in);
+//                      eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "2", "-m", "mark", "--mark", nullmask, "-m", "physdev", "--physdev-is-bridged", "--physdev-out", data, "-j", chainname_out);
+
+#ifdef HAVE_ATH9K
+			if (!is_ath9k(data))
+#endif
+				eval("ifconfig", data, "down");
+			down_addIF(data);
+			eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-m", "physdev", "--physdev-in", data, "-j", chainname_in);
+			eval("iptables", "-t", "mangle", "-D", "FILTER_OUT", "-m", "physdev", "--physdev-is-bridged", "--physdev-out", data, "-j", chainname_out);
+			eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "2", "-m", "physdev", "--physdev-in", data, "-j", chainname_in);
+			eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "2", "-m", "physdev", "--physdev-is-bridged", "--physdev-out", data, "-j", chainname_out);
+		} else {
+
+//                      eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-m", "mark", "--mark", nullmask, "-i", data, "-j", chainname_in);
+//                      eval("iptables", "-t", "mangle", "-D", "FILTER_OUT", "-m", "mark", "--mark", nullmask, "-o", data, "-j", chainname_out);
+
+//                      eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "2", "-m", "mark", "--mark", nullmask, "-i", data, "-j", chainname_in);
+//                      eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "2", "-m", "mark", "--mark", nullmask, "-o", data, "-j", chainname_out);
+
+			eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-i", data, "-j", chainname_in);
+			eval("iptables", "-t", "mangle", "-D", "FILTER_OUT", "-o", data, "-j", chainname_out);
+
+			eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "2", "-i", data, "-j", chainname_in);
+			eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "2", "-o", data, "-j", chainname_out);
+		}
+
+	} while ((qos_devs = strpbrk(++qos_devs, "|")) && qos_devs++);
+
+	qos_devs = nvram_safe_get("svqos_devs");
+	int oldbase = base;
+	do {
+		memset(proto, 0, sizeof(proto));
+		ret = sscanf(qos_devs, "%31s %31s %31s %31s %31s %31s |", data, level, level2, level3, prio, proto);
+		if (ret < 5)
+			break;
+		if (!strcmp(proto, "|") || !strcmp(proto, "none")) {
+			memset(proto, 0, sizeof(proto));
+		}
+
+		memset(proto1, 0, sizeof(proto1));
+		memset(proto2, 0, sizeof(proto2));
+		memset(proto3, 0, sizeof(proto3));
+		memset(proto4, 0, sizeof(proto4));
+
+		qos_svcs = nvram_safe_get("svqos_svcs");
+		add_client_classes(base, atoi(level), atoi(level2), atoi(level3), atoi(prio));
+
+		char chainname_in[32];
+		sprintf(chainname_in, "FILTER_%s_IN", data);
+		char chainname_out[32];
+		sprintf(chainname_out, "FILTER_%s_OUT", data);
+		if (strlen(proto)) {
+
+			char *svcs = malloc(strlen(qos_svcs) + 128 + 2);
+			char *m = svcs;
+			if (strlen(proto)) {
+				filters *s_filters = get_filters_list();
+				int count = 0;
+				while (s_filters[count].name != NULL) {
+					if (!strcmp(s_filters[count].name, proto)) {
+						char *protos[6] = { "tcp", "udp", "both", "l7", "dpi", "p2p" };
+						strcpy(proto2, protos[s_filters[count].proto - 1]);
+						strcpy(proto1, s_filters[count].name);
+						sprintf(proto3, "%d:%d", s_filters[count].portfrom, s_filters[count].portto);
+						strcpy(proto4, prio);
+						break;
+					}
+					count++;
+				}
+				free_filters(s_filters);
+				sprintf(svcs, "%s %s %s %s", proto1, proto2, proto3, proto4);
+				do {
+					if (sscanf(svcs, "%31s %31s %31s %31s ", srvname, srvtype, srvdata, srvlevel) < 4)
+						break;
+
+					add_client_dev_srvfilter(srvname, srvtype, srvdata, srvlevel, base, chainname_in);
+					add_client_dev_srvfilter(srvname, srvtype, srvdata, srvlevel, base, chainname_out);
+				} while ((svcs = strpbrk(++svcs, "|")) && svcs++);
+			}
+
+			free(m);
+		}
+		/* 
+		 * check if interface has a none entry for interface based bandwidth limits or priorities. 
+		 * in this case global level based services must take care if these limits 
+		 */
+		if (hasIF(data) && !strlen(proto) && strlen(qos_svcs)) {
+			do {
+				if (sscanf(qos_svcs, "%31s %31s %31s %31s ", srvname, srvtype, srvdata, srvlevel) < 4)
+					break;
+
+				add_client_dev_srvfilter(srvname, srvtype, srvdata, srvlevel, base, chainname_in);
+				add_client_dev_srvfilter(srvname, srvtype, srvdata, srvlevel, base, chainname_out);
+
+			} while ((qos_svcs = strpbrk(++qos_svcs, "|")) && qos_svcs++);
+		}
+		// not service-prioritized, then default class          
+		base += 10;
+
+	}
+	while ((qos_devs = strpbrk(++qos_devs, "|")) && qos_devs++);
+	clearIF();
+
+	qos_devs = nvram_safe_get("svqos_devs");
+	base = oldbase;
+	do {
+		memset(proto, 0, sizeof(proto));
+		ret = sscanf(qos_devs, "%31s %31s %31s %31s %31s %31s |", data, level, level2, level3, prio, proto);
+		if (ret < 5)
+			break;
+
+		char chainname_in[32];
+		sprintf(chainname_in, "FILTER_%s_IN", data);
+		char chainname_out[32];
+		sprintf(chainname_out, "FILTER_%s_OUT", data);
+
+		if (!strcmp(proto, "|") || !strcmp(proto, "none")) {
+			memset(proto, 0, sizeof(proto));
+			eval("iptables", "-t", "mangle", "-D", chainname_in, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base + 3));
+			eval("iptables", "-t", "mangle", "-D", chainname_out, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base + 3));
+			eval("iptables", "-t", "mangle", "-A", chainname_in, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base + 3));
+			eval("iptables", "-t", "mangle", "-A", chainname_out, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base + 3));
+		}
+		eval("iptables", "-t", "mangle", "-D", chainname_in, "-j", "RETURN");
+		eval("iptables", "-t", "mangle", "-D", chainname_out, "-j", "RETURN");
+		eval("iptables", "-t", "mangle", "-A", chainname_in, "-j", "RETURN");
+		eval("iptables", "-t", "mangle", "-A", chainname_out, "-j", "RETURN");
+		base += 10;
+
+	} while ((qos_devs = strpbrk(++qos_devs, "|")) && qos_devs++);
+
 	fclose(outips);
 	fclose(outmacs);
 }
 #endif
 
-int svqos_iptables(void)
+static int svqos_iptables(void)
 {
 	char *qos_pkts = nvram_safe_get("svqos_pkts");
 	char *qos_svcs = nvram_safe_get("svqos_svcs");
@@ -338,54 +574,67 @@ int svqos_iptables(void)
 	insmod("xt_CONNMARK");
 	insmod("ipt_mac");
 	insmod("xt_mac");
+	if (!strcmp(wshaper_dev, "LAN")) {
+		// don't let packages pass to iptables without ebtables loaded
+		writeproc("/proc/sys/net/bridge/bridge-nf-call-arptables", "1");
+		writeproc("/proc/sys/net/bridge/bridge-nf-call-ip6tables", "1");
+		writeproc("/proc/sys/net/bridge/bridge-nf-call-iptables", "1");
 
-#if !(defined(ARCH_broadcom) && !defined(HAVE_BCMMODERN))
+		insmod("ebtables");
+	}
+#if !defined(ARCH_broadcom) || defined(HAVE_BCMMODERN)
 	// if kernel version later then 2.4, overwrite all old tc filter
-	eval("tc", "filter", "del", "dev", wan_dev, "pref", "1");
-	eval("tc", "filter", "del", "dev", wan_dev, "pref", "3");
-	eval("tc", "filter", "del", "dev", wan_dev, "pref", "5");
-	eval("tc", "filter", "del", "dev", wan_dev, "pref", "8");
-	eval("tc", "filter", "del", "dev", wan_dev, "pref", "9");
+	if (nvram_match("wshaper_dev", "WAN") && wan_dev != NULL) {
+		sysprintf("tc filter del dev %s pref 1", wan_dev);
+		sysprintf("tc filter del dev %s pref 3", wan_dev);
+		sysprintf("tc filter del dev %s pref 5", wan_dev);
+		sysprintf("tc filter del dev %s pref 8", wan_dev);
+		sysprintf("tc filter del dev %s pref 9", wan_dev);
 
-	eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(100), "flowid", "1:100");
-	eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(10), "flowid", "1:10");
-	eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(20), "flowid", "1:20");
-	eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(30), "flowid", "1:30");
-	eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(40), "flowid", "1:40");
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:100", wan_dev, get_tcfmark(100));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:10", wan_dev, get_tcfmark(10));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:20", wan_dev, get_tcfmark(20));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:30", wan_dev, get_tcfmark(30));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:40", wan_dev, get_tcfmark(40));
 
-	eval("tc", "filter", "del", "dev", "imq0", "pref", "1");
-	eval("tc", "filter", "del", "dev", "imq0", "pref", "3");
-	eval("tc", "filter", "del", "dev", "imq0", "pref", "5");
-	eval("tc", "filter", "del", "dev", "imq0", "pref", "8");
-	eval("tc", "filter", "del", "dev", "imq0", "pref", "9");
+//              eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(100), "flowid", "1:100");
+//              eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(10), "flowid", "1:10");
+//              eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(20), "flowid", "1:20");
+//              eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(30), "flowid", "1:30");
+//              eval("tc", "filter", "add", "dev", wan_dev, "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(40), "flowid", "1:40");
+	}
+	sysprintf("tc filter del dev imq0 pref 1");
+	sysprintf("tc filter del dev imq0 pref 3");
+	sysprintf("tc filter del dev imq0 pref 5");
+	sysprintf("tc filter del dev imq0 pref 8");
+	sysprintf("tc filter del dev imq0 pref 9");
 
-	eval("tc", "filter", "add", "dev", "imq0", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(100), "flowid", "1:100");
-	eval("tc", "filter", "add", "dev", "imq0", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(10), "flowid", "1:10");
-	eval("tc", "filter", "add", "dev", "imq0", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(20), "flowid", "1:20");
-	eval("tc", "filter", "add", "dev", "imq0", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(30), "flowid", "1:30");
-	eval("tc", "filter", "add", "dev", "imq0", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(40), "flowid", "1:40");
+	sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:100", "imq0", get_tcfmark(100));
+	sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:10", "imq0", get_tcfmark(10));
+	sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:20", "imq0", get_tcfmark(20));
+	sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:30", "imq0", get_tcfmark(30));
+	sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:40", "imq0", get_tcfmark(40));
 
 	if (nvram_match("wshaper_dev", "LAN")) {
-		eval("tc", "filter", "del", "dev", "imq1", "pref", "1");
-		eval("tc", "filter", "del", "dev", "imq1", "pref", "3");
-		eval("tc", "filter", "del", "dev", "imq1", "pref", "5");
-		eval("tc", "filter", "del", "dev", "imq1", "pref", "8");
-		eval("tc", "filter", "del", "dev", "imq1", "pref", "9");
+		sysprintf("tc filter del dev imq1 pref 1");
+		sysprintf("tc filter del dev imq1 pref 3");
+		sysprintf("tc filter del dev imq1 pref 5");
+		sysprintf("tc filter del dev imq1 pref 8");
+		sysprintf("tc filter del dev imq1 pref 9");
+//              eval("tc", "filter", "del", "dev", "imq1", "pref", "1");
+//              eval("tc", "filter", "del", "dev", "imq1", "pref", "3");
+//              eval("tc", "filter", "del", "dev", "imq1", "pref", "5");
+//              eval("tc", "filter", "del", "dev", "imq1", "pref", "8");
+//              eval("tc", "filter", "del", "dev", "imq1", "pref", "9");
 
-		eval("tc", "filter", "add", "dev", "imq1", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(100), "flowid", "1:100");
-		eval("tc", "filter", "add", "dev", "imq1", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(10), "flowid", "1:10");
-		eval("tc", "filter", "add", "dev", "imq1", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(20), "flowid", "1:20");
-		eval("tc", "filter", "add", "dev", "imq1", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(30), "flowid", "1:30");
-		eval("tc", "filter", "add", "dev", "imq1", "protocol", "ip", "parent", "1:", "u32", "match", "mark", get_tcfmark(40), "flowid", "1:40");
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:100", "imq1", get_tcfmark(100));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:10", "imq1", get_tcfmark(10));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:20", "imq1", get_tcfmark(20));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:30", "imq1", get_tcfmark(30));
+		sysprintf("tc filter add dev %s protocol ip parent 1: u32 match mark %s flowid 1:40", "imq1", get_tcfmark(40));
 
 	}
 #endif
-
-#ifdef HAVE_OPENDPI
-	insmod("/lib/opendpi/xt_opendpi.ko");
-#endif
-	insmod("ipt_layer7");
-	insmod("xt_layer7");
 
 	// set-up mark/filter tables
 
@@ -396,23 +645,22 @@ int svqos_iptables(void)
 	eval("iptables", "-t", "mangle", "-F", "FILTER_OUT");
 	eval("iptables", "-t", "mangle", "-X", "FILTER_OUT");
 	eval("iptables", "-t", "mangle", "-N", "FILTER_OUT");
-	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "CONNMARK", "--restore");
-	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-m", "mark", "--mark", nullmask, "-j", "SVQOS_SVCS");
-
 	eval("iptables", "-t", "mangle", "-F", "FILTER_IN");
 	eval("iptables", "-t", "mangle", "-X", "FILTER_IN");
 	eval("iptables", "-t", "mangle", "-N", "FILTER_IN");
-	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "CONNMARK", "--restore");
-	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-m", "mark", "--mark", nullmask, "-j", "SVQOS_SVCS");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "CONNMARK", "--restore-mark");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "CONNMARK", "--restore-mark");
 
 	eval("iptables", "-t", "mangle", "-D", "PREROUTING", "-j", "FILTER_IN");
 	eval("iptables", "-t", "mangle", "-I", "PREROUTING", "-j", "FILTER_IN");
 	eval("iptables", "-t", "mangle", "-D", "POSTROUTING", "-j", "FILTER_OUT");
 	eval("iptables", "-t", "mangle", "-I", "POSTROUTING", "-j", "FILTER_OUT");
 
+	insmod("xt_dscp");
+	insmod("xt_DSCP");
 	eval("iptables", "-t", "mangle", "-A", "POSTROUTING", "-m", "dscp", "--dscp", "!", "0", "-j", "DSCP", "--set-dscp", "0");
 
-	if (!strcmp(wshaper_dev, "WAN")) {
+	if (!strcmp(wshaper_dev, "WAN") && wan_dev != NULL) {
 		eval("iptables", "-t", "mangle", "-D", "INPUT", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
 		eval("iptables", "-t", "mangle", "-A", "INPUT", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
 		eval("iptables", "-t", "mangle", "-D", "FORWARD", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
@@ -421,16 +669,18 @@ int svqos_iptables(void)
 	if (!strcmp(wshaper_dev, "LAN")) {
 		if (!client_bridged_enabled()
 		    && nvram_invmatch("wan_proto", "disabled")) {
-			eval("iptables", "-t", "mangle", "-D", "INPUT", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
-			eval("iptables", "-t", "mangle", "-A", "INPUT", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
-			eval("iptables", "-t", "mangle", "-D", "FORWARD", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
-			eval("iptables", "-t", "mangle", "-A", "FORWARD", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
+			if (wan_dev != NULL) {
+				eval("iptables", "-t", "mangle", "-D", "INPUT", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
+				eval("iptables", "-t", "mangle", "-A", "INPUT", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
+				eval("iptables", "-t", "mangle", "-D", "FORWARD", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
+				eval("iptables", "-t", "mangle", "-A", "FORWARD", "-i", wan_dev, "-j", "IMQ", "--todev", "0");
 
-			eval("iptables", "-t", "mangle", "-D", "INPUT", "-i", "!", wan_dev, "-j", "IMQ", "--todev", "1");
-			eval("iptables", "-t", "mangle", "-A", "INPUT", "-i", "!", wan_dev, "-j", "IMQ", "--todev", "1");
+				eval("iptables", "-t", "mangle", "-D", "INPUT", "-i", "!", wan_dev, "-j", "IMQ", "--todev", "1");
+				eval("iptables", "-t", "mangle", "-A", "INPUT", "-i", "!", wan_dev, "-j", "IMQ", "--todev", "1");
 
-			eval("iptables", "-t", "mangle", "-D", "FORWARD", "-i", "!", wan_dev, "-o", "!", wan_dev, "-j", "IMQ", "--todev", "1");
-			eval("iptables", "-t", "mangle", "-A", "FORWARD", "-i", "!", wan_dev, "-o", "!", wan_dev, "-j", "IMQ", "--todev", "1");
+				eval("iptables", "-t", "mangle", "-D", "FORWARD", "-i", "!", wan_dev, "-o", "!", wan_dev, "-j", "IMQ", "--todev", "1");
+				eval("iptables", "-t", "mangle", "-A", "FORWARD", "-i", "!", wan_dev, "-o", "!", wan_dev, "-j", "IMQ", "--todev", "1");
+			}
 		} else {
 			eval("iptables", "-t", "mangle", "-D", "INPUT", "-j", "IMQ", "--todev", "1");
 			eval("iptables", "-t", "mangle", "-A", "INPUT", "-j", "IMQ", "--todev", "1");
@@ -454,7 +704,7 @@ int svqos_iptables(void)
 		eval("iptables", "-t", "mangle", "-F", "VPN_IN");
 		eval("iptables", "-t", "mangle", "-X", "VPN_IN");
 		eval("iptables", "-t", "mangle", "-N", "VPN_IN");
-		eval("iptables", "-t", "mangle", "-A", "VPN_IN", "-j", "CONNMARK", "--save");
+		eval("iptables", "-t", "mangle", "-A", "VPN_IN", "-j", "CONNMARK", "--save-mark");
 
 		eval("iptables", "-t", "mangle", "-F", "VPN_OUT");
 		eval("iptables", "-t", "mangle", "-X", "VPN_OUT");
@@ -478,22 +728,27 @@ int svqos_iptables(void)
 			eval("iptables", "-t", "mangle", "-I", "FORWARD", "1", "-i", "tun+", "-j", "IMQ", "--todev", "0");
 			eval("iptables", "-t", "mangle", "-I", "POSTROUTING", "1", "-o", "tun+", "-j", "VPN_OUT");
 		}
+		insmod("xt_physdev");
 		// look for present tap-devices
 		if (getifcount("tap")) {
 			writeproc("/proc/sys/net/bridge/bridge-nf-call-arptables", "1");
 			writeproc("/proc/sys/net/bridge/bridge-nf-call-ip6tables", "1");
 			writeproc("/proc/sys/net/bridge/bridge-nf-call-iptables", "1");
 
-			insmod("xt_physdev");
 			insmod("ebtables");
 
 			getIfList(iflist, "tap");
 			foreach(word, iflist, next) {
 				if (is_in_bridge(word)) {
+#ifdef HAVE_ATH9K
+					if (!is_ath9k(word))
+#endif
+						eval("ifconfig", word, "down");
+					down_addIF(word);
 					eval("iptables", "-t", "mangle", "-I", "PREROUTING", "2", "-m", "physdev", "--physdev-in", word, "-j", "VPN_IN");
-					eval("iptables", "-t", "mangle", "-I", "INPUT", "1", "-m", "physdev", "--physdev-in", word, "-j", "IMQ", "--todev", "0");
+					eval("iptables", "-t", "mangle", "-I", "INPUT", "1", "-m", "physdev", "--physdev-is-bridged", "--physdev-in", word, "-j", "IMQ", "--todev", "0");
 					eval("iptables", "-t", "mangle", "-I", "FORWARD", "1", "-m", "physdev", "--physdev-in", word, "-j", "IMQ", "--todev", "0");
-					eval("iptables", "-t", "mangle", "-I", "POSTROUTING", "-m", "physdev", "--physdev-out", word, "-j", "VPN_OUT");
+					eval("iptables", "-t", "mangle", "-I", "POSTROUTING", "-m", "physdev", "--physdev-is-bridged", "--physdev-out", word, "-j", "VPN_OUT");
 				} else
 					unbridged_tap = 1;
 			}
@@ -508,6 +763,8 @@ int svqos_iptables(void)
 		//system2("iptables -t mangle -A POSTROUTING -m dscp --dscp ! 0 -j DSCP --set-dscp 0");
 
 		char *qos_vpn = nvram_safe_get("svqos_vpns");
+		insmod("xt_dscp");
+		insmod("xt_DSCP");
 
 		/*
 		 *  vpn format is "interface level | interface level |" ..etc 
@@ -521,9 +778,14 @@ int svqos_iptables(void)
 			char s_level[32];
 			sprintf(s_level, "%d", atoi(level) / 10);
 			/* outgoing data */
-			if (is_in_bridge(data))
-				eval("iptables", "-t", "mangle", "-I", "VPN_OUT", "1", "-m", "physdev", "--physdev-out", data, "-j", "DSCP", "--set-dscp", s_level);
-			else
+			if (is_in_bridge(data)) {
+#ifdef HAVE_ATH9K
+				if (!is_ath9k(data))
+#endif
+					eval("ifconfig", data, "down");
+				down_addIF(data);
+				eval("iptables", "-t", "mangle", "-I", "VPN_OUT", "1", "-m", "physdev", "--physdev-is-bridged", "--physdev-out", data, "-j", "DSCP", "--set-dscp", s_level);
+			} else
 				eval("iptables", "-t", "mangle", "-I", "VPN_OUT", "1", "-o", data, "-j", "DSCP", "--set-dscp", s_level);
 
 		} while ((qos_vpn = strpbrk(++qos_vpn, "|")) && qos_vpn++);
@@ -531,12 +793,14 @@ int svqos_iptables(void)
 #endif
 
 	aqos_tables();
+
 #endif
 
 #ifndef HAVE_AQOS
 
 	char *qos_mac = nvram_safe_get("svqos_macs");
 	char *qos_ipaddr = nvram_safe_get("svqos_ips");
+	char *qos_devs = nvram_safe_get("svqos_devs");
 
 	char srvname[32], srvtype[32], srvdata[32], srvlevel[32];
 
@@ -593,20 +857,33 @@ int svqos_iptables(void)
 		base += 10;
 	}
 	while ((qos_ipaddr = strpbrk(++qos_ipaddr, "|")) && qos_ipaddr++);
+
+	do {
+
+		if (sscanf(qos_devs, "%31s %31s |", data, level) < 2)
+			break;
+
+		add_client_classes(base, atoi(level));
+
+		svcs = nvram_safe_get("svqos_svcs");
+		do {
+			if (sscanf(svcs, "%31s %31s %31s %31s ", srvname, srvtype, srvdata, srvlevel) < 4)
+				break;
+
+			add_client_ip_srvfilter(srvname, srvtype, srvdata, srvlevel, base, data);
+		} while ((svcs = strpbrk(++svcs, "|")) && svcs++);
+		// not service-prioritized, then default class          
+		eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-o", data, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base + 3));
+		eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-i", data, "-m", "mark", "--mark", "0", "-j", "MARK", "--set-mark", qos_nfmark(base + 3));
+
+		base += 10;
+	}
+	while ((qos_devs = strpbrk(++qos_devs, "|")) && qos_devs++);
 #endif
 
 	// if OSPF is active put it into the Express bucket for outgoing QoS
 	if (nvram_match("wk_mode", "ospf"))
 		eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-p", "ospf", "-j", "MARK", "--set-mark", nullmask);
-
-	if (!strcmp(wshaper_dev, "LAN")) {
-		// don't let packages pass to iptables without ebtables loaded
-		writeproc("/proc/sys/net/bridge/bridge-nf-call-arptables", "1");
-		writeproc("/proc/sys/net/bridge/bridge-nf-call-ip6tables", "1");
-		writeproc("/proc/sys/net/bridge/bridge-nf-call-iptables", "1");
-
-		insmod("ebtables");
-	}
 
 	qos_svcs = nvram_safe_get("svqos_svcs");
 
@@ -630,12 +907,15 @@ int svqos_iptables(void)
 		}
 
 		if (strstr(type, "l7")) {
+			insmod("ipt_layer7");
+			insmod("xt_layer7");
 			eval("iptables", "-t", "mangle", "-A", "SVQOS_SVCS", "-m", "layer7", "--l7proto", name, "-j", "MARK", "--set-mark", qos_nfmark(atol(level)));
 		}
 #ifdef HAVE_OPENDPI
 		if (strstr(type, "dpi")) {
 			char dpi[32];
 			sprintf(dpi, "--%s", name);
+			eval("insmod", "xt_opendpi", "bt_hash_size=2", "bt_hash_timeout=3600");
 			eval("iptables", "-t", "mangle", "-A", "SVQOS_SVCS", "-m", "ndpi", dpi, "-j", "MARK", "--set-mark", qos_nfmark(atol(level)));
 		}
 #endif
@@ -691,9 +971,13 @@ int svqos_iptables(void)
 	} while ((qos_svcs = strpbrk(++qos_svcs, "|")) && qos_svcs++);
 
 	// close mark-tables 
-	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-m", "mark", "--mark", nullmask, "-j", "SVQOS_SVCS");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "CONNMARK", "--save-mark");
 	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "RETURN");
-
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-m", "mark", "--mark", nullmask, "-j", "SVQOS_SVCS");
+	if (nvram_invmatch("openvpn_enable", "0") || nvram_invmatch("openvpncl_enable", "0")) {
+		eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "VPN_DSCP");
+	}
 #ifndef HAVE_80211AC
 	// seems to crash northstar
 
@@ -705,13 +989,7 @@ int svqos_iptables(void)
 
 	} while ((qos_pkts = strpbrk(++qos_pkts, "|")) && qos_pkts++);
 #endif
-// obsolete
-//      system2
-//          ("iptables -t mangle -A FILTER_OUT -m layer7 --l7proto dns -j CLASSIFY --set-class 1:100");
-	if (nvram_invmatch("openvpn_enable", "0") || nvram_invmatch("openvpncl_enable", "0")) {
-		eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "VPN_DSCP");
-	}
-	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "CONNMARK", "--save-mark");
 	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "RETURN");
 
 	eval("iptables", "-t", "mangle", "-A", "SVQOS_SVCS", "-j", "RETURN");
@@ -794,11 +1072,21 @@ void start_wshaper(void)
 		eval("ifconfig", "imq1", "down");
 		eval(script_name, ul_val, dl_val, wan_dev, mtu_val, "imq0", aqd);
 	} else {
+		eval("ifconfig", "imq1", "down");
+		eval("ifconfig", "imq1", "mtu", "1500");
+		eval("ifconfig", "imq1", "txqueuelen", "30");
+		eval("ifconfig", "imq1", "up");
 		eval(script_name, ul_val, dl_val, wan_dev, mtu_val, "imq0", aqd, "imq1");
 	}
+	eval("ifconfig", "imq0", "down");
+	eval("ifconfig", "imq1", "down");
 	svqos_iptables();
+	eval("ifconfig", "imq0", "up");
+	eval("ifconfig", "imq1", "up");
 
 #endif
+	down_upIF();
+	down_clearIF();
 	nvram_set("qos_done", "1");
 
 	return;
@@ -830,243 +1118,58 @@ void stop_wshaper(void)
 
 	eval(script_name, "stop", "XX", wan_dev, "XX", "imq0", "imq1");
 
-#ifdef HAVE_RB500
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_EROUTER
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "eth2");
-#elif HAVE_XSCALE
-	ret = eval(script_name, "stop", "XX", "ixp0");
-	ret = eval(script_name, "stop", "XX", "ixp1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_NORTHSTAR
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-#elif HAVE_LAGUNA
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-#elif HAVE_VENTANA
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-#elif HAVE_MAGICBOX
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_DAP3310
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_DAP3410
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_UNIWIP
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_WDR4900
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_RB600
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "eth2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-	ret = eval(script_name, "stop", "XX", "ath2");
-	ret = eval(script_name, "stop", "XX", "ath3");
-	ret = eval(script_name, "stop", "XX", "ath4");
-	ret = eval(script_name, "stop", "XX", "ath5");
-	ret = eval(script_name, "stop", "XX", "ath6");
-	ret = eval(script_name, "stop", "XX", "ath7");
-#elif HAVE_NS2
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_LC2
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_BS2
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_PICO2
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_PICO5
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_MS2
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_BS2HP
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_LS2
-	ret = eval(script_name, "stop", "XX", "vlan0");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_SOLO51
-	ret = eval(script_name, "stop", "XX", "vlan0");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_LS5
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_WRT54G2
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_RTG32
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_DIR300
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_MR3202A
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_RT2880
-	ret = eval(script_name, "stop", "XX", "eth2");
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-	ret = eval(script_name, "stop", "XX", "ra0");
-	ret = eval(script_name, "stop", "XX", "ba0");
-	ret = eval(script_name, "stop", "XX", "apcli0");
-	ret = eval(script_name, "stop", "XX", "apcli1");
-#elif HAVE_FONERA
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "vlan0");
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_WHRAG108
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_PB42
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_WA901
-	ret = eval(script_name, "stop", "XX", "eth0");
-#elif HAVE_CARAMBOLA
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-#elif HAVE_WR941
-	ret = eval(script_name, "stop", "XX", "vlan0");
-	ret = eval(script_name, "stop", "XX", "vlan1");
-#elif HAVE_WA901v1
-	ret = eval(script_name, "stop", "XX", "eth1");
-#elif HAVE_WDR2543
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-#elif HAVE_WR741V4
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-#elif HAVE_WR741
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-#elif HAVE_WR1043
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-#elif HAVE_WDR3500
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-#elif HAVE_WZR450HP2
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-#elif HAVE_WASP
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-#elif HAVE_WZRG450
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "vlan2");
-#elif HAVE_DIR632
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-#elif HAVE_WNR2000
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_WHRHPGN
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_LSX
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-	ret = eval(script_name, "stop", "XX", "ath2");
-#elif HAVE_DANUBE
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_WBD222
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "eth2");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-	ret = eval(script_name, "stop", "XX", "ath2");
-#elif HAVE_STORM
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_OPENRISC
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "eth2");
-	ret = eval(script_name, "stop", "XX", "eth3");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_ADM5120
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "eth1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_TW6600
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_RDAT81
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_RCAA01
-	ret = eval(script_name, "stop", "XX", "vlan0");
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-	ret = eval(script_name, "stop", "XX", "ath1");
-#elif HAVE_CA8PRO
-	ret = eval(script_name, "stop", "XX", "vlan0");
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_CA8
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#elif HAVE_X86
-	ret = eval(script_name, "stop", "XX", "eth0");
-	ret = eval(script_name, "stop", "XX", "ath0");
-#else
-	ret = eval(script_name, "stop", "XX", "vlan1");
-	ret = eval(script_name, "stop", "XX", "eth1");
-#endif
-//      ret = eval(script_name, "stop", "XX", "ppp0");
+	char eths2[512];
+	char eths[512];
+	memset(eths, 0, 512);
+	memset(eths2, 0, 512);
+	memset(eths, 0, 512);
+	getIfList(eths, "ixp");
+	memset(eths2, 0, 512);
+	getIfList(eths2, "eth");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "imq");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "ppp");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "tun");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "tap");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "vlan");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "ath");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "wl");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "ra");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+	memset(eths2, 0, 512);
+	getIfList(eths2, "rb");
+	snprintf(eths, 512, "%s %s", eths, eths2);
+
+	char *next;
+	char var[80];
+	char *vifs = eths;
+	foreach(var, vifs, next) {
+		eval("tc", "qdisc", "del", "dev", var, "root");
+	}
+#ifndef TEST
 	stop_firewall();
 	start_firewall();
-
+#endif
 	// don't let packages pass to iptables without ebtables loaded
 	writeproc("/proc/sys/net/bridge/bridge-nf-call-arptables", "0");
 	writeproc("/proc/sys/net/bridge/bridge-nf-call-ip6tables", "0");
 	writeproc("/proc/sys/net/bridge/bridge-nf-call-iptables", "0");
 
-#ifdef HAVE_OPENVPN
-	rmmod("xt_physdev");
-#endif
 	rmmod("xt_IMQ");
 	rmmod("ipt_IMQ");
 	rmmod("imq");
@@ -1082,3 +1185,11 @@ void stop_wshaper(void)
 
 	return;
 }
+
+#ifdef TEST
+int main(int argc, char *argv[])
+{
+	start_wshaper();
+
+}
+#endif

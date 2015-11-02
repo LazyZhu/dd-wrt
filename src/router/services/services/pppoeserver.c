@@ -39,30 +39,12 @@ static char *getifip(void)
 		return nvram_nget("%s_ipaddr", nvram_safe_get("pppoeserver_interface"));
 }
 
-void add_pppoe_natrule(void)
+static void add_pppoe_natrule(void)
 {
-/*
-	if (nvram_match("wan_proto", "disabled")) {
-		char mask[128];
-BUG: http://svn.dd-wrt.com/ticket/4033
-		sprintf(mask, "%s/%s", nvram_safe_get("pppoeserver_remotenet"), nvram_safe_get("pppoeserver_remotemask"));
-		eval("iptables", "-A", "INPUT", "-i", getifip(), "-s", mask, "-j", "DROP");
-		eval("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", mask, "-j", "SNAT", "--to-source", getifip());
-	}
-*/
 }
 
-void del_pppoe_natrule(void)
+static void del_pppoe_natrule(void)
 {
-/*
-	if (nvram_match("wan_proto", "disabled")) {
-		char mask[128];
-BUG: http://svn.dd-wrt.com/ticket/4033
-		sprintf(mask, "%s/%s", nvram_safe_get("pppoeserver_remotenet"), nvram_safe_get("pppoeserver_remotemask"));
-		eval("iptables", "-D", "INPUT", "-i", getifip(), "-s", mask, "-j", "DROP");
-		eval("iptables", "-t", "nat", "-D", "POSTROUTING", "-s", mask, "-j", "SNAT", "--to-source", getifip());
-	}
-*/
 }
 
 void addpppoeconnected_main(int argc, char *argv[])
@@ -88,7 +70,7 @@ void addpppoetime_main(int argc, char *argv[])
 
 	lock = 1;
 	sysprintf("grep -v %s /tmp/pppoe_peer.db > /tmp/pppoe_peer.db.tmp", argv[1]);
-	sysprintf("mv /tmp/pppoe_peer.db.tmp /tmp/pppoe_peer.db");
+	eval("mv", "/tmp/pppoe_peer.db.tmp", "/tmp/pppoe_peer.db");
 	sysprintf("echo \"%s\t\t%s\t\t%s\t\t%s\" >> /tmp/pppoe_peer.db", argv[2], argv[3], argv[4], argv[1]);
 	lock = 0;
 }
@@ -103,10 +85,10 @@ void delpppoeconnected_main(int argc, char *argv[])
 
 	lock = 1;
 	sysprintf("grep -v %s /tmp/pppoe_connected > /tmp/pppoe_connected.tmp", argv[1]);
-	sysprintf("mv /tmp/pppoe_connected.tmp /tmp/pppoe_connected -f");
+	eval("mv", "/tmp/pppoe_connected.tmp", "/tmp/pppoe_connected", "-f");
 	//      just an uptime test
 	sysprintf("grep -v %s /tmp/pppoe_uptime > /tmp/pppoe_uptime.tmp", argv[2]);
-	sysprintf("mv /tmp/pppoe_uptime.tmp /tmp/pppoe_uptime -f");
+	eval("mv", "/tmp/pppoe_uptime.tmp", "/tmp/pppoe_uptime", "-f");
 	lock = 0;
 
 }
@@ -166,7 +148,7 @@ static void makeipup(void)
 		&& nvram_match("sys_enable_jffs2", "1")))
 		mkdir("/jffs/etc", 0700);
 	mkdir("/jffs/etc/pppoeserver", 0700);
-	sysprintf("/bin/cp /jffs/etc/pppoeserver/pppoe_peer.db /tmp/");
+	eval("/bin/cp", "/jffs/etc/pppoeserver/pppoe_peer.db", "/tmp/");
 }
 
 static void do_pppoeconfig(FILE * fp)
@@ -383,8 +365,8 @@ void start_pppoeserver(void)
 
 		if (nvram_invmatch("wan_proto", "pppoe")	//if there is no ppp0, reduce rules
 		    && nvram_invmatch("wan_proto", "pptp") && nvram_invmatch("wan_proto", "pppoe_dual")) {
-			sysprintf("/usr/sbin/iptables -I FORWARD -i ppp+ -j ACCEPT");
-			sysprintf("/usr/sbin/iptables -I FORWARD -o ppp+ -j ACCEPT");
+			eval("/usr/sbin/iptables", "-I", "FORWARD", "-i", "ppp+", "-j", "ACCEPT");
+			eval("/usr/sbin/iptables", "-I", "FORWARD", "-o", "ppp+", "-j", "ACCEPT");
 		}
 
 		start_pppmodules();
@@ -416,7 +398,7 @@ void stop_pppoeserver(void)
 			&& nvram_match("sys_enable_jffs2", "1"))) {
 			mkdir("/jffs/etc", 0700);
 			mkdir("/jffs/etc/pppoeserver", 0700);
-			sysprintf("/bin/cp /tmp/pppoe_peer.db /jffs/etc/pppoeserver");
+			eval("/bin/cp", "/tmp/pppoe_peer.db", "/jffs/etc/pppoeserver");
 		}
 //              if (nvram_match("wan_proto", "disabled"))
 //                      system("/usr/sbin/iptables -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu\n");
@@ -424,8 +406,8 @@ void stop_pppoeserver(void)
 		//system("/usr/sbin/ebtables -D INPUT -i `nvram get pppoeserver_interface` -p 0x8863 -j DROP");
 		if (nvram_invmatch("wan_proto", "pppoe")
 		    && nvram_invmatch("wan_proto", "pptp") && nvram_invmatch("wan_proto", "pppoe_dual")) {
-			sysprintf("/usr/sbin/iptables -D FORWARD -i ppp+ -j ACCEPT");
-			sysprintf("/usr/sbin/iptables -D FORWARD -o ppp+ -j ACCEPT");
+			eval("/usr/sbin/iptables", "-D", "FORWARD", "-i", "ppp+", "-j", "ACCEPT");
+			eval("/usr/sbin/iptables", "-D", "FORWARD", "-o", "ppp+", "-j", "ACCEPT");
 		}
 	}
 

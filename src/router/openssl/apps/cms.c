@@ -465,6 +465,10 @@ int MAIN(int argc, char **argv)
             if (key_param == NULL || key_param->idx != keyidx) {
                 cms_key_param *nparam;
                 nparam = OPENSSL_malloc(sizeof(cms_key_param));
+                if (!nparam) {
+                    BIO_printf(bio_err, "Out of memory\n");
+                    goto argerr;
+                }
                 nparam->idx = keyidx;
                 nparam->param = sk_OPENSSL_STRING_new_null();
                 nparam->next = NULL;
@@ -643,6 +647,8 @@ int MAIN(int argc, char **argv)
         BIO_printf(bio_err,
                    "-CApath dir    trusted certificates directory\n");
         BIO_printf(bio_err, "-CAfile file   trusted certificates file\n");
+        BIO_printf(bio_err,
+                   "-no_alt_chains only ever use the first certificate chain found\n");
         BIO_printf(bio_err,
                    "-crl_check     check revocation status of signer's certificate using CRLs\n");
         BIO_printf(bio_err,

@@ -37,6 +37,7 @@
 #include <syslog.h>
 #include <wlutils.h>
 #include <bcmutils.h>
+#include <services.h>
 
 void start_nas_notify(char *ifname)
 {
@@ -662,12 +663,11 @@ void start_nas_single(char *type, char *prefix)
 
 		cprintf("done\n");
 	}
-	
-	if (!strcmp(mode, "-S")) {
-		wlconf_up(iface); // touble tip
+
+	if (!strcmp(nvram_safe_get(apmode), "wet")) {
+		wlconf_up(iface);	// touble tip
 	}
 
-	
 	return;
 
 }
@@ -694,14 +694,14 @@ void stop_nas(void)
 
 	for (c = 0; c < cnt; c++) {
 		char pidname[32];
-		sprintf(pidname,"/tmp/nas.wl%dlan.pid",c);
+		sprintf(pidname, "/tmp/nas.wl%dlan.pid", c);
 		unlink(pidname);
-		sprintf(pidname,"/tmp/nas.wl%dwan.pid",c);
+		sprintf(pidname, "/tmp/nas.wl%dwan.pid", c);
 		unlink(pidname);
 		sprintf(vifs_name, "wl%d_vifs", c);
 		char *vifs = nvram_safe_get(vifs_name);
 		foreach(name, vifs, next) {
-			sprintf(pidname,"/tmp/nas.%slan.pid",name);
+			sprintf(pidname, "/tmp/nas.%slan.pid", name);
 			unlink(pidname);
 		}
 	}

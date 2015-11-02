@@ -54,6 +54,15 @@ static int open_site_survey(void)
 	return FALSE;
 }
 
+static char *dtim_period(int dtim, char *mem)
+{
+	if (dtim)
+		snprintf(mem, 32, "%d", dtim);
+	else
+		snprintf(mem, 32, "%s", "None");
+	return mem;
+}
+
 #ifdef FBNFW
 
 void ej_list_fbn(webs_t wp, int argc, char_t ** argv)
@@ -136,6 +145,8 @@ void ej_dump_site_survey(webs_t wp, int argc, char_t ** argv)
 					speed = 867;
 				else if (speed == 450)
 					speed = 1300;
+				else if (speed == 600)
+					speed = 1733;
 			case 0x100:
 			case 0x200:
 				if (speed == 150)
@@ -143,7 +154,9 @@ void ej_dump_site_survey(webs_t wp, int argc, char_t ** argv)
 				else if (speed == 300)
 					speed = 1733;
 				else if (speed == 450)
-					speed = 2600;
+					speed = 2340;
+				else if (speed == 600)
+					speed = 3466;
 			}
 			rates = strbuf;
 
@@ -153,42 +166,66 @@ void ej_dump_site_survey(webs_t wp, int argc, char_t ** argv)
 				sprintf(rates, "%d(a/n/ac)", speed);
 			}
 
-		} else {
-			if ((site_survey_lists[i].channel & 0xff) < 15) {
-				if (site_survey_lists[i].rate_count == 4)
-					rates = "11(b)";
-				else if (site_survey_lists[i].rate_count == 12)
-					rates = "54(b/g)";
-				else if (site_survey_lists[i].rate_count == 13)
-					rates = "108(b/g)";
-				else if (site_survey_lists[i].rate_count == 300)
-					rates = "300(b/g/n)";
-				else if (site_survey_lists[i].rate_count == 450)
-					rates = "450(b/g/n)";
-				else if (site_survey_lists[i].rate_count == 150)
-					rates = "150(b/g/n)";
-				else {
-					rates = buf;
-					snprintf(rates, 9, "%d", site_survey_lists[i].rate_count);
-				}
-			} else {
-				if (site_survey_lists[i].rate_count == 4)
-					rates = "11(b)";	//bogus, never shown. but if, its definitly b with weired channel setting
-				else if (site_survey_lists[i].rate_count == 12)
-					rates = "54(a)";
-				else if (site_survey_lists[i].rate_count == 13)
-					rates = "108(a)";
-				else if (site_survey_lists[i].rate_count == 300)
-					rates = "300(a/n)";
-				else if (site_survey_lists[i].rate_count == 450)
-					rates = "450(a/n)";
-				else if (site_survey_lists[i].rate_count == 150)
-					rates = "150(a/n)";
-				else {
-					rates = buf;
-					snprintf(rates, 9, "%d", site_survey_lists[i].rate_count);
-				}
+		} else if (site_survey_lists[i].channel & 0x2000) {
 
+			int speed = 0;
+			int rc = site_survey_lists[i].rate_count;
+			switch (rc) {
+			case 4:
+				speed = 11;
+				break;
+			case 12:
+				speed = 54;
+				break;
+			case 13:
+				speed = 108;
+				break;
+			default:
+				speed = rc;
+			}
+			rates = strbuf;
+
+			if ((site_survey_lists[i].channel & 0xff) < 15) {
+				sprintf(rates, "%d%s", speed, rc == 4 ? "(b)" : rc < 14 ? "(b/g)" : "(b/g/n)");
+			} else {
+				sprintf(rates, "%d%s", speed, rc < 14 ? "(a)" : "(a/n)");
+			}
+
+		} else {
+			int speed = 0;
+			int rc = site_survey_lists[i].rate_count;
+			switch (rc) {
+			case 4:
+				speed = 11;
+				break;
+			case 12:
+				speed = 54;
+				break;
+			case 13:
+				speed = 108;
+				break;
+			case 150:
+				speed = 72;
+				break;
+			case 300:
+				speed = 144;
+				break;
+			case 450:
+				speed = 217;
+				break;
+			case 600:
+				speed = 289;
+				break;
+			default:
+				speed = rc;
+				break;
+			}
+			rates = strbuf;
+
+			if ((site_survey_lists[i].channel & 0xff) < 15) {
+				sprintf(rates, "%d%s", speed, rc == 4 ? "(b)" : rc < 14 ? "(b/g)" : "(b/g/n)");
+			} else {
+				sprintf(rates, "%d%s", speed, rc < 14 ? "(a)" : "(a/n)");
 			}
 		}
 
@@ -219,12 +256,13 @@ void ej_dump_site_survey(webs_t wp, int argc, char_t ** argv)
 		strcpy(net, netmode);
 		websWrite(wp, "%c\"", i ? ',' : ' ');
 		tf_webWriteJS(wp, tssid);
+		char dtim[32];
 		websWrite(wp,
-			  "\",\"%s\",\"%s\",\"%d (%d MHz)\",\"%d\",\"%d\",\"%d\",\"%s\",\"%s\",\"%d\",\"%s\"\n",
+			  "\",\"%s\",\"%s\",\"%d (%d MHz)\",\"%d\",\"%d\",\"%d\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
 			  net, site_survey_lists[i].BSSID,
 			  site_survey_lists[i].channel & 0xff,
 			  site_survey_lists[i].frequency,
-			  site_survey_lists[i].RSSI, site_survey_lists[i].phy_noise, site_survey_lists[i].beacon_period, open, site_survey_lists[i].ENCINFO, site_survey_lists[i].dtim_period, rates);
+			  site_survey_lists[i].RSSI, site_survey_lists[i].phy_noise, site_survey_lists[i].beacon_period, open, site_survey_lists[i].ENCINFO, dtim_period(site_survey_lists[i].dtim_period, dtim), rates);
 
 	}
 

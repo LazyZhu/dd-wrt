@@ -194,17 +194,25 @@ static struct hostapd_config *hostapd_ctrl_iface_config_read(const char *fname)
 	     opt;
 		 opt = strtok(NULL, " ")) {
 
-		if ((val = get_option(opt, "channel=")))
+		if ((val = get_option(opt, "channel="))) {
 			conf->channel = atoi(val);
-		else if ((val = get_option(opt, "frequency=")))
+			if (conf->secondary_channel==1)			
+				conf->vht_oper_centr_freq_seg0_idx = conf->channel + 6;
+			if (conf->secondary_channel==-1)			
+				conf->vht_oper_centr_freq_seg0_idx = conf->channel - 6;
+		}else if ((val = get_option(opt, "frequency=")))
 			conf->frequency = atoi(val);
 		else if ((val = get_option(opt, "ht_capab=")))
 			conf->ht_capab = atoi(val);
 		else if ((val = get_option(opt, "ht_capab_mask=")))
 			conf->ht_capab &= atoi(val);
-		else if ((val = get_option(opt, "sec_chan=")))
+		else if ((val = get_option(opt, "sec_chan="))) {
 			conf->secondary_channel = atoi(val);
-		else if ((val = get_option(opt, "hw_mode=")))
+			if (conf->secondary_channel==1)			
+				conf->vht_oper_centr_freq_seg0_idx = conf->channel + 6;
+			if (conf->secondary_channel==-1)			
+				conf->vht_oper_centr_freq_seg0_idx = conf->channel - 6;
+		}else if ((val = get_option(opt, "hw_mode=")))
 			conf->hw_mode = atoi(val);
 		else if ((val = get_option(opt, "ieee80211n=")))
 			conf->ieee80211n = atoi(val);
@@ -1077,7 +1085,7 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
 			return pos - buf;
 		pos += ret;
 
-		ret = wpa_write_ciphers(pos, end, hapd->conf->wpa_pairwise,
+		ret = wpa_write_ciphers(pos, end, hapd->conf->rsn_pairwise,
 					" ");
 		if (ret < 0)
 			return pos - buf;
@@ -1095,7 +1103,7 @@ static int hostapd_ctrl_iface_get_config(struct hostapd_data *hapd,
 			return pos - buf;
 		pos += ret;
 
-		ret = wpa_write_ciphers(pos, end, hapd->conf->rsn_pairwise,
+		ret = wpa_write_ciphers(pos, end, hapd->conf->wpa_pairwise,
 					" ");
 		if (ret < 0)
 			return pos - buf;

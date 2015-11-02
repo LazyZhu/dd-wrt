@@ -1,17 +1,22 @@
 /*
- * DEBUG: section 54    Interprocess Communication
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 54    Interprocess Communication */
 
 #ifndef SQUID_IPC_ASYNCUDSOP_H
 #define SQUID_IPC_ASYNCUDSOP_H
 
-#include "SquidString.h"
 #include "base/AsyncJob.h"
 #include "cbdata.h"
 #include "comm/forward.h"
-#include "ipc/TypedMsgHdr.h"
 #include "ipc/FdNotes.h"
+#include "ipc/TypedMsgHdr.h"
+#include "SquidString.h"
 
 class CommTimeoutCbParams;
 class CommIoCbParams;
@@ -61,6 +66,8 @@ struct sockaddr_un PathToAddress(const String &pathAddr);
 /// attempts to send an IPC message a few times, with a timeout
 class UdsSender: public UdsOp
 {
+    CBDATA_CLASS(UdsSender);
+
 public:
     UdsSender(const String& pathAddr, const TypedMsgHdr& aMessage);
 
@@ -71,7 +78,7 @@ protected:
     virtual void timedout(); // UdsOp API
 
 private:
-    void sleep();
+    void startSleep();
     void cancelSleep();
     static void DelayedRetry(void *data);
     void delayedRetry();
@@ -89,8 +96,6 @@ private:
 private:
     UdsSender(const UdsSender&); // not implemented
     UdsSender& operator= (const UdsSender&); // not implemented
-
-    CBDATA_CLASS2(UdsSender);
 };
 
 void SendMessage(const String& toAddress, const TypedMsgHdr& message);
@@ -100,3 +105,4 @@ const Comm::ConnectionPointer & ImportFdIntoComm(const Comm::ConnectionPointer &
 }
 
 #endif /* SQUID_IPC_ASYNCUDSOP_H */
+

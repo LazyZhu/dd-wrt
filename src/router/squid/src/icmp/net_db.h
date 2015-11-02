@@ -1,16 +1,22 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef ICMP_NET_DB_H
 #define ICMP_NET_DB_H
 
 #include "hash.h"
+#include "ip/forward.h"
 
 class CachePeer;
 class HttpRequest;
 class netdbEntry;
 class StoreEntry;
-namespace Ip
-{
-class Address;
-};
+class URL;
 
 // POD
 class net_db_name
@@ -59,7 +65,7 @@ void netdbDump(StoreEntry *);
 void netdbFreeMemory(void);
 int netdbHostHops(const char *host);
 int netdbHostRtt(const char *host);
-void netdbUpdatePeer(HttpRequest *, CachePeer * e, int rtt, int hops);
+void netdbUpdatePeer(const URL &, CachePeer * e, int rtt, int hops);
 
 void netdbDeleteAddrNetwork(Ip::Address &addr);
 void netdbBinaryExchange(StoreEntry *);
@@ -70,3 +76,4 @@ CachePeer *netdbClosestParent(HttpRequest *);
 void netdbHostData(const char *host, int *samp, int *rtt, int *hops);
 
 #endif /* ICMP_NET_DB_H */
+

@@ -48,15 +48,11 @@ void start_dhcp6c(void)
 
 	if (!nvram_match("ipv6_typ", "ipv6pd"))
 		return;
-
-	fprintf(stderr, "dhcp6c start\n");
-	char *mac;
-	if (getRouterBrand() == ROUTER_ASUS_AC87U)
-		mac = nvram_safe_get("et1macaddr");
-	else
-		mac = nvram_safe_get("et0macaddr");
+	nvram_unset("ipv6_prefix");
+	char mac[18];
+	getLANMac(mac);
 	if (strlen(mac) == 0)
-		mac = nvram_safe_get("et0macaddr_safe");
+		strcpy(mac, nvram_safe_get("et0macaddr_safe"));
 
 	if (ether_atoe(mac, ea)) {
 		/* Generate IAID from the last 7 digits of WAN MAC */
@@ -126,8 +122,6 @@ void start_dhcp6s(void)
 		return;
 	if (!nvram_match("dhcp6s_enable", "1"))
 		return;
-
-	fprintf(stderr, "Start dhcp6s start\n");
 
 	if (ether_atoe(nvram_safe_get("lan_hwaddr"), ea)) {
 		/* Generate IAID from the last 7 digits of WAN MAC */

@@ -37,6 +37,7 @@
    conflicts with "netinet/in.h" .
 */
 
+#ifndef __ANDROID__
 struct in6_flowlabel_req
 {
     struct in6_addr flr_dst;
@@ -49,6 +50,7 @@ struct in6_flowlabel_req
     __u32   __flr_pad;
     /* Options in format of IPV6_PKTOPTIONS */
 };
+#endif
 
 #define IPV6_FL_A_GET           0
 #define IPV6_FL_A_PUT           1

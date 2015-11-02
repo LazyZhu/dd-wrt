@@ -1,30 +1,9 @@
 /*
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
 #ifndef SQUID_FDE_H
@@ -33,16 +12,26 @@
 #include "comm.h"
 #include "defines.h"
 #include "ip/Address.h"
-
-#if USE_SSL
-#include <openssl/ssl.h>
-#endif
+#include "ip/forward.h"
+#include "security/forward.h"
+#include "typedefs.h" //DRCB, DWCB
 
 #if USE_DELAY_POOLS
 class ClientInfo;
 #endif
 
-class PconnPool;
+/**
+ * READ_HANDLER functions return < 0 if, and only if, they fail with an error.
+ * On error, they must pass back an error code in 'errno'.
+ */
+typedef int READ_HANDLER(int, char *, int);
+
+/**
+ * WRITE_HANDLER functions return < 0 if, and only if, they fail with an error.
+ * On error, they must pass back an error code in 'errno'.
+ */
+typedef int WRITE_HANDLER(int, const char *, int);
+
 class dwrite_q;
 class _fde_disk
 {
@@ -70,7 +59,7 @@ public:
     char const *remoteAddr() const;
     void dumpStats (StoreEntry &, int);
     bool readPending(int);
-    void noteUse(PconnPool *);
+    void noteUse();
 
 public:
 
@@ -90,19 +79,19 @@ public:
     char desc[FD_DESC_SZ];
 
     struct _fde_flags {
-        unsigned int open:1;
-        unsigned int close_request:1; // file_ or comm_close has been called
-        unsigned int write_daemon:1;
-        unsigned int socket_eof:1;
-        unsigned int nolinger:1;
-        unsigned int nonblocking:1;
-        unsigned int ipc:1;
-        unsigned int called_connect:1;
-        unsigned int nodelay:1;
-        unsigned int close_on_exec:1;
-        unsigned int read_pending:1;
-        unsigned int write_pending:1;
-        unsigned int transparent:1;
+        bool open;
+        bool close_request; ///< true if file_ or comm_close has been called
+        bool write_daemon;
+        bool socket_eof;
+        bool nolinger;
+        bool nonblocking;
+        bool ipc;
+        bool called_connect;
+        bool nodelay;
+        bool close_on_exec;
+        bool read_pending;
+        //bool write_pending; //XXX seems not to be used
+        bool transparent;
     } flags;
 
     int64_t bytes_read;
@@ -110,7 +99,6 @@ public:
 
     struct {
         int uses;                   /* ie # req's over persistent conn */
-        PconnPool *pool;
     } pconn;
 
 #if USE_DELAY_POOLS
@@ -129,13 +117,10 @@ public:
     void *lifetime_data;
     AsyncCall::Pointer closeHandler;
     AsyncCall::Pointer halfClosedReader; /// read handler for half-closed fds
-    CommWriteStateData *wstate;         /* State data for comm_write */
     READ_HANDLER *read_method;
     WRITE_HANDLER *write_method;
-#if USE_SSL
-    SSL *ssl;
-    SSL_CTX *dynamicSslContext; ///< cached and then freed when fd is closed
-#endif
+    Security::SessionPointer ssl;
+    Security::ContextPointer dynamicSslContext; ///< cached and then freed when fd is closed
 #if _SQUID_WINDOWS_
     struct {
         long handle;
@@ -157,7 +142,7 @@ private:
     inline void clear() {
         type = 0;
         remote_port = 0;
-        local_addr.SetEmpty();
+        local_addr.setEmpty();
         tosToServer = '\0';
         nfmarkToServer = 0;
         sock_family = 0;
@@ -167,7 +152,6 @@ private:
         bytes_read = 0;
         bytes_written = 0;
         pconn.uses = 0;
-        pconn.pool = NULL;
 #if USE_DELAY_POOLS
         clientInfo = NULL;
 #endif
@@ -182,15 +166,12 @@ private:
         lifetime_data = NULL;
         closeHandler = NULL;
         halfClosedReader = NULL;
-        wstate = NULL;
         read_method = NULL;
         write_method = NULL;
-#if USE_SSL
         ssl = NULL;
         dynamicSslContext = NULL;
-#endif
 #if _SQUID_WINDOWS_
-        win32.handle = NULL;
+        win32.handle = (long)NULL;
 #endif
         tosFromServer = '\0';
         nfmarkFromServer = 0;
@@ -205,3 +186,4 @@ int fdNFree(void);
 #define FD_WRITE_METHOD(fd, buf, len) (*fd_table[fd].write_method)(fd, buf, len)
 
 #endif /* SQUID_FDE_H */
+

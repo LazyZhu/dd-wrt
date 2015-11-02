@@ -102,11 +102,18 @@ enum EnumRd {
 	APL11_FCCA = 0xaA,	/* India */
 	APL9_FCCA = 0xae,	/* Korea 5GHz */
 
+#ifdef HAVE_RAIEXTRA
 	RAI_WORLD = 0xa0,
 	RAIIT_WORLD = 0xa1,
 	IT_WORLD = 0xa2,
 	RAI = 0x01a0,
 	RAIIT = 0x01a1,
+#endif
+#ifdef HAVE_TESTEM
+	TESTEM_CLIENT_WORLD = 0xa0,
+	TESTEM_AP_WORLD = 0xa1,
+
+#endif
 	IT = 0x01a2,
 
 	/*
@@ -287,8 +294,14 @@ enum CountryCode {
 	CTRY_IRELAND = 372,	/* Ireland */
 	CTRY_ISRAEL = 376,	/* Israel */
 	CTRY_ITALY = 380,	/* Italy */
+#ifdef HAVE_RAIEXTRA
 	CTRY_ITALYRAI = 381,	/* Italy */
 	CTRY_RAI = 382,		/* Italy */
+#endif
+#ifdef HAVE_TESTEM
+	CTRY_TESTEM_CLIENT = 381,	/* Testem */
+	CTRY_TESTEM_AP = 382,	/* Testem */
+#endif
 	CTRY_JAMAICA = 388,	/* Jamaica */
 	CTRY_JAPAN = 392,	/* Japan */
 	CTRY_JORDAN = 400,	/* Jordan */
@@ -537,11 +550,16 @@ static COUNTRY_CODE_TO_ENUM_RD allCountries[] = {
 	{CTRY_ISRAEL, NULL1_WORLD, "IL", "ISRAEL", YES, NO, YES, 7000},
 #ifdef HAVE_RAIEXTRA
 	{CTRY_ITALY, IT_WORLD, "IT", "ITALY", YES, NO, YES, 7000},
-	{CTRY_ITALYRAI, RAIIT_WORLD, "IT_RAI", "ITALY+RAI", YES, NO, YES, 7000},
-	{CTRY_RAI, RAI_WORLD, "RAI", "RAI", YES, NO, YES, 7000},
+	{CTRY_ITALYRAI, RAIIT_WORLD, "IY", "ITALY+RAI", YES, NO, YES, 7000},
+	{CTRY_RAI, RAI_WORLD, "IZ", "RAI", YES, NO, YES, 7000},
 #else
 	{CTRY_ITALY, ETSI1_WORLD, "IT", "ITALY", YES, NO, YES, 7000},
 #endif
+#ifdef HAVE_TESTEM
+	{CTRY_TESTEM_AP, TESTEM_AP_WORLD, "IY", "TESTEM_AP", YES, NO, YES, 7000},
+	{CTRY_TESTEM_CLIENT, TESTEM_CLIENT_WORLD, "IZ", "TESTEM_CLIENT", YES, NO, YES, 7000},
+#endif
+	{CTRY_JAPAN, MKK1_MKKA, "JP", "JAPAN", YES, NO, NO, 7000},
 	{CTRY_JAPAN, MKK1_MKKA, "JP", "JAPAN", YES, NO, NO, 7000},
 	{CTRY_JORDAN, APL4_WORLD, "JO", "JORDAN", YES, NO, YES, 7000},
 	{CTRY_KAZAKHSTAN, NULL1_WORLD, "KZ", "KAZAKHSTAN", YES, NO, YES, 7000},
@@ -1017,7 +1035,7 @@ void setRegulationDomain(char *reg)
 
 	char rrev0[4] = "";
 	char rrev1[4] = "";
-	
+
 	char *tmp = nvram_get("wl_reg_mode");
 	nvram_set("wl0_reg_mode", tmp);
 	nvram_set("wl1_reg_mode", tmp);
@@ -1030,8 +1048,8 @@ void setRegulationDomain(char *reg)
 	strncpy(ccode, getIsoName(reg), 3);
 
 	if (!strcmp(ccode, "EU") || !strcmp(ccode, "DE")) {
-		strcpy(ccode0, "DE");
-		strcpy(rrev0, "0");
+		strcpy(ccode0, "EU");
+		strcpy(rrev0, "66");
 		strcpy(ccode1, "EU");
 		strcpy(rrev1, "38");
 	} else if (!strcmp(ccode, "CN")) {
@@ -1100,7 +1118,7 @@ void setRegulationDomain(char *reg)
 		nvram_set("1:ccode", ccode1);
 		nvram_set("2:ccode", ccode1);
 	}
-	
+
 	nvram_set("wl_country_rev", rrev0);
 	nvram_set("wl0_country_rev", rrev0);
 	nvram_set("wl1_country_rev", rrev1);
@@ -1109,5 +1127,5 @@ void setRegulationDomain(char *reg)
 	nvram_set("wl0_country_code", ccode0);
 	nvram_set("wl1_country_code", ccode1);
 	nvram_set("wl2_country_code", ccode1);
-	
+
 }

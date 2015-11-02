@@ -1,11 +1,17 @@
 /*
- * DEBUG: section 54    Interprocess Communication
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 54    Interprocess Communication */
 
 #include "squid.h"
 
 #include "base/TextException.h"
+#include "Debug.h"
 #include "ipc/mem/Page.h"
 #include "ipc/mem/PageStack.h"
 
@@ -13,10 +19,10 @@
 const Ipc::Mem::PageStack::Value Writable = 0;
 
 Ipc::Mem::PageStack::PageStack(const uint32_t aPoolId, const unsigned int aCapacity, const size_t aPageSize):
-        thePoolId(aPoolId), theCapacity(aCapacity), thePageSize(aPageSize),
-        theSize(theCapacity),
-        theLastReadable(prev(theSize)), theFirstWritable(next(theLastReadable)),
-        theItems(aCapacity)
+    thePoolId(aPoolId), theCapacity(aCapacity), thePageSize(aPageSize),
+    theSize(theCapacity),
+    theLastReadable(prev(theSize)), theFirstWritable(next(theLastReadable)),
+    theItems(aCapacity)
 {
     // initially, all pages are free
     for (Offset i = 0; i < theSize; ++i)
@@ -40,22 +46,23 @@ Ipc::Mem::PageStack::pop(PageId &page)
 
     // find a Readable slot, starting with theLastReadable and going left
     while (theSize >= 0) {
-        const Offset idx = theLastReadable;
+        Offset idx = theLastReadable;
         // mark the slot at ids Writable while extracting its current value
-        const Value value = theItems[idx].fetchAndAnd(0); // works if Writable is 0
+        const Value value = theItems[idx].fetch_and(0); // works if Writable is 0
         const bool popped = value != Writable;
         // theItems[idx] is probably not Readable [any more]
 
         // Whether we popped a Readable value or not, we should try going left
         // to maintain the index (and make progress).
         // We may fail if others already updated the index, but that is OK.
-        theLastReadable.swap_if(idx, prev(idx)); // may fail or lie
+        theLastReadable.compare_exchange_weak(idx, prev(idx)); // may fail or lie
 
         if (popped) {
             // the slot we emptied may already be filled, but that is OK
             theFirstWritable = idx; // may lie
             page.pool = thePoolId;
             page.number = value;
+            debugs(54, 9, page << " at " << idx << " size: " << theSize);
             return true;
         }
         // TODO: report suspiciously long loops
@@ -68,25 +75,29 @@ Ipc::Mem::PageStack::pop(PageId &page)
 void
 Ipc::Mem::PageStack::push(PageId &page)
 {
+    debugs(54, 9, page);
+
     if (!page)
         return;
 
     Must(pageIdIsValid(page));
     // find a Writable slot, starting with theFirstWritable and going right
     while (theSize < theCapacity) {
-        const Offset idx = theFirstWritable;
-        const bool pushed = theItems[idx].swap_if(Writable, page.number);
+        Offset idx = theFirstWritable;
+        auto isWritable = Writable;
+        const bool pushed = theItems[idx].compare_exchange_strong(isWritable, page.number);
         // theItems[idx] is probably not Writable [any more];
 
         // Whether we pushed the page number or not, we should try going right
         // to maintain the index (and make progress).
         // We may fail if others already updated the index, but that is OK.
-        theFirstWritable.swap_if(idx, next(idx)); // may fail or lie
+        theFirstWritable.compare_exchange_weak(idx, next(idx)); // may fail or lie
 
         if (pushed) {
             // the enqueued value may already by gone, but that is OK
             theLastReadable = idx; // may lie
             ++theSize;
+            debugs(54, 9, page << " at " << idx << " size: " << theSize);
             page = PageId();
             return;
         }
@@ -111,7 +122,7 @@ Ipc::Mem::PageStack::sharedMemorySize() const
 size_t
 Ipc::Mem::PageStack::SharedMemorySize(const uint32_t, const unsigned int capacity, const size_t pageSize)
 {
-    const size_t levelsSize = PageId::maxPurpose * sizeof(Atomic::Word);
+    const size_t levelsSize = PageId::maxPurpose * sizeof(std::atomic<Ipc::Mem::PageStack::Value>);
     const size_t pagesDataSize = capacity * pageSize;
     return StackSize(capacity) + pagesDataSize + levelsSize;
 }
@@ -127,3 +138,4 @@ Ipc::Mem::PageStack::stackSize() const
 {
     return StackSize(theCapacity);
 }
+

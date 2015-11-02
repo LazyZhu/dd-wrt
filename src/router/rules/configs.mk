@@ -1,3 +1,4 @@
+obj-$(CONFIG_OMCPROXY) += omcproxy
 obj-$(CONFIG_NVRAM) += nvram
 obj-$(CONFIG_WIRELESS_TOOLS) += wireless-tools
 obj-$(CONFIG_SHARED) += libutils
@@ -84,7 +85,7 @@ obj-$(CONFIG_OTHERS) += others
 obj-$(CONFIG_EOU) += eou
 obj-$(CONFIG_OPENSER) += openser
 obj-$(CONFIG_MILKFISH) += milkfish
-obj-$(CONFIG_MC) += glib20 mc
+obj-$(CONFIG_MC) += glib20 unrar mc
 obj-$(CONFIG_NOCAT) += nocat
 obj-$(CONFIG_RTPPROXY) += rtpproxy
 obj-$(CONFIG_ZABBIX) += glib20 zabbix
@@ -146,7 +147,7 @@ obj-$(CONFIG_WDSWATCHDOG) += wdswatchdog
 obj-$(CONFIG_IPV6) += ipv6 dhcpv6
 obj-$(CONFIG_CONNTRACK) += conntrack
 obj-$(CONFIG_RADIOOFF) += radiooff
-obj-$(CONFIG_PHP) += zlib libgd libpng libxml2 libmcrypt php5
+obj-$(CONFIG_PHP) += zlib libgd libpng libxml2 libmcrypt curl php5
 obj-$(CONFIG_NCURSES) += ncurses
 obj-$(CONFIG_IFTOP) += iftop
 obj-$(CONFIG_IPTRAF) += iptraf
@@ -198,10 +199,10 @@ obj-$(CONFIG_OPENLLDP) += openlldp
 obj-$(CONFIG_WGETS) += wgets
 obj-$(CONFIG_USB) += usb disktype
 obj-$(CONFIG_USB_ADVANCED) += sdparm
-obj-$(CONFIG_ASTERISK) += zlib asterisk
+obj-$(CONFIG_ASTERISK) += zlib util-linux jansson asterisk
 obj-$(CONFIG_ZAPTEL) += zaptel
 obj-$(CONFIG_WAVESAT) += wavesat
-obj-$(CONFIG_RT2860APD) += rt2860apd
+obj-$(CONFIG_RT2860APD) += rt2860apd apsta_client
 obj-$(CONFIG_POUND) += pound
 obj-$(CONFIG_VNCREPEATER) += vncrepeater
 obj-$(CONFIG_SWCONFIG) += libnltiny swconfig
@@ -232,7 +233,7 @@ obj-$(CONFIG_VENTANA) += gsp_updater
 obj-$(CONFIG_POLARSSL) += polarssl
 #obj-$(CONFIG_UHTTPD) += cyassl uhttpd pcre lighttpd
 obj-$(CONFIG_MSTP) += mstp
-obj-$(CONFIG_PYTHON) += zlib python
+obj-$(CONFIG_PYTHON) += zlib libffi python
 obj-$(CONFIG_NMAP) += nmap
 obj-$(CONFIG_ARPALERT) += arpalert
 obj-$(CONFIG_IPETH) += ipeth
@@ -255,6 +256,8 @@ obj-$(CONFIG_CLOUD4WI) += curl
 obj-$(CONFIG_UNIWIP) += uniwip_gpio
 obj-$(CONFIG_MACTELNET) += mactelnet
 obj-$(CONFIG_FIRMWARES) += firmwares
+obj-$(CONFIG_SERVICEGATE) += servicegate
+obj-$(CONFIG_UNBOUND) += unbound
 
 obj-$(CONFIG_MTDUTILS) += mtd-utils
 #obj-$(CONFIG_OPROFILE) += oprofile
@@ -289,7 +292,6 @@ configs-update:
 #	svn commit -m "faster hand optimized mksquashfs-lzma tool" $(LINUXDIR)
 	svn update $(LINUXDIR)
 	svn update $(LINUXDIR)/../linux-3.2
-	rm -rf $(LINUXDIR)/../linux-3.13
 	svn update $(LINUXDIR)/../linux-3.5
 	svn update $(LINUXDIR)/../linux-3.9
 	svn update $(LINUXDIR)/../linux-3.10
@@ -297,6 +299,7 @@ configs-update:
 	svn update $(LINUXDIR)/../linux-3.14
 	svn update $(LINUXDIR)/../linux-3.18
 	svn update $(LINUXDIR)/../linux-3.19
+	rm -rf $(LINUXDIR)/../linux-3.19
 	svn update $(TOP)/private
 	$(TOP)/private/symlinks.sh $(TOP) $(LINUXDIR)
 

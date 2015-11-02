@@ -1,45 +1,38 @@
 /*
- * DEBUG: section 50    Log file handling
- * AUTHOR: Duane Wessels
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
+/* DEBUG: section 50    Log file handling */
+
 #include "squid.h"
+#include "fatal.h"
 #include "fde.h"
 #include "log/File.h"
 #include "log/ModDaemon.h"
 #include "log/ModStdio.h"
 #include "log/ModSyslog.h"
 #include "log/ModUdp.h"
-#include "log/ModTcp.h"
+#include "log/TcpLogger.h"
 
-CBDATA_TYPE(Logfile);
+CBDATA_CLASS_INIT(Logfile);
+
+Logfile::Logfile(const char *aPath) :
+    sequence_number(0),
+    data(NULL),
+    f_linestart(NULL),
+    f_linewrite(NULL),
+    f_lineend(NULL),
+    f_flush(NULL),
+    f_rotate(NULL),
+    f_close(NULL)
+{
+    xstrncpy(path, aPath, sizeof(path));
+    flags.fatal = 0;
+}
 
 Logfile *
 logfileOpen(const char *path, size_t bufsz, int fatal_flag)
@@ -48,10 +41,8 @@ logfileOpen(const char *path, size_t bufsz, int fatal_flag)
     const char *patharg;
 
     debugs(50, DBG_IMPORTANT, "Logfile: opening log " << path);
-    CBDATA_INIT_TYPE(Logfile);
 
-    Logfile *lf = cbdataAlloc(Logfile);
-    xstrncpy(lf->path, path, MAXPATHLEN);
+    Logfile *lf = new Logfile(path);
     patharg = path;
     /* need to call the per-logfile-type code */
     if (strncmp(path, "stdio:", 6) == 0) {
@@ -62,7 +53,7 @@ logfileOpen(const char *path, size_t bufsz, int fatal_flag)
         ret = logfile_mod_daemon_open(lf, patharg, bufsz, fatal_flag);
     } else if (strncmp(path, "tcp:", 4) == 0) {
         patharg = path + 4;
-        ret = logfile_mod_tcp_open(lf, patharg, bufsz, fatal_flag);
+        ret = Log::TcpLogger::Open(lf, patharg, bufsz, fatal_flag);
     } else if (strncmp(path, "udp:", 4) == 0) {
         patharg = path + 4;
         ret = logfile_mod_udp_open(lf, patharg, bufsz, fatal_flag);
@@ -72,7 +63,7 @@ logfileOpen(const char *path, size_t bufsz, int fatal_flag)
         ret = logfile_mod_syslog_open(lf, patharg, bufsz, fatal_flag);
 #endif
     } else {
-        debugs(50, DBG_IMPORTANT, "WARNING: log parameters now start with a module name. Use 'stdio:" << patharg << "'");
+        debugs(50, DBG_IMPORTANT, "WARNING: log name now starts with a module name. Use 'stdio:" << patharg << "'");
         snprintf(lf->path, MAXPATHLEN, "stdio:%s", patharg);
         ret = logfile_mod_stdio_open(lf, patharg, bufsz, fatal_flag);
     }
@@ -82,7 +73,7 @@ logfileOpen(const char *path, size_t bufsz, int fatal_flag)
         else
             debugs(50, DBG_IMPORTANT, "logfileOpen: " << path << ": couldn't open!");
         lf->f_close(lf);
-        cbdataFree(lf);
+        delete lf;
         return NULL;
     }
     assert(lf->data != NULL);
@@ -101,14 +92,14 @@ logfileClose(Logfile * lf)
     debugs(50, DBG_IMPORTANT, "Logfile: closing log " << lf->path);
     lf->f_flush(lf);
     lf->f_close(lf);
-    cbdataFree(lf);
+    delete lf;
 }
 
 void
-logfileRotate(Logfile * lf)
+logfileRotate(Logfile * lf, int16_t rotateCount)
 {
     debugs(50, DBG_IMPORTANT, "logfileRotate: " << lf->path);
-    lf->f_rotate(lf);
+    lf->f_rotate(lf, rotateCount);
 }
 
 void
@@ -157,3 +148,4 @@ logfileFlush(Logfile * lf)
 {
     lf->f_flush(lf);
 }
+

@@ -1,42 +1,19 @@
-
 /*
- * DEBUG: section 68    HTTP Content-Range Header
- * AUTHOR: Alex Rousskov
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
+/* DEBUG: section 68    HTTP Content-Range Header */
+
 #include "squid.h"
+#include "base/Packable.h"
 #include "Debug.h"
 #include "enums.h"
 #include "HttpHdrContRange.h"
 #include "HttpHeaderTools.h"
-#include "Mem.h"
 
 /*
  *    Currently only byte ranges are supported
@@ -122,16 +99,15 @@ httpHdrRangeRespSpecParseInit(HttpHdrRangeSpec * spec, const char *field, int fl
 }
 
 static void
-httpHdrRangeRespSpecPackInto(const HttpHdrRangeSpec * spec, Packer * p)
+httpHdrRangeRespSpecPackInto(const HttpHdrRangeSpec * spec, Packable * p)
 {
     /* Ensure typecast is safe */
     assert (spec->length >= 0);
 
     if (!known_spec(spec->offset) || !known_spec(spec->length))
-        packerPrintf(p, "*");
+        p->append("*", 1);
     else
-        packerPrintf(p, "bytes %" PRId64 "-%" PRId64,
-                     spec->offset, spec->offset + spec->length - 1);
+        p->appendf("bytes %" PRId64 "-%" PRId64, spec->offset, spec->offset + spec->length - 1);
 }
 
 /*
@@ -224,7 +200,7 @@ httpHdrContRangeDup(const HttpHdrContRange * range)
 }
 
 void
-httpHdrContRangePackInto(const HttpHdrContRange * range, Packer * p)
+httpHdrContRangePackInto(const HttpHdrContRange * range, Packable * p)
 {
     assert(range && p);
     httpHdrRangeRespSpecPackInto(&range->spec, p);
@@ -232,9 +208,9 @@ httpHdrContRangePackInto(const HttpHdrContRange * range, Packer * p)
     assert (range->elength >= 0);
 
     if (!known_spec(range->elength))
-        packerPrintf(p, "/*");
+        p->append("/*", 2);
     else
-        packerPrintf(p, "/%" PRId64, range->elength);
+        p->appendf("/%" PRId64, range->elength);
 }
 
 void
@@ -244,3 +220,4 @@ httpHdrContRangeSet(HttpHdrContRange * cr, HttpHdrRangeSpec spec, int64_t ent_le
     cr->spec = spec;
     cr->elength = ent_len;
 }
+

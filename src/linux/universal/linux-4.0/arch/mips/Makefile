@@ -283,8 +283,15 @@ cflags-$(CONFIG_MACH_HORNET)	+= -I$(srctree)/arch/mips/include/asm/mach-ar7240
 #Atheros Ar7240
 #
 core-$(CONFIG_MACH_AR7240)		+=	arch/mips/ar7240/
+ifdef CONFIG_DAP3662
+load-$(CONFIG_MACH_AR7240)		+=	0xffffffff80002000
+else
+ifdef CONFIG_DAP2230
+load-$(CONFIG_MACH_AR7240)		+=	0xffffffff80002000
+else
 load-$(CONFIG_MACH_AR7240)		+=	0xffffffff80060000
-#load-$(CONFIG_MACH_AR7240)		+=	0xffffffffa0002000
+endif
+endif
 cflags-$(CONFIG_MACH_AR7240)	+= -I$(srctree)/arch/mips/include/asm/mach-ar7240
 #
 
@@ -310,11 +317,17 @@ endif
 # Warning: the 64-bit MIPS architecture does not support the `smartmips' extension
 # Pass -Wa,--no-warn to disable all assembler warnings until the kernel code has
 # been fixed properly.
-mips-cflags				:= "$(cflags-y)"
-cflags-$(CONFIG_CPU_HAS_SMARTMIPS)	+= $(call cc-option,$(mips-cflags),-msmartmips) -Wa,--no-warn
-cflags-$(CONFIG_CPU_MICROMIPS)		+= $(call cc-option,$(mips-cflags),-mmicromips)
+mips-cflags				:= $(cflags-y)
+ifeq ($(CONFIG_CPU_HAS_SMARTMIPS),y)
+smartmips-ase				:= $(call cc-option-yn,$(mips-cflags) -msmartmips)
+cflags-$(smartmips-ase)			+= -msmartmips -Wa,--no-warn
+endif
+ifeq ($(CONFIG_CPU_MICROMIPS),y)
+micromips-ase				:= $(call cc-option-yn,$(mips-cflags) -mmicromips)
+cflags-$(micromips-ase)			+= -mmicromips
+endif
 ifeq ($(CONFIG_CPU_HAS_MSA),y)
-toolchain-msa				:= $(call cc-option-yn,-$(mips-cflags),mhard-float -mfp64 -Wa$(comma)-mmsa)
+toolchain-msa				:= $(call cc-option-yn,$(mips-cflags) -mhard-float -mfp64 -Wa$(comma)-mmsa)
 cflags-$(toolchain-msa)			+= -DTOOLCHAIN_SUPPORTS_MSA
 endif
 

@@ -270,6 +270,12 @@ config DIR825C1
 config MMS344
 	bool "support for MMS344"
 	depends on DIR825C1
+config DIR862
+	bool "support for DIR862"
+	depends on DIR825C1
+config DIR859
+	bool "support for MMS344"
+	depends on DIR825C1
 config WDR4300
 	bool "support for WDR4300"
 	depends on DIR825C1
@@ -285,6 +291,12 @@ config UBNTXW
 config DAP3310
 	bool "support for Dlink DAP3310"
 	depends on UBNTXW
+config WR710
+	bool "support for TPLink WR710"
+	depends on MACH_HORNET && WR741
+config ERC
+	bool "support for ERC Device"
+	depends on MACH_HORNET && !WR741
 config WR841V9
 	bool "support for TPLink WR841V9"
 	depends on WR841V8
@@ -294,6 +306,15 @@ config WR1043V2
 config ARCHERC7
 	bool "support for ARCHER C7"
 	depends on WR1043V2
+config DAP3662
+	bool "support for DAP3662"
+	depends on WR1043V2
+config DAP2330
+	bool "support for DAP2330"
+	depends on WR1043V2
+config DAP2230
+	bool "support for DAP2230"
+	depends on WR841V8
 config WDR2543
 	bool "support for WDR2543"
 	depends on MACH_AR7240

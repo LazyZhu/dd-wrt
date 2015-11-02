@@ -1,51 +1,26 @@
-
 /*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
 #ifndef SQUID_ICAPXACTION_H
 #define SQUID_ICAPXACTION_H
 
-#include "comm/forward.h"
-#include "CommCalls.h"
-#include "MemBuf.h"
+#include "AccessLogEntry.h"
 #include "adaptation/icap/ServiceRep.h"
 #include "adaptation/Initiate.h"
-#include "AccessLogEntry.h"
+#include "comm/ConnOpener.h"
 #include "HttpReply.h"
 #include "ipcache.h"
+#include "SBuf.h"
+#if USE_OPENSSL
+#include "ssl/PeerConnector.h"
+#endif
 
-class CommConnectCbParams;
-namespace Comm
-{
-class ConnOpener;
-}
+class MemBuf;
 
 namespace Adaptation
 {
@@ -99,8 +74,9 @@ protected:
     virtual void handleCommTimedout();
     virtual void handleCommClosed();
 
+    void handleSecuredPeer(Security::EncryptorAnswer &answer);
     /// record error detail if possible
-    virtual void detailError(int errDetail) {}
+    virtual void detailError(int) {}
 
     void openConnection();
     void closeConnection();
@@ -156,20 +132,7 @@ protected:
     Comm::ConnectionPointer connection;     ///< ICAP server connection
     Adaptation::Icap::ServiceRep::Pointer theService;
 
-    /*
-     * We have two read buffers.   We would prefer to read directly
-     * into the MemBuf, but since comm_read isn't MemBuf-aware, and
-     * uses event-delayed callbacks, it leaves the MemBuf in an
-     * inconsistent state.  There would be data in the buffer, but
-     * MemBuf.size won't be updated until the (delayed) callback
-     * occurs.   To avoid that situation we use a plain buffer
-     * (commBuf) and then copy (append) its contents to readBuf in
-     * the callback.  If comm_read ever becomes MemBuf-aware, we
-     * can eliminate commBuf and this extra buffer copy.
-     */
-    MemBuf readBuf;
-    char *commBuf;
-    size_t commBufSize;
+    SBuf readBuf;
     bool commEof;
     bool reuseConnection;
     bool isRetriable;  ///< can retry on persistent connection failures
@@ -192,11 +155,12 @@ protected:
     timeval icap_tio_finish;   /*time when the last byte of the ICAP responsewas received*/
 
 private:
-    Comm::ConnOpener *cs;
-    //CBDATA_CLASS2(Xaction);
+    Comm::ConnOpener::Pointer cs;
+    AsyncCall::Pointer securer; ///< whether we are securing a connection
 };
 
 } // namespace Icap
 } // namespace Adaptation
 
 #endif /* SQUID_ICAPXACTION_H */
+

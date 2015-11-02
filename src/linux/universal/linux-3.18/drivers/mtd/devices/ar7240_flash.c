@@ -19,6 +19,13 @@
 #include "ar7240.h"
 #include "ar7240_flash.h"
 
+#define AR7240_SPI_CMD_WRITE_SR		0x01
+
+#define MXIC_JEDEC_ID        0x00c22017
+#define MXIC_ENSO            0xb1
+#define MXIC_EXSO            0xc1
+
+//#define ATH_SST_FLASH 1
 /* this is passed in as a boot parameter by bootloader */
 //extern int __ath_flash_size;
 
@@ -27,7 +34,9 @@
  */
 static void ar7240_spi_write_enable(void);
 static void ar7240_spi_poll(void);
+#if !defined(ATH_SST_FLASH)
 static void ar7240_spi_write_page(uint32_t addr, uint8_t * data, int len);
+#endif
 static void ar7240_spi_sector_erase(uint32_t addr);
 
 #define down mutex_lock
@@ -113,11 +122,23 @@ int guessbootsize(void *offset, unsigned int maxscan)
 	for (i = 0; i < maxscan; i += 16384) {
 		if (ofs[i] == 0x6d000080) {
 			printk(KERN_EMERG "redboot or compatible detected\n");
+			return 0x70000;	// redboot, lzma image
+		}
+		if (ofs[i] == 0x5ea3a417) {
+			printk(KERN_EMERG "alpha SEAMA found\n");
 			return i * 4;	// redboot, lzma image
 		}
 		if (ofs[i] == 0x27051956) {
 			printk(KERN_EMERG "uboot detected\n");
 			return i * 4;	// uboot, lzma image
+		}
+		if (ofs[i] == 0x77617061) {
+			printk(KERN_EMERG "DAP3662 bootloader\n");
+			return 0x70000;	// uboot, lzma image
+		}
+		if (ofs[i] == 0x7761706e) {
+			printk(KERN_EMERG "DAP2230 bootloader\n");
+			return 0x70000;	// uboot, lzma image
 		}
 		if (ofs[i] == 0x32303033) {
 			printk(KERN_EMERG "WNR2000 uboot detected\n");
@@ -179,14 +200,61 @@ static unsigned int guessflashsize(void *base)
 
 }
 
+static void
+ar7240_spi_flash_unblock(void)
+{
+	ar7240_spi_write_enable();
+	ar7240_spi_bit_banger(AR7240_SPI_CMD_WRITE_SR);
+	ar7240_spi_bit_banger(0x0);
+	ar7240_spi_go();
+	ar7240_spi_poll();
+}
+
+/*
+Before we claim the SPI driver we need to clean up any work in progress we have
+pre-empted from user-space SPI or other SPI device drivers.
+*/
+static int
+ar7424_flash_spi_reset(void) {
+	/* Enable SPI writes and retrieved flash JEDEC ID */
+	u_int32_t mfrid = 0;
+	ar7240_reg_wr_nf(AR7240_SPI_FS, 1);
+	ar7240_spi_poll();
+	ar7240_reg_wr_nf(AR7240_SPI_WRITE, AR7240_SPI_CS_DIS);
+	ar7240_spi_bit_banger(AR7240_SPI_CMD_RDID);
+	ar7240_spi_bit_banger(0x0);
+	ar7240_spi_bit_banger(0x0);
+	ar7240_spi_bit_banger(0x0);
+	mfrid = ar7240_reg_rd(AR7240_SPI_RD_STATUS) & 0x00ffffff;
+	ar7240_spi_go();
+	/* If this is an MXIC flash, be sure we are not in secure area */
+	if(mfrid == MXIC_JEDEC_ID) {
+		/* Exit secure area of MXIC (in case we're in it) */
+		ar7240_spi_bit_banger(MXIC_EXSO);
+		ar7240_spi_go();
+	}
+	ar7240_spi_poll();
+	if(mfrid == MXIC_JEDEC_ID) {
+		    ar7240_spi_flash_unblock(); // required to unblock software protection mode by ubiquiti (consider that gpl did not release this in theires gpl sources. likelly to fuck up developers)
+	}
+	ar7240_reg_wr(AR7240_SPI_FS, 0);
+}
+
+
 static int ar7240_flash_erase(struct mtd_info *mtd, struct erase_info *instr)
 {
 	int nsect, s_curr, s_last;
 	uint64_t  res;
-	if (instr->addr + instr->len > mtd->size)
+	if (instr->addr + instr->len > mtd->size) {
 		return (-EINVAL);
+	}
+//    MY_WRITE(0xb8040028, (ar7240_reg_rd(0xb8040028) | 0x48002));
+
+//    MY_WRITE(0xb8040008, 0x2f);
 
 	ar7240_flash_spi_down();
+	preempt_disable();
+	ar7424_flash_spi_reset();
 
 	res = instr->len;
 	do_div(res, mtd->erasesize);
@@ -205,6 +273,7 @@ static int ar7240_flash_erase(struct mtd_info *mtd, struct erase_info *instr)
 
 	ar7240_spi_done();
 
+	preempt_enable();
 	ar7240_flash_spi_up();
 
 	if (instr->callback) {
@@ -227,33 +296,72 @@ ar7240_flash_read(struct mtd_info *mtd, loff_t from, size_t len,
 		return (-EINVAL);
 
 //      ar7240_flash_spi_down();
+	preempt_disable();
+	ar7424_flash_spi_reset();
 
 	memcpy(buf, (uint8_t *) (addr), len);
 	*retlen = len;
 
+	preempt_enable();
 //      ar7240_flash_spi_up();
 //      printk(KERN_EMERG "read block %X:%X done\n",from,len);
 
 	return 0;
 }
 
+#if defined(ATH_SST_FLASH)
+static int
+ar7240_flash_write(struct mtd_info *mtd, loff_t dst, size_t len,
+		   size_t * retlen, const u_char * src)
+{
+	uint32_t val;
+
+	//printk("write len: %lu dst: 0x%x src: %p\n", len, dst, src);
+
+	*retlen = len;
+
+	for (; len; len--, dst++, src++) {
+		ar7240_spi_write_enable();	// dont move this above 'for'
+		ar7240_spi_bit_banger(AR7240_SPI_CMD_PAGE_PROG);
+		ar7240_spi_send_addr(dst);
+
+		val = *src & 0xff;
+		ar7240_spi_bit_banger(val);
+
+		ar7240_spi_go();
+		ar7240_spi_poll();
+	}
+	/*
+	 * Disable the Function Select
+	 * Without this we can't re-read the written data
+	 */
+	ar7240_reg_wr(AR7240_SPI_FS, 0);
+
+	if (len) {
+		*retlen -= len;
+		return -EIO;
+	}
+	return 0;
+}
+#else
 static int
 ar7240_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
-		   size_t *retlen, const u_char * buf)
+		   size_t *retlen, const u_char *buf)
 {
 	int total = 0, len_this_lp, bytes_this_page;
 	uint32_t addr = 0;
 	u_char *mem;
-//      printk(KERN_EMERG "write block %X:%X\n",to,len);
 
 	ar7240_flash_spi_down();
+	preempt_disable();
+	ar7424_flash_spi_reset();
 
 	while (total < len) {
-		mem = buf + total;
+		mem = (u_char *) (buf + total);
 		addr = to + total;
 		bytes_this_page =
 		    AR7240_SPI_PAGE_SIZE - (addr % AR7240_SPI_PAGE_SIZE);
-		len_this_lp = min((len - total), bytes_this_page);
+		len_this_lp = min(((int)len - total), bytes_this_page);
 
 		ar7240_spi_write_page(addr, mem, len_this_lp);
 		total += len_this_lp;
@@ -261,11 +369,13 @@ ar7240_flash_write(struct mtd_info *mtd, loff_t to, size_t len,
 
 	ar7240_spi_done();
 
+	preempt_enable();
 	ar7240_flash_spi_up();
 
 	*retlen = len;
 	return 0;
 }
+#endif
 
 static struct mtd_partition dir_parts[] = {
 #ifdef CONFIG_MTD_FLASH_16MB
@@ -321,9 +431,19 @@ static int __init ar7240_flash_init(void)
 	size_t rootsize;
 	size_t len;
 	int fsize;
+	int inc=0;
 	init_MUTEX(&ar7240_flash_sem);
 
+
+#if defined(ATH_SST_FLASH)
+	ar7240_reg_wr_nf(AR7240_SPI_CLOCK, 0x3);
+	ar7240_reg_wr(AR7240_SPI_FS, 0);
+        ar7240_spi_flash_unblock();
+#else
+#ifndef CONFIG_WASP_SUPPORT
 	ar7240_reg_wr_nf(AR7240_SPI_CLOCK, 0x43);
+#endif
+#endif
 	buf = (char *)0xbf000000;
 	fsize = guessflashsize(buf);
 	for (i = 0; i < AR7240_FLASH_MAX_BANKS; i++) {
@@ -373,24 +493,42 @@ static int __init ar7240_flash_init(void)
 		}
 		while ((offset + mtd->erasesize) < mtd->size) {
 //                      printk(KERN_EMERG "[0x%08X] = [0x%08X]!=[0x%08X]\n",offset,*((unsigned int *) buf),SQUASHFS_MAGIC);
-			if (*((__u32 *)buf) == SQUASHFS_MAGIC) {
+			__u32 *check2 = (__u32 *)&buf[0x60];	
+			__u32 *check3 = (__u32 *)&buf[0xc0];	
+			if (*((__u32 *)buf) == SQUASHFS_MAGIC || *check2 == SQUASHFS_MAGIC || *check3 == SQUASHFS_MAGIC) {
 				printk(KERN_EMERG "\nfound squashfs at %X\n",
 				       offset);
+				if (*check2 == SQUASHFS_MAGIC) {
+				    buf+=0x60;
+				    offset +=0x60;
+				    inc = 0x60;
+				}
+				if (*check3 == SQUASHFS_MAGIC) {
+				    buf+=0xC0;
+				    offset +=0xC0;
+				    inc = 0xc0;
+				}
 				sb = (struct squashfs_super_block *)buf;
 				dir_parts[2].offset = offset;
 
+				
 				dir_parts[2].size = sb->bytes_used;
+				size_t origlen = dir_parts[2].offset + dir_parts[2].size;
+				
 				len = dir_parts[2].offset + dir_parts[2].size;
 				len += (mtd->erasesize - 1);
 				len &= ~(mtd->erasesize - 1);
-				dir_parts[2].size =
-				    (len & 0x1ffffff) - dir_parts[2].offset;
+				printk(KERN_INFO "adjusted length %X, original length %X\n",len,origlen);
+				if ((len - (inc + 4096)) < origlen)
+					len += mtd->erasesize;
+				dir_parts[2].size = (len & 0x1ffffff) - dir_parts[2].offset;
+				
 				dir_parts[3].offset =
 				    dir_parts[2].offset + dir_parts[2].size;
 
 				dir_parts[5].offset = mtd->size - mtd->erasesize;	//fis config
 				dir_parts[5].size = mtd->erasesize;
-				#if defined(CONFIG_DIR825C1) && !defined(CONFIG_WDR4300) && !defined(CONFIG_WR1043V2) && !defined(CONFIG_WR841V8) && !defined(CONFIG_UBNTXW)
+				#if (defined(CONFIG_DIR825C1) && !defined(CONFIG_WDR4300) && !defined(CONFIG_WR1043V2) && !defined(CONFIG_WR841V8) && !defined(CONFIG_UBNTXW)) || defined(CONFIG_DIR862)
 				dir_parts[4].offset = dir_parts[5].offset - (mtd->erasesize*2);	//nvram
 				dir_parts[4].size = mtd->erasesize;
 				#else

@@ -296,7 +296,7 @@ char
 		return getBridgeMTU(get_wshaper_dev());
 }
 
-void add_client_mac_srvfilter(char *name, char *type, char *data, char *level, int base, char *client)
+void add_client_dev_srvfilter(char *name, char *type, char *data, char *level, int base, char *chain)
 {
 	int idx = atoi(level) / 10;
 
@@ -304,21 +304,26 @@ void add_client_mac_srvfilter(char *name, char *type, char *data, char *level, i
 		idx = 0;
 
 	if (strstr(type, "udp") || strstr(type, "both")) {
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p udp -m udp --dport %s -m mac --mac-source %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p udp -m udp --sport %s -m mac --mac-source %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-A", chain, "-p", "udp", "-m", "udp", "--dport", data, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-A", chain, "-p", "udp", "-m", "udp", "--sport", data, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 	}
 
 	if (strstr(type, "tcp") || strstr(type, "both")) {
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m tcp --dport %s -m mac --mac-source %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m tcp --sport %s -m mac --mac-source %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-A", chain, "-p", "tcp", "-m", "tcp", "--dport", data, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-A", chain, "-p", "tcp", "-m", "tcp", "--sport", data, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 	}
 
 	if (strstr(type, "l7")) {
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto %s -m mac --mac-source %s -j MARK --set-mark %s", name, client, qos_nfmark(base + idx));
+		insmod("ipt_layer7");
+		insmod("xt_layer7");
+		eval("iptables", "-t", "mangle", "-A", chain, "-m", "layer7", "--l7proto", name, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 	}
 #ifdef HAVE_OPENDPI
 	if (strstr(type, "dpi")) {
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -m mac --mac-source %s -m ndpi --%s -j MARK --set-mark %s", client, name, qos_nfmark(base + idx));
+		char ndpi[32];
+		snprintf(ndpi, 32, "--%s", name);
+		eval("insmod", "xt_opendpi", "bt_hash_size=2", "bt_hash_timeout=3600");
+		eval("iptables", "-t", "mangle", "-A", chain, "-m", "ndpi", ndpi, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 	}
 #endif
 
@@ -354,18 +359,103 @@ void add_client_mac_srvfilter(char *name, char *type, char *data, char *level, i
 			proto = "xdcc";
 		if (proto) {
 			insmod("ipt_ipp2p");
+			char ipp2p[32];
+			snprintf(ipp2p, 32, "--%s", proto);
 
-			sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m ipp2p --%s -m mac --mac-source %s -j MARK --set-mark %s", proto, client, qos_nfmark(base + idx));
+			eval("iptables", "-t", "mangle", "-A", chain, "-p", "tcp", "-m", "ipp2p", ipp2p, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 
 			if (!strcmp(proto, "bit")) {
 				// bittorrent detection enhanced 
 #ifdef HAVE_MICRO
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt -m mac --mac-source %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-A", chain, "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 #else
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m length --length 0:550 -m layer7 --l7proto bt -m mac --mac-source %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-A", chain, "-m", "length", "--length", "0:550", "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 #endif
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt1 -m mac --mac-source %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt2 -m mac --mac-source %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-A", chain, "-m", "layer7", "--l7proto", "bt1", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-A", chain, "-m", "layer7", "--l7proto", "bt2", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+			}
+		}
+	}
+}
+
+void add_client_mac_srvfilter(char *name, char *type, char *data, char *level, int base, char *client)
+{
+	int idx = atoi(level) / 10;
+
+	if (idx == 10)
+		idx = 0;
+
+	if (strstr(type, "udp") || strstr(type, "both")) {
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "udp", "-m", "udp", "--dport", data, "-m", "mac", "--mac-source", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "udp", "-m", "udp", "--sport", data, "-m", "mac", "--mac-source", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+	}
+
+	if (strstr(type, "tcp") || strstr(type, "both")) {
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "tcp", "-m", "tcp", "--dport", data, "-m", "mac", "--mac-source", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "tcp", "-m", "tcp", "--sport", data, "-m", "mac", "--mac-source", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+	}
+
+	if (strstr(type, "l7")) {
+		insmod("ipt_layer7");
+		insmod("xt_layer7");
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-m", "mac", "--mac-source", client, "-m", "layer7", "--l7proto", name, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+	}
+#ifdef HAVE_OPENDPI
+	if (strstr(type, "dpi")) {
+		char ndpi[32];
+		snprintf(ndpi, 32, "--%s", name);
+		eval("insmod", "xt_opendpi", "bt_hash_size=2", "bt_hash_timeout=3600");
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-m", "mac", "--mac-source", client, "-m", "ndpi", ndpi, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+	}
+#endif
+
+	if (strstr(type, "p2p")) {
+		char *proto = NULL;
+		char *realname = name;
+
+		if (!strcasecmp(realname, "applejuice"))
+			proto = "apple";
+		else if (!strcasecmp(realname, "ares"))
+			proto = "ares";
+		else if (!strcasecmp(realname, "bearshare"))
+			proto = "gnu";
+		else if (!strcasecmp(realname, "bittorrent"))
+			proto = "bit";
+		else if (!strcasecmp(realname, "directconnect"))
+			proto = "dc";
+		else if (!strcasecmp(realname, "edonkey"))
+			proto = "edk";
+		else if (!strcasecmp(realname, "gnutella"))
+			proto = "gnu";
+		else if (!strcasecmp(realname, "kazaa"))
+			proto = "kazaa";
+		else if (!strcasecmp(realname, "mute"))
+			proto = "mute";
+		else if (!strcasecmp(realname, "soulseek"))
+			proto = "soul";
+		else if (!strcasecmp(realname, "waste"))
+			proto = "waste";
+		else if (!strcasecmp(realname, "winmx"))
+			proto = "winmx";
+		else if (!strcasecmp(realname, "xdcc"))
+			proto = "xdcc";
+		if (proto) {
+			insmod("ipt_ipp2p");
+			char ipp2p[32];
+			snprintf(ipp2p, 32, "--%s", proto);
+
+			eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "tcp", "-m", "mac", "--mac-source", client, "-m", "ipp2p", ipp2p, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+
+			if (!strcmp(proto, "bit")) {
+				// bittorrent detection enhanced 
+#ifdef HAVE_MICRO
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-m", "mac", "--mac-source", client, "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+#else
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-m", "mac", "--mac-source", client, "-m", "length", "--length", "0:550", "-m", "layer7", "--l7proto", "bt", "-j", "MARK",
+				     "--set-mark", qos_nfmark(base + idx));
+#endif
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-m", "mac", "--mac-source", client, "-m", "layer7", "--l7proto", "bt1", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-m", "mac", "--mac-source", client, "-m", "layer7", "--l7proto", "bt2", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 			}
 		}
 	}
@@ -379,39 +469,49 @@ void add_client_ip_srvfilter(char *name, char *type, char *data, char *level, in
 		idx = 0;
 
 	if (strstr(type, "udp") || strstr(type, "both")) {
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p udp -m udp --dport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p udp -m udp --sport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p udp -m udp --dport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p udp -m udp --sport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p udp -m udp --dport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p udp -m udp --sport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p udp -m udp --dport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p udp -m udp --sport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "udp", "-m", "udp", "--dport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "udp", "-m", "udp", "--sport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "udp", "-m", "udp", "--dport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "udp", "-m", "udp", "--sport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "udp", "-m", "udp", "--dport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "udp", "-m", "udp", "--sport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "udp", "-m", "udp", "--dport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "udp", "-m", "udp", "--sport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 	}
 
 	if (strstr(type, "tcp") || strstr(type, "both")) {
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p tcp -m tcp --dport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p tcp -m tcp --sport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p tcp -m tcp --dport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -p tcp -m tcp --sport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m tcp --dport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m tcp --sport %s -s %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m tcp --dport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m tcp --sport %s -d %s -j MARK --set-mark %s", data, client, qos_nfmark(base + idx));
+
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "tcp", "-m", "tcp", "--dport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "tcp", "-m", "tcp", "--sport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "tcp", "-m", "tcp", "--dport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-p", "tcp", "-m", "tcp", "--sport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "tcp", "-m", "tcp", "--dport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "tcp", "-m", "tcp", "--sport", data, "-s", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "tcp", "-m", "tcp", "--dport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-p", "tcp", "-m", "tcp", "--sport", data, "-d", client, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 	}
 
 	if (strstr(type, "l7")) {
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto %s -s %s -j MARK --set-mark %s", name, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto %s -d %s -j MARK --set-mark %s", name, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto %s -s %s -j MARK --set-mark %s", name, client, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto %s -d %s -j MARK --set-mark %s", name, client, qos_nfmark(base + idx));
+		insmod("ipt_layer7");
+		insmod("xt_layer7");
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-s", client, "-m", "layer7", "--l7proto", name, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-d", client, "-m", "layer7", "--l7proto", name, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-s", client, "-m", "layer7", "--l7proto", name, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-d", client, "-m", "layer7", "--l7proto", name, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 	}
 #ifdef HAVE_OPENDPI
 	if (strstr(type, "dpi")) {
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -s %s -m ndpi --%s -j MARK --set-mark %s", client, name, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_OUT 3 -d %s -m ndpi --%s -j MARK --set-mark %s", client, name, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -s %s -m ndpi --%s -j MARK --set-mark %s", client, name, qos_nfmark(base + idx));
-		sysprintf("iptables -t mangle -I FILTER_IN 3 -d %s -m ndpi --%s -j MARK --set-mark %s", client, name, qos_nfmark(base + idx));
+		char ndpi[32];
+		snprintf(ndpi, 32, "--%s", name);
+		eval("insmod", "xt_opendpi", "bt_hash_size=2", "bt_hash_timeout=3600");
+
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-s", client, "-m", "ndpi", ndpi, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-d", client, "-m", "ndpi", ndpi, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-s", client, "-m", "ndpi", ndpi, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+		eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-d", client, "-m", "ndpi", ndpi, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+
 	}
 #endif
 
@@ -447,39 +547,43 @@ void add_client_ip_srvfilter(char *name, char *type, char *data, char *level, in
 			proto = "xdcc";
 		if (proto) {
 			insmod("ipt_ipp2p");
+			char ipp2p[32];
+			snprintf(ipp2p, 32, "--%s", proto);
 
-			sysprintf("iptables -t mangle -I FILTER_OUT 3 -p tcp -m ipp2p --%s -s %s -j MARK --set-mark %s", proto, client, qos_nfmark(base + idx));
-			sysprintf("iptables -t mangle -I FILTER_OUT 3 -p tcp -m ipp2p --%s -d %s -j MARK --set-mark %s", proto, client, qos_nfmark(base + idx));
-			sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m ipp2p --%s -s %s -j MARK --set-mark %s", proto, client, qos_nfmark(base + idx));
-			sysprintf("iptables -t mangle -I FILTER_IN 3 -p tcp -m ipp2p --%s -d %s -j MARK --set-mark %s", proto, client, qos_nfmark(base + idx));
+			eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-s", client, "-m", "ipp2p", ipp2p, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+			eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-d", client, "-m", "ipp2p", ipp2p, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+			eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-s", client, "-m", "ipp2p", ipp2p, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+			eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-d", client, "-m", "ipp2p", ipp2p, "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 
 			if (!strcmp(proto, "bit")) {
 				// bittorrent detection enhanced 
 #ifdef HAVE_MICRO
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto bt -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto bt -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
+
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-s", client, "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-d", client, "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-s", client, "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-d", client, "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+
 #else
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m length --length 0:550 -m layer7 --l7proto bt -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m length --length 0:550 -m layer7 --l7proto bt -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m length --length 0:550 -m layer7 --l7proto bt -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m length --length 0:550 -m layer7 --l7proto bt -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-s", client, "--length", "0:550", "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-d", client, "--length", "0:550", "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-s", client, "--length", "0:550", "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-d", client, "--length", "0:550", "-m", "layer7", "--l7proto", "bt", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 #endif
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto bt1 -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto bt1 -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt1 -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt1 -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto bt2 -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_OUT 3 -m layer7 --l7proto bt2 -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt2 -s %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
-				sysprintf("iptables -t mangle -I FILTER_IN 3 -m layer7 --l7proto bt2 -d %s -j MARK --set-mark %s", client, qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-s", client, "-m", "layer7", "--l7proto", "bt1", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-d", client, "-m", "layer7", "--l7proto", "bt1", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-s", client, "-m", "layer7", "--l7proto", "bt1", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-d", client, "-m", "layer7", "--l7proto", "bt1", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-s", client, "-m", "layer7", "--l7proto", "bt2", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_OUT", "3", "-d", client, "-m", "layer7", "--l7proto", "bt2", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-s", client, "-m", "layer7", "--l7proto", "bt2", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
+				eval("iptables", "-t", "mangle", "-I", "FILTER_IN", "3", "-d", client, "-m", "layer7", "--l7proto", "bt2", "-j", "MARK", "--set-mark", qos_nfmark(base + idx));
 			}
 		}
 	}
 }
 
-#if !(defined(ARCH_broadcom) && !defined(HAVE_BCMMODERN))
+#if !defined(ARCH_broadcom) || defined(HAVE_BCMMODERN)
 char *get_tcfmark(uint32 mark)
 {
 	static char tcfmark[24];
@@ -573,10 +677,13 @@ void add_client_classes(unsigned int base, unsigned int level)
 		prio = 6;
 		parent = 6;
 		break;
-	case 0:
-		uplimit = uprate;
-		downlimit = downrate;
-		lanlimit = lanrate;
+	default:
+		if (uprate)
+			uplimit = uprate;
+		if (downrate)
+			downlimit = downrate;
+		if (lanrate)
+			lanlimit = lanrate;
 		prio = 3;
 		parent = 1;
 		break;
@@ -746,6 +853,7 @@ void add_client_classes(unsigned int base, unsigned int level)
 }
 
 #ifdef HAVE_AQOS
+
 void add_usermac(char *mac, int base, char *upstream, char *downstream, char *lanstream)
 {
 	unsigned int uprate = atoi(upstream);
@@ -758,12 +866,8 @@ void add_usermac(char *mac, int base, char *upstream, char *downstream, char *la
 	char nullmask[24];
 	strcpy(nullmask, qos_nfmark(0));
 
-	system2("iptables -t mangle -D FILTER_IN -j CONNMARK --save");
-// http://svn.dd-wrt.com/ticket/2737 (default bandwidth level)
-//      sysprintf
-//          ("iptables -t mangle -D FILTER_IN -p tcp -m length --length 0:64 --tcp-flags ACK ACK -j MARK --set-mark %s", 
-//               qos_nfmark(0x64));
-	system2("iptables -t mangle -D FILTER_IN -j RETURN");
+	eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-j", "RETURN");
 
 	add_client_classes(base, uprate, downrate, lanrate, 0);
 
@@ -774,14 +878,10 @@ void add_usermac(char *mac, int base, char *upstream, char *downstream, char *la
 		add_client_mac_srvfilter(srvname, srvtype, srvdata, srvlevel, base, mac);
 	} while ((qos_svcs = strpbrk(++qos_svcs, "|")) && qos_svcs++);
 
-	sysprintf("iptables -t mangle -A FILTER_IN -m mac --mac-source %s -m mark --mark %s -j MARK --set-mark %s", mac, nullmask, qos_nfmark(base));
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-m", "mac", "--mac-source", mac, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base));
 
-	system2("iptables -t mangle -A FILTER_IN -j CONNMARK --save");
-// http://svn.dd-wrt.com/ticket/2737 (default bandwidth level)
-//      sysprintf
-//          ("iptables -t mangle -A FILTER_IN -p tcp -m length --length 0:64 --tcp-flags ACK ACK -j MARK --set-mark %s",
-//               qos_nfmark(0x64));
-	system2("iptables -t mangle -A FILTER_IN -j RETURN");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "RETURN");
 }
 
 void add_userip(char *ip, int base, char *upstream, char *downstream, char *lanstream)
@@ -797,18 +897,12 @@ void add_userip(char *ip, int base, char *upstream, char *downstream, char *lans
 	char nullmask[24];
 	strcpy(nullmask, qos_nfmark(0));
 
-	system2("iptables -t mangle -D FILTER_IN -j CONNMARK --save");
-// http://svn.dd-wrt.com/ticket/2737 (default bandwidth level)
-//      sysprintf
-//          ("iptables -t mangle -D FILTER_IN -p tcp -m length --length 0:64 --tcp-flags ACK ACK -j MARK --set-mark %s",
-//               qos_nfmark(0x64));
-	system2("iptables -t mangle -D FILTER_IN -j RETURN");
+	eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-D", "FILTER_IN", "-j", "RETURN");
 
-//      system2("iptables -t mangle -D FILTER_OUT -p tcp -m length --length 0:64 --tcp-flags ACK ACK -j CLASSIFY --set-class 1:100");   
-//      system2("iptables -t mangle -D FILTER_OUT -m layer7 --l7proto dns -j CLASSIFY --set-class 1:100");
-	system2("iptables -t mangle -D FILTER_OUT -j VPN_DSCP");
-	system2("iptables -t mangle -D FILTER_OUT -j CONNMARK --save");
-	system2("iptables -t mangle -D FILTER_OUT -j RETURN");
+	eval("iptables", "-t", "mangle", "-D", "FILTER_OUT", "-j", "VPN_DSCP");
+	eval("iptables", "-t", "mangle", "-D", "FILTER_OUT", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-D", "FILTER_OUT", "-j", "RETURN");
 
 	add_client_classes(base, uprate, downrate, lanrate, 0);
 
@@ -819,23 +913,17 @@ void add_userip(char *ip, int base, char *upstream, char *downstream, char *lans
 		add_client_ip_srvfilter(srvname, srvtype, srvdata, srvlevel, base, ip);
 	} while ((qos_svcs = strpbrk(++qos_svcs, "|")) && qos_svcs++);
 
-	sysprintf("iptables -t mangle -A FILTER_OUT -s %s -m mark --mark %s -j MARK --set-mark %s", ip, nullmask, qos_nfmark(base));
-	sysprintf("iptables -t mangle -A FILTER_OUT -d %s -m mark --mark %s -j MARK --set-mark %s", ip, nullmask, qos_nfmark(base));
-	sysprintf("iptables -t mangle -A FILTER_IN -s %s -m mark --mark %s -j MARK --set-mark %s", ip, nullmask, qos_nfmark(base));
-	sysprintf("iptables -t mangle -A FILTER_IN -d %s -m mark --mark %s -j MARK --set-mark %s", ip, nullmask, qos_nfmark(base));
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-s", ip, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base));
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-d", ip, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base));
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-s", ip, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base));
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-d", ip, "-m", "mark", "--mark", nullmask, "-j", "MARK", "--set-mark", qos_nfmark(base));
 
-	system2("iptables -t mangle -A FILTER_IN -j CONNMARK --save");
-// http://svn.dd-wrt.com/ticket/2737 (default bandwidth level)
-//      sysprintf
-//          ("iptables -t mangle -A FILTER_IN -p tcp -m length --length 0:64 --tcp-flags ACK ACK -j MARK --set-mark %s",
-//               qos_nfmark(0x64));
-	system2("iptables -t mangle -A FILTER_IN -j RETURN");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_IN", "-j", "RETURN");
 
-//      system2("iptables -t mangle -A FILTER_OUT -p tcp -m length --length 0:64 --tcp-flags ACK ACK -j CLASSIFY --set-class 1:100");   
-//      system2("iptables -t mangle -A FILTER_OUT -m layer7 --l7proto dns -j CLASSIFY --set-class 1:100");
-	system2("iptables -t mangle -A FILTER_OUT -j VPN_DSCP");
-	system2("iptables -t mangle -A FILTER_OUT -j CONNMARK --save");
-	system2("iptables -t mangle -A FILTER_OUT -j RETURN");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "VPN_DSCP");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "CONNMARK", "--save");
+	eval("iptables", "-t", "mangle", "-A", "FILTER_OUT", "-j", "RETURN");
 }
 #endif
 #endif				// HAVE_SVQOS
@@ -983,6 +1071,11 @@ void setRouter(char *name)
 #elif HAVE_SANSFIL
 	nvram_set("DD_BOARD", "SANSFIL");
 	nvram_set("DD_BOARD2", name);
+#elif HAVE_ONNET
+#ifdef HAVE_MMS344
+	nvram_set("DD_BOARD", "DBDC344");
+	nvram_set("DD_BOARD2", "DBDC344");
+#endif
 #elif HAVE_ESPOD
 	if (name)
 		nvram_set("DD_BOARD2", name);
@@ -1107,6 +1200,18 @@ int internal_getRouterBrand()
 		return ROUTER_LINKSYS_EA6900;
 	}
 
+	if (nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1100") && nvram_match("boardnum", "01") && !strncmp(nvram_safe_get("modelNumber"), "EA6400", 6)) {
+		setRouter("Linksys EA6400");
+
+		return ROUTER_LINKSYS_EA6400;
+	}
+
+	if (nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1100") && nvram_match("boardnum", "01") && !strncmp(nvram_safe_get("modelNumber"), "EA6300", 6)) {
+		setRouter("Linksys EA6300");
+
+		return ROUTER_LINKSYS_EA6400;
+	}
+
 	if (nvram_match("boardtype", "0xF646") && nvram_match("boardrev", "0x1100") && nvram_match("0:devid", "0x4332")) {
 		setRouter("Linksys EA6700");
 
@@ -1150,19 +1255,29 @@ int internal_getRouterBrand()
 		return ROUTER_ASUS_AC67U;
 	}
 
-	if (nvram_match("productid", "RT-AC87U")) {
+	if (nvram_match("productid", "RT-AC87U") || nvram_match("model", "RT-AC87U")) {
 		setRouter("Asus RT-AC87U");
 		return ROUTER_ASUS_AC87U;
+	}
+
+	if (nvram_match("model", "RT-AC88U")) {
+		setRouter("Asus RT-AC88U");
+		return ROUTER_ASUS_AC88U;
+	}
+
+	if (nvram_match("model", "RT-AC5300")) {
+		setRouter("Asus RT-AC5300");
+		return ROUTER_ASUS_AC5300;
+	}
+
+	if (nvram_match("productid", "RT-AC3200") || nvram_match("model", "RT-AC3200")) {
+		setRouter("Asus RT-AC3200");
+		return ROUTER_ASUS_AC3200;
 	}
 
 	if (nvram_match("boardtype", "0x0665")
 	    && nvram_match("boardrev", "0x1103")
 	    && !nvram_match("melco_id", "RD_BB13049")) {
-		setRouter("Asus RT-AC87U");
-		return ROUTER_ASUS_AC87U;
-	}
-
-	if (nvram_match("model", "RT-AC87U")) {
 		setRouter("Asus RT-AC87U");
 		return ROUTER_ASUS_AC87U;
 	}
@@ -1178,10 +1293,23 @@ int internal_getRouterBrand()
 	}
 
 	if (boardnum == 24 && nvram_match("boardtype", "0x0646")
+	    && nvram_match("boardrev", "0x1100")
+	    && nvram_match("gpio8", "wps_button")) {
+		setRouter("Dlink-DIR860L-A1");
+		return ROUTER_DLINK_DIR860;
+	}
+	if (boardnum == 24 && nvram_match("boardtype", "0x0646")
 	    && nvram_match("boardrev", "0x1110")
-	    && nvram_match("gpio7", "wps_button") && !nvram_match("gpio6", "wps_led")) {
+	    && nvram_match("gpio7", "wps_button") && !nvram_match("gpio6", "wps_led") && nvram_get("pci/1/1/venid")) {
 		setRouter("Dlink-DIR868L");
 		return ROUTER_DLINK_DIR868;
+	}
+
+	if (boardnum == 24 && nvram_match("boardtype", "0x0646")
+	    && nvram_match("boardrev", "0x1101")
+	    && nvram_match("gpio7", "wps_button") && !nvram_match("gpio6", "wps_led")) {
+		setRouter("Dlink-DIR868L rev C");
+		return ROUTER_DLINK_DIR868C;
 	}
 
 	if (boardnum == 24 && nvram_match("boardtype", "0x0646")
@@ -1197,11 +1325,33 @@ int internal_getRouterBrand()
 		setRouter("Dlink-DIR890L");
 		return ROUTER_DLINK_DIR890;
 	}
+
+	if (nvram_match("boardnum", "N/A") && nvram_match("boardtype", "0x072F") && !nvram_match("2:devid", "0x43c5")
+	    && nvram_match("boardrev", "0x1101")
+	    && nvram_match("gpio7", "wps_button")) {
+		setRouter("Dlink-DIR885L");
+		return ROUTER_DLINK_DIR885;
+	}
+
+	if (nvram_match("boardnum", "N/A") && nvram_match("boardtype", "0x072F") && nvram_match("2:devid", "0x43c5")
+	    && nvram_match("boardrev", "0x1101")
+	    && nvram_match("gpio7", "wps_button")) {
+		setRouter("Dlink-DIR895L");
+		return ROUTER_DLINK_DIR895;
+	}
+
 	if (boardnum == 00 && nvram_match("boardtype", "0x0646")
 	    && nvram_match("boardrev", "0x1100")
 	    && nvram_match("gpio15", "wps_button")) {
 		setRouter("Asus RT-AC56U");
 		return ROUTER_ASUS_AC56U;
+	}
+
+	if (boardnum == 1234 && nvram_match("boardtype", "0x072F")
+	    && nvram_match("boardrev", "0x1202")
+	    && nvram_match("gpio7", "wps_button")) {
+		setRouter("Trendnet TEW828DRU");
+		return ROUTER_TRENDNET_TEW828;
 	}
 
 	if (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("1:devid", "0x43A2")
@@ -1306,6 +1456,10 @@ int internal_getRouterBrand()
 #elif HAVE_VENTANA
 	char *filename = "/sys/devices/soc0/soc.0/2100000.aips-bus/21a0000.i2c/i2c-0/0-0051/eeprom";	/* bank2=0x100 kernel 3.0 */
 	FILE *file = fopen(filename, "rb");
+	if (!file) {
+		filename = "/sys/devices/soc0/soc/2100000.aips-bus/21a0000.i2c/i2c-0/0-0051/eeprom";	/* bank2=0x100 kernel 3.18 */
+		file = fopen(filename, "rb");
+	}
 	if (!file) {
 		setRouter("Gateworks Ventana GW54XX");
 	} else {
@@ -1824,6 +1978,34 @@ int internal_getRouterBrand()
 		setRouter("Fonera 2100/2200");
 		return ROUTER_BOARD_FONERA;
 	}
+#elif HAVE_WRT1900AC
+	FILE *fp = fopen("/sys/firmware/devicetree/base/model", "rb");
+	if (!fp) {
+		fprintf(stderr, "error opening device tree\n");
+		setRouter("Linksys WRT 1900AC");
+		return ROUTER_WRT_1900AC;
+	}
+	char vendorstr[32];
+	char modelstr[32];
+	fscanf(fp, "%s %s", &vendorstr[0], &modelstr[0]);
+	fclose(fp);
+	if (!strcmp(modelstr, "WRT1200AC")) {
+		setRouter("Linksys WRT 1200AC");
+		return ROUTER_WRT_1200AC;
+	}
+	if (!strcmp(modelstr, "WRT1900ACv2")) {
+		setRouter("Linksys WRT 1900ACv2");
+		return ROUTER_WRT_1900ACV2;	// similar
+	}
+	if (!strcmp(modelstr, "WRT1900AC")) {
+		setRouter("Linksys WRT 1900AC");
+		return ROUTER_WRT_1900AC;	// similar
+	}
+
+	if (!strcmp(modelstr, "WRT1900ACS")) {
+		setRouter("Linksys WRT 1900ACS");
+		return ROUTER_WRT_1900ACS;	// similar
+	}
 #elif HAVE_MERAKI
 	setRouter("Meraki Mini");
 	return ROUTER_BOARD_MERAKI;
@@ -1850,7 +2032,11 @@ int internal_getRouterBrand()
 	nvram_default_get("ath0_txantenna", "3");
 	return ROUTER_BOARD_WHRHPGN;
 #elif HAVE_CARAMBOLA
+#ifdef HAVE_ERC
+	setRouter("ERC ServiceGate");
+#else
 	setRouter("8Devices Carambola 2");
+#endif
 	nvram_default_get("ath0_rxantenna", "1");
 	nvram_default_get("ath0_txantenna", "1");
 	return ROUTER_BOARD_WHRHPGN;
@@ -1913,6 +2099,46 @@ int internal_getRouterBrand()
 	nvram_default_get("ath1_rxantenna", "3");
 	nvram_default_get("ath1_txantenna", "3");
 	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_TEW824
+	setRouter("Trendnet TEW824DRU");
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	nvram_default_get("ath1_rxantenna", "3");
+	nvram_default_get("ath1_txantenna", "3");
+	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_DIR866
+	setRouter("Dlink DIR866-A1");
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	nvram_default_get("ath1_rxantenna", "3");
+	nvram_default_get("ath1_txantenna", "3");
+	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_DAP2660
+	setRouter("Dlink DAP2660");
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	nvram_default_get("ath1_rxantenna", "3");
+	nvram_default_get("ath1_txantenna", "3");
+	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_DAP2330
+	setRouter("Dlink DAP2330");
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_DAP3662
+	setRouter("Dlink DAP3662");
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	nvram_default_get("ath1_rxantenna", "3");
+	nvram_default_get("ath1_txantenna", "3");
+	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_DIR862
+	setRouter("Dlink DIR862-A1");
+	nvram_default_get("ath0_rxantenna", "7");
+	nvram_default_get("ath0_txantenna", "7");
+	nvram_default_get("ath1_rxantenna", "7");
+	nvram_default_get("ath1_txantenna", "7");
+	return ROUTER_BOARD_WHRHPGN;
 #elif HAVE_MMS344
 	setRouter("Compex MMS344");
 	nvram_default_get("ath0_rxantenna", "3");
@@ -1959,6 +2185,11 @@ int internal_getRouterBrand()
 	setRouter("Dlink DHP1565-A1");
 	nvram_default_get("ath0_rxantenna", "3");
 	nvram_default_get("ath0_txantenna", "3");
+	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_DIR859
+	setRouter("Dlink DIR859");
+	nvram_default_get("ath0_rxantenna", "7");
+	nvram_default_get("ath0_txantenna", "7");
 	return ROUTER_BOARD_WHRHPGN;
 #elif HAVE_DIR825C1
 	setRouter("Dlink DIR825-C1");
@@ -2104,7 +2335,7 @@ int internal_getRouterBrand()
 		{"Ubiquiti Bullet M5 Titanium", 0xe2d5, "3", "3", ROUTER_BOARD_TI, 0, 10},	// Titanium
 		{"Ubiquiti Airgrid M2", 0xe212, "1", "1", ROUTER_BOARD_BS2M, 0, 10},	//
 		{"Ubiquiti Airgrid M2", 0xe242, "1", "1", ROUTER_BOARD_BS2M, 0, 10},	//
-		{"Ubiquiti Airgrid M2", 0xe252, "1", "1", ROUTER_BOARD_BS2M, 0, 10},	//
+		{"Ubiquiti Airgrid M2HP", 0xe252, "1", "1", ROUTER_BOARD_BS2M, 0, 10},	//
 		{"Ubiquiti Airgrid M5", 0xe215, "1", "1", ROUTER_BOARD_BS5M, 0, 10},	//
 		{"Ubiquiti Airgrid M5", 0xe245, "1", "1", ROUTER_BOARD_BS5M, 0, 10},	//
 		{"Ubiquiti Airgrid M5", 0xe255, "1", "1", ROUTER_BOARD_BS5M, 0, 10},	//
@@ -2403,10 +2634,25 @@ int internal_getRouterBrand()
 	nvram_default_get("ath0_txantenna", "3");
 	setRouter("TP-Link TL-WR842ND v2");
 	return ROUTER_BOARD_PB42;
+#elif HAVE_DAP3320
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	setRouter("Dlink DAP-3320");
+	return ROUTER_BOARD_PB42;
+#elif HAVE_DAP2230
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	setRouter("Dlink DAP-2230");
+	return ROUTER_BOARD_PB42;
 #elif HAVE_WR841V9
 	nvram_default_get("ath0_rxantenna", "3");
 	nvram_default_get("ath0_txantenna", "3");
 	setRouter("TP-Link TL-WR841ND v9");
+	return ROUTER_BOARD_PB42;
+#elif HAVE_WA901V3
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	setRouter("TP-Link TL-WA901ND v3");
 	return ROUTER_BOARD_PB42;
 #elif HAVE_WR841V8
 	nvram_default_get("ath0_rxantenna", "3");
@@ -2501,6 +2747,16 @@ int internal_getRouterBrand()
 	nvram_default_get("ath0_txantenna", "1");
 	setRouter("TP-Link TL-MR3020");
 	return ROUTER_BOARD_PB42;
+#elif HAVE_WR710V1
+	nvram_default_get("ath0_rxantenna", "1");
+	nvram_default_get("ath0_txantenna", "1");
+	setRouter("TP-Link TL-WR710N v1");
+	return ROUTER_BOARD_PB42;
+#elif HAVE_WR710
+	nvram_default_get("ath0_rxantenna", "1");
+	nvram_default_get("ath0_txantenna", "1");
+	setRouter("TP-Link TL-WR710N v2");
+	return ROUTER_BOARD_PB42;
 #elif HAVE_WR703
 	nvram_default_get("ath0_rxantenna", "1");
 	nvram_default_get("ath0_txantenna", "1");
@@ -2510,6 +2766,11 @@ int internal_getRouterBrand()
 	nvram_default_get("ath0_rxantenna", "1");
 	nvram_default_get("ath0_txantenna", "1");
 	setRouter("TP-Link TL-WR740N v4");
+	return ROUTER_BOARD_PB42;
+#elif HAVE_WR743V2
+	nvram_default_get("ath0_rxantenna", "1");
+	nvram_default_get("ath0_txantenna", "1");
+	setRouter("TP-Link TL-WR743ND v2");
 	return ROUTER_BOARD_PB42;
 #elif HAVE_WR741V4
 	nvram_default_get("ath0_rxantenna", "1");
@@ -3352,8 +3613,8 @@ int internal_getRouterBrand()
 #else
 			setRouter("Buffalo WZR-D1800H");
 #endif
-			return ROUTER_D1800H;
 		}
+		return ROUTER_D1800H;
 	}
 #ifndef HAVE_BUFFALO
 	if (boardnum == 0 && nvram_match("boardtype", "0x048e") &&	// cfe sets boardnum="", strtoul -> 0
@@ -3496,6 +3757,11 @@ int internal_getRouterBrand()
 		|| nvram_match("boardrev", "02"))) {
 		setRouter("Netgear WNR3500 v2/U/L v1");
 		return ROUTER_NETGEAR_WNR3500L;
+	}
+
+	if (nvram_match("boardnum", "3500L") && nvram_match("boardtype", "0x052b")) {
+		setRouter("Netgear WNR3500L v2");
+		return ROUTER_NETGEAR_WNR3500LV2;
 	}
 
 	if (nvram_match("boardnum", "01") && nvram_match("boardtype", "0xb4cf")
@@ -3793,7 +4059,7 @@ static char *getUEnvExt(char *name)
 
 #endif
 
-#if defined(HAVE_BUFFALO) || defined(HAVE_BUFFALO_BL_DEFAULTS) || defined(HAVE_WMBR_G300NH) || defined(HAVE_WZRG450) || defined(HAVE_DIR810L)
+#if defined(HAVE_BUFFALO) || defined(HAVE_BUFFALO_BL_DEFAULTS) || defined(HAVE_WMBR_G300NH) || defined(HAVE_WZRG450) || defined(HAVE_DIR810L) || defined(HAVE_MVEBU)
 void *getUEnv(char *name)
 {
 
@@ -3809,6 +4075,8 @@ void *getUEnv(char *name)
 #define UOFFSET 0x0
 #elif HAVE_DIR810L
 #define UOFFSET 0x0
+#elif HAVE_MVEBU
+#define UOFFSET 0x0
 #else
 #define UOFFSET 0x3E000
 #endif
@@ -3818,19 +4086,23 @@ void *getUEnv(char *name)
 	//fprintf(stderr,"[u-boot env]%s\n",name);
 #if defined(HAVE_WMBR_G300NH) || defined(HAVE_DIR810L)
 	FILE *fp = fopen("/dev/mtdblock/1", "rb");
+#elif HAVE_MVEBU
+	FILE *fp = fopen("/dev/mtdblock/1", "rb");
 #else
 	FILE *fp = fopen("/dev/mtdblock/0", "rb");
 #endif
+	char newname[64];
+	snprintf(newname, 64, "%s=", name);
 	fseek(fp, UOFFSET, SEEK_SET);
 	char *mem = safe_malloc(0x2000);
 	fread(mem, 0x2000, 1, fp);
 	fclose(fp);
-	int s = (0x2000 - 1) - strlen(name);
+	int s = (0x2000 - 1) - strlen(newname);
 	int i;
-	int l = strlen(name);
+	int l = strlen(newname);
 	for (i = 0; i < s; i++) {
-		if (!strncmp(mem + i, name, l)) {
-			strncpy(res, mem + i + l + 1, sizeof(res) - 1);
+		if (!strncmp(mem + i, newname, l)) {
+			strncpy(res, mem + i + l, sizeof(res) - 1);
 			free(mem);
 			return res;
 		}
@@ -3993,7 +4265,7 @@ unsigned int write_gpio(char *device, unsigned int val)
 static char hw_error = 0;
 int diag_led_4704(int type, int act)
 {
-#if defined(HAVE_GEMTEK) || defined(HAVE_RB500) || defined(HAVE_XSCALE) || defined(HAVE_LAGUNA) || defined(HAVE_MAGICBOX) || defined(HAVE_RB600) || defined(HAVE_FONERA) || defined(HAVE_MERAKI)|| defined(HAVE_LS2) || defined(HAVE_WHRAG108) || defined(HAVE_X86) || defined(HAVE_CA8) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_RT2880) || defined(HAVE_OPENRISC)
+#if defined(HAVE_MVEBU) || defined(HAVE_GEMTEK) || defined(HAVE_RB500) || defined(HAVE_XSCALE) || defined(HAVE_LAGUNA) || defined(HAVE_MAGICBOX) || defined(HAVE_RB600) || defined(HAVE_FONERA) || defined(HAVE_MERAKI)|| defined(HAVE_LS2) || defined(HAVE_WHRAG108) || defined(HAVE_X86) || defined(HAVE_CA8) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_RT2880) || defined(HAVE_OPENRISC)
 	return 0;
 #else
 	unsigned int control, in, outen, out;
@@ -4040,7 +4312,7 @@ int diag_led_4712(int type, int act)
 {
 	unsigned int control, in, outen, out, ctr_mask, out_mask;
 
-#if defined(HAVE_GEMTEK) || defined(HAVE_RB500) || defined(HAVE_XSCALE) || defined(HAVE_LAGUNA) || defined(HAVE_MAGICBOX) || defined(HAVE_RB600) || defined(HAVE_FONERA)|| defined(HAVE_MERAKI) || defined(HAVE_LS2) || defined(HAVE_WHRAG108) || defined(HAVE_X86) || defined(HAVE_CA8) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_RT2880) || defined(HAVE_OPENRISC)
+#if defined(HAVE_MVEBU) || defined(HAVE_GEMTEK) || defined(HAVE_RB500) || defined(HAVE_XSCALE) || defined(HAVE_LAGUNA) || defined(HAVE_MAGICBOX) || defined(HAVE_RB600) || defined(HAVE_FONERA)|| defined(HAVE_MERAKI) || defined(HAVE_LS2) || defined(HAVE_WHRAG108) || defined(HAVE_X86) || defined(HAVE_CA8) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_RT2880) || defined(HAVE_OPENRISC)
 	return 0;
 #else
 
@@ -4122,6 +4394,17 @@ static char *stalist[] = {
 
 char *getWifi(char *ifname)
 {
+#ifdef HAVE_MVEBU
+	if (!strncmp(ifname, "ath0", 4))
+		return "wlan0";
+	if (!strncmp(ifname, "ath1", 4))
+		return "wlan1";
+	if (!strncmp(ifname, "ath2", 4))
+		return "wlan2";
+	if (!strncmp(ifname, "ath3", 4))
+		return "wlan3";
+	return NULL;
+#else
 	if (!strncmp(ifname, "ath0", 4))
 		return "wifi0";
 	if (!strncmp(ifname, "ath1", 4))
@@ -4131,6 +4414,7 @@ char *getWifi(char *ifname)
 	if (!strncmp(ifname, "ath3", 4))
 		return "wifi3";
 	return NULL;
+#endif
 }
 
 char *getWDSSTA(void)
@@ -4582,6 +4866,8 @@ int getIfList(char *buffer, const char *ifprefix)
 			} else {
 				if (!strncmp(ifname, "wifi", 4))
 					skip = 1;
+				if (!strncmp(ifname, "wlan", 4))
+					skip = 1;
 				if (!strncmp(ifname, "ifb", 3))
 					skip = 1;
 				if (!strncmp(ifname, "imq", 3))
@@ -4692,7 +4978,14 @@ int sv_valid_hwaddr(char *value)
 char *cpustring(void)
 {
 	static char buf[256];
-#ifdef HAVE_UNIWIP
+#ifdef HAVE_MVEBU
+	if (getRouterBrand() == ROUTER_WRT_1900AC) {
+		strcpy(buf, "Marvel Armada 370/XP");
+	} else {
+		strcpy(buf, "Marvel Armada 385");
+	}
+	return buf;
+#elif HAVE_UNIWIP
 	strcpy(buf, "FreeScale MPC8314");
 	return buf;
 #elif HAVE_WDR4900
@@ -4867,6 +5160,21 @@ int led_control(int type, int act)
 		usb_gpio1 = 0x002;
 		break;
 #endif
+#ifdef HAVE_WRT1900AC
+	case ROUTER_WRT_1200AC:
+	case ROUTER_WRT_1900ACS:
+	case ROUTER_WRT_1900ACV2:
+		usb_power = 0x032;
+	case ROUTER_WRT_1900AC:
+		power_gpio = 0x000;
+		diag_gpio = 0x100;
+		connected_gpio = 0x006;
+		disconnected_gpio = 0x007;
+		usb_gpio = 0x004;
+		usb_gpio1 = 0x005;
+		ses_gpio = 0x009;
+		break;
+#endif
 	case ROUTER_BOARD_PB42:
 #ifdef HAVE_WA901
 		diag_gpio = 0x102;
@@ -4880,6 +5188,10 @@ int led_control(int type, int act)
 #ifdef HAVE_MR3020
 		connected_gpio = 0x11b;
 		diag_gpio = 0x11a;
+		usb_power = 0x008;
+#elif HAVE_WR710
+		power_gpio = 0x11b;
+		diag_gpio = 0x01b;
 		usb_power = 0x008;
 #elif HAVE_WR703
 		diag_gpio = 0x11b;
@@ -4994,7 +5306,10 @@ int led_control(int type, int act)
 		disconnected_gpio = 0x007;
 		ses_gpio = 0x100;
 #endif
-#ifdef HAVE_WR841V9
+#ifdef HAVE_DAP2230
+		diag_gpio = 0x00b;
+		power_gpio = 0x10b;
+#elif HAVE_WR841V9
 		diag_gpio = 0x103;
 #elif HAVE_WR842V2
 		connected_gpio = 0x10e;
@@ -5268,11 +5583,18 @@ int led_control(int type, int act)
 		sec0_gpio = 0x10e;
 		break;
 #elif HAVE_CARAMBOLA
+#ifdef HAVE_ERC
+	case ROUTER_BOARD_WHRHPGN:
+		vpn_gpio = 0x11B;
+		wlan0_gpio = 0x000;
+		break;
+#else
 	case ROUTER_BOARD_WHRHPGN:
 //              usb_power = 0x01a;
 //              usb_gpio = 0x001;
 //              ses_gpio = 0x11b;
 		break;
+#endif
 #elif HAVE_HORNET
 	case ROUTER_BOARD_WHRHPGN:
 		usb_power = 0x01a;
@@ -5314,6 +5636,20 @@ int led_control(int type, int act)
 		usb_power = 0x020;
 		usb_gpio = 0x10d;
 		ses_gpio = 0x110;
+		break;
+#elif HAVE_DAP3662
+	case ROUTER_BOARD_WHRHPGN:
+		diag_gpio = 0x10e;	// red
+		diag_gpio_disabled = 0x117;	//
+		power_gpio = 0x117;	// green
+		break;
+#elif HAVE_DIR862
+	case ROUTER_BOARD_WHRHPGN:
+		diag_gpio = 0x10e;	// orange
+		diag_gpio_disabled = 0x113;	// 
+		power_gpio = 0x113;	// green
+		connected_gpio = 0x116;	// green
+		disconnected_gpio = 0x117;	// orange
 		break;
 #elif HAVE_MMS344
 	case ROUTER_BOARD_WHRHPGN:
@@ -5367,6 +5703,13 @@ int led_control(int type, int act)
 		power_gpio = 0x116;
 		usb_gpio = 0x10b;
 		ses_gpio = 0x10f;
+		break;
+#elif HAVE_DIR859
+	case ROUTER_BOARD_WHRHPGN:
+		power_gpio = 0x10f;
+		connected_gpio = 0x110;
+
+		diag_gpio = 0x00f;
 		break;
 #elif HAVE_DIR825C1
 	case ROUTER_BOARD_WHRHPGN:
@@ -5692,6 +6035,7 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_LINKSYS_EA6500V2:
 	case ROUTER_LINKSYS_EA6700:
+	case ROUTER_LINKSYS_EA6400:
 	case ROUTER_LINKSYS_EA6900:
 		usb_power = 0x009;	// usb power on/off
 		usb_power1 = 0x00a;	// usb power on/off
@@ -5767,10 +6111,13 @@ int led_control(int type, int act)
 		diag_gpio = 0x001;	// power led blink /off to indicate factory defaults
 		break;
 	case ROUTER_NETGEAR_WNR3500L:
+	case ROUTER_NETGEAR_WNR3500LV2:
 		power_gpio = 0x003;	// power led green
 		diag_gpio = 0x007;	// power led amber
 		ses_gpio = 0x001;	// WPS led green
 		connected_gpio = 0x002;	// wan led green
+		wlan1_gpio = 0x000;	// radio 1 blue led
+		usb_gpio = 0x014;	// usb power
 		break;
 	case ROUTER_NETGEAR_WNDR3400:
 		power_gpio = 0x003;	// power led green
@@ -5789,7 +6136,16 @@ int led_control(int type, int act)
 		ses_gpio = 0x106;	// WPS led green - inverse
 		ses2_gpio = 0x107;	// WLAN led green - inverse
 		break;
+	case ROUTER_DLINK_DIR860:
+		usb_power = 0x00a;
+		connected_gpio = 0x104;
+		disconnected_gpio = 0x103;
+		power_gpio = 0x101;
+		diag_gpio = 0x100;
+		diag_gpio_disabled = 0x101;
+		break;
 	case ROUTER_DLINK_DIR868:
+	case ROUTER_DLINK_DIR868C:
 		usb_power = 0x00a;
 		connected_gpio = 0x103;
 		disconnected_gpio = 0x101;
@@ -5809,6 +6165,30 @@ int led_control(int type, int act)
 		usb_power = 0x009;
 		usb_power1 = 0x00a;
 		break;
+	case ROUTER_DLINK_DIR885:
+		usb_power = 0x012;
+		usb_gpio = 0x108;
+		power_gpio = 0x100;
+		diag_gpio = 0x102;
+		diag_gpio_disabled = 0x100;
+		disconnected_gpio = 0x103;
+		connected_gpio = 0x101;
+		wlan0_gpio = 0x10d;
+		wlan1_gpio = 0x10e;
+		break;
+	case ROUTER_DLINK_DIR895:
+		usb_power = 0x015;
+		usb_power1 = 0x012;
+		usb_gpio = 0x108;
+		usb_gpio1 = 0x10f;
+		power_gpio = 0x100;
+		diag_gpio = 0x102;
+		diag_gpio_disabled = 0x100;
+		disconnected_gpio = 0x103;
+		connected_gpio = 0x101;
+		wlan0_gpio = 0x10d;
+		wlan1_gpio = 0x10e;
+		break;
 	case ROUTER_DLINK_DIR890:
 		usb_power = 0x015;
 		usb_power1 = 0x012;
@@ -5818,6 +6198,11 @@ int led_control(int type, int act)
 		disconnected_gpio = 0x103;
 		power_gpio = 0x102;
 		diag_gpio = 0x002;
+		break;
+	case ROUTER_TRENDNET_TEW828:
+		usb_gpio = 0x104;
+		power_gpio = 0x106;
+		diag_gpio = 0x006;
 		break;
 	case ROUTER_TRENDNET_TEW812:
 		// gpio !1 = 2.4 ghz led
@@ -5868,6 +6253,26 @@ int led_control(int type, int act)
 		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio) //HW
 		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio) //HW
 		//usb_power = 0x007;	// (  7) USB power on/off !!! KERNEL POWER !!! enable this freeze router on boot with USB disabled
+		break;
+	case ROUTER_ASUS_AC3200:
+		usb_power = 0x009;
+		power_gpio = 0x103;
+		connected_gpio = 0x105;
+		diag_gpio = 0x003;
+		// wps gpio = 14
+		break;
+	case ROUTER_ASUS_AC88U:
+	case ROUTER_ASUS_AC5300:
+		usb_power = 0x009;
+		usb_gpio = 0x110;
+		usb_gpio1 = 0x111;
+		power_gpio = 0x103;
+		diag_gpio = 0x003;
+		connected_gpio = 0x005;
+		disconnected_gpio = 0x115;
+		ses_gpio = 0x113;
+		// komisches symbol gpio 21
+		// quantenna reset 8 inv (off / on to reset)    
 		break;
 	case ROUTER_ASUS_AC87U:
 		usb_power = 0x009;
@@ -6483,7 +6888,7 @@ int getath9kdevicecount(void)
 			count = (int)globbuf.gl_pathc;
 		globfree(&globbuf);
 	}
-#if defined(HAVE_MMS344) || defined(HAVE_ARCHERC7)
+#if (defined(HAVE_MMS344) || defined(HAVE_ARCHERC7)) && !defined(HAVE_DAP2330)
 	return 2;
 #else
 	return (count);
@@ -6493,20 +6898,29 @@ int getath9kdevicecount(void)
 int get_ath9k_phy_idx(int idx)
 {
 	// fprintf(stderr,"channel number %d of %d\n", i,achans.ic_nchans);
+#ifdef HAVE_MVEBU
+	return idx;
+#else
 	return idx - getifcount("wifi");
+#endif
 }
 
 int get_ath9k_phy_ifname(const char *ifname)
 {
 	int devnum;
+	if (strncmp(ifname, "ath", 3))
+		return -1;
 	if (!sscanf(ifname, "ath%d", &devnum))
-		return (0);
+		return -1;
 	// fprintf(stderr,"channel number %d of %d\n", i,achans.ic_nchans);
 	return get_ath9k_phy_idx(devnum);
 }
 
 int is_ath9k(const char *prefix)
 {
+#ifdef HAVE_MVEBU
+	return 1;
+#endif
 	glob_t globbuf;
 	int count = 0;
 	char globstring[1024];
@@ -6519,6 +6933,8 @@ int is_ath9k(const char *prefix)
 #endif
 	// correct index if there are legacy cards arround
 	devnum = get_ath9k_phy_ifname(prefix);
+	if (devnum == -1)
+		return 0;
 	sprintf(globstring, "/sys/class/ieee80211/phy%d", devnum);
 	globresult = glob(globstring, GLOB_NOSORT, NULL, &globbuf);
 	if (globresult == 0)
@@ -6537,6 +6953,8 @@ int is_ath5k(const char *prefix)
 	int devnum;
 	// correct index if there are legacy cards arround... should not...
 	devnum = get_ath9k_phy_ifname(prefix);
+	if (devnum == -1)
+		return 0;
 	sprintf(globstring, "/sys/class/ieee80211/phy%d/device/driver/module/drivers/pci:ath5k", devnum);
 	globresult = glob(globstring, GLOB_NOSORT, NULL, &globbuf);
 	if (globresult == 0)
@@ -6548,6 +6966,27 @@ int is_ath5k(const char *prefix)
 int is_ath5k(const char *prefix)
 {
 	return (0);
+}
+#endif
+#ifdef HAVE_MVEBU
+int is_mvebu(const char *prefix)
+{
+	glob_t globbuf;
+	int count = 0;
+	char globstring[1024];
+	int globresult;
+	int devnum;
+	// get legacy interface count
+	// correct index if there are legacy cards arround
+	devnum = get_ath9k_phy_ifname(prefix);
+	if (devnum == -1)
+		return 0;
+	sprintf(globstring, "/sys/class/ieee80211/phy%d/device/driver/module/drivers/pci:mwlwifi", devnum);
+	globresult = glob(globstring, GLOB_NOSORT, NULL, &globbuf);
+	if (globresult == 0)
+		count = (int)globbuf.gl_pathc;
+	globfree(&globbuf);
+	return (count);
 }
 #endif
 #ifdef HAVE_ATH10K
@@ -6565,6 +7004,8 @@ int is_ath10k(const char *prefix)
 #endif
 	// correct index if there are legacy cards arround
 	devnum = get_ath9k_phy_ifname(prefix);
+	if (devnum == -1)
+		return 0;
 	sprintf(globstring, "/sys/class/ieee80211/phy%d/device/driver/module/drivers/pci:ath10k_pci", devnum);
 	globresult = glob(globstring, GLOB_NOSORT, NULL, &globbuf);
 	if (globresult == 0)
@@ -6629,16 +7070,14 @@ double HTTxRate40_400(unsigned int index)
 
 int writeproc(char *path, char *value)
 {
-/*	FILE *fp;
-	fprintf(stderr,"write %s to %s\n",value,path);
-	fp = fopen(path, "wb");
-	if (fp == NULL) {
-		fprintf(stderr,"cannot open %s\n",path);
+	int fd;
+	fd = open(path, O_WRONLY);
+	if (fd == -1) {
+		fprintf(stderr, "cannot open %s\n", path);
 		return -1;
 	}
-	fprintf(fp,"%s",value);
-	fclose(fp);*/
-	sysprintf("echo %s > %s", value, path);
+	write(fd, value, strlen(value));
+	close(fd);
 	return 0;
 }
 
@@ -6651,6 +7090,13 @@ int writevaproc(char *value, char *fmt, ...)
 	vsnprintf(varbuf, sizeof(varbuf), fmt, args);
 	va_end(args);
 	return writeproc(varbuf, value);
+}
+
+int set_smp_affinity(int irq, int cpu)
+{
+	char s_cpu[32];
+	snprintf(s_cpu, sizeof(s_cpu), "%d", cpu);
+	writevaproc(s_cpu, "/proc/irq/%d/smp_affinity", irq);
 }
 
 /* gartarp */
@@ -6873,6 +7319,11 @@ char *get_NFServiceMark(char *service, uint32 mark)
 	}
 	return "0xffffffff/0xffffffff";
 #endif
+}
+
+char *qos_nfmark(uint32 x)
+{
+	return get_NFServiceMark("QOS", x);
 }
 
 void getPortMapping(int *vlanmap)

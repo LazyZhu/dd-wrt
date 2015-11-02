@@ -28,7 +28,7 @@ SUBDIR_libasprintf = libasprintf
 else
 SUBDIR_libasprintf =
 endif
-SUBDIRS = doc intl intl-java intl-csharp gnulib-lib $(SUBDIR_libasprintf) src po man m4 tests
+SUBDIRS = intl intl-java intl-csharp gnulib-lib $(SUBDIR_libasprintf) src po m4
 
 EXTRA_DIST = BUGS
 
@@ -54,3 +54,8 @@ EXTRA_DIST += gnulib-m4/gnulib-cache.m4
 # Woe32 support.
 
 EXTRA_DIST += README.woe32
+
+maintainer-update-po: $(top_builddir)/config.status
+	$(SHELL) ./config.status --recheck
+	$(SHELL) ./config.status po/Makefile.in po-directories
+	cd po && $(MAKE) update-po

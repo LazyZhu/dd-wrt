@@ -1,3 +1,10 @@
+## Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+##
+## Squid software is distributed under GPLv2+ license and includes
+## contributions from numerous individuals and organizations.
+## Please see the COPYING and CONTRIBUTORS files for details.
+##
+
 include $(top_srcdir)/src/Common.am
 include $(top_srcdir)/src/TestHeaders.am
 
@@ -7,8 +14,15 @@ noinst_LTLIBRARIES = libapi.la libstate.la libacls.la
 libapi_la_SOURCES = \
 	Acl.cc \
 	Acl.h \
+	BoolOps.cc \
+	BoolOps.h \
 	Checklist.cc \
-	Checklist.h
+	Checklist.h \
+	forward.h \
+	InnerNode.cc \
+	InnerNode.h \
+	Tree.cc \
+	Tree.h
 
 ## Data-dependent Squid/transaction state used by specific ACLs.
 ## Does not refer to specific ACLs to avoid circular dependencies.
@@ -19,8 +33,8 @@ libstate_la_SOURCES = \
 	Strategised.h \
 	FilledChecklist.cc \
 	FilledChecklist.h \
-	AclAddress.h \
-	AclAddress.cc
+	Address.h \
+	Address.cc
 
 ## data-specific ACLs
 libacls_la_SOURCES = \
@@ -34,6 +48,10 @@ libacls_la_SOURCES = \
 	Time.h \
 	TimeData.cc \
 	TimeData.h \
+	AllOf.cc \
+	AllOf.h \
+	AnyOf.cc \
+	AnyOf.h \
 	Asn.cc \
 	Asn.h \
 	Browser.cc \
@@ -73,6 +91,10 @@ libacls_la_SOURCES = \
 	Method.h \
 	MyPortName.cc \
 	MyPortName.h \
+	Note.h \
+	Note.cc \
+	NoteData.h \
+	NoteData.cc \
 	PeerName.cc \
 	PeerName.h \
 	Protocol.cc \
@@ -94,6 +116,10 @@ libacls_la_SOURCES = \
 	SourceDomain.h \
 	SourceIp.cc \
 	SourceIp.h \
+	SquidError.h \
+	SquidError.cc \
+	SquidErrorData.cc \
+	SquidErrorData.h \
 	Tag.cc \
 	Tag.h \
 	Url.cc \
@@ -110,6 +136,7 @@ libacls_la_SOURCES = \
 	AclDenyInfoList.h \
 	Gadgets.cc \
 	Gadgets.h \
+	AclSizeLimit.cc \
 	AclSizeLimit.h
 
 ## Add conditional sources
@@ -118,10 +145,18 @@ libacls_la_SOURCES = \
 EXTRA_libacls_la_SOURCES =
 
 SSL_ACLS = \
+	AtStep.cc \
+	AtStep.h \
+	AtStepData.cc \
+	AtStepData.h \
         CertificateData.cc \
         CertificateData.h  \
         Certificate.cc \
         Certificate.h  \
+	ServerCertificate.cc \
+	ServerCertificate.h \
+	ServerName.cc \
+	ServerName.h \
         SslError.cc \
         SslError.h \
         SslErrorData.cc \
@@ -130,6 +165,14 @@ SSL_ACLS = \
 if ENABLE_SSL
 libacls_la_SOURCES += $(SSL_ACLS)
 endif
+
+if USE_ADAPTATION
+libacls_la_SOURCES += AdaptationService.h \
+	AdaptationService.cc \
+	AdaptationServiceData.h \
+	AdaptationServiceData.cc
+endif
+
 
 EXTRA_libacls_la_SOURCES += $(SSL_ACLS)
 

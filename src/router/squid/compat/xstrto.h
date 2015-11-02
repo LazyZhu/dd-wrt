@@ -1,12 +1,16 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef _SQUID_XSTRTO_H
 #define _SQUID_XSTRTO_H
 
 // these functions are not used by the remaining Squid C code.
 #if defined(__cplusplus)
-
-#if HAVE_STDBOOL_H
-#include <stdbool.h>
-#endif
 
 /**
  * xstrtou{i,l} - string to number conversion
@@ -32,3 +36,4 @@ bool xstrtoui(const char *s, char **end, unsigned int *value,
 
 #endif /* __cplusplus */
 #endif /* _SQUID_XSTRTO_H */
+

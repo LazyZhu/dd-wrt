@@ -28,8 +28,6 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- *
- * @(#) $Header: /repository/WRT54G/src/router/libpcap/Attic/sunatmpos.h,v 1.1.2.1 2004/06/11 11:06:32 nikki Exp $ (LBL)
  */
 
 /* SunATM header for ATM packet */

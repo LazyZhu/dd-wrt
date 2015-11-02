@@ -1,14 +1,23 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #include "squid.h"
-#include "auth/digest/auth_digest.h"
+#include "auth/CredentialsCache.h"
+#include "auth/digest/Config.h"
 #include "auth/digest/User.h"
 #include "Debug.h"
 #include "dlink.h"
 #include "SquidConfig.h"
 #include "SquidTime.h"
 
-Auth::Digest::User::User(Auth::Config *aConfig) :
-        Auth::User(aConfig),
-        HA1created(0)
+Auth::Digest::User::User(Auth::Config *aConfig, const char *aRequestRealm) :
+    Auth::User(aConfig, aRequestRealm),
+    HA1created(0)
 {
     memset(HA1, 0, sizeof(HA1));
 }
@@ -24,7 +33,7 @@ Auth::Digest::User::~User()
         dlinkDelete(tmplink, &nonces);
         authDigestNoncePurge(static_cast < digest_nonce_h * >(tmplink->data));
         authDigestNonceUnlink(static_cast < digest_nonce_h * >(tmplink->data));
-        dlinkNodeDelete(tmplink);
+        delete tmplink;
     }
 }
 
@@ -50,3 +59,30 @@ Auth::Digest::User::ttl() const
 
     return min(nonce_ttl, global_ttl);
 }
+
+digest_nonce_h *
+Auth::Digest::User::currentNonce()
+{
+    digest_nonce_h *nonce = NULL;
+    dlink_node *link = nonces.tail;
+    if (link) {
+        nonce = static_cast<digest_nonce_h *>(link->data);
+        if (authDigestNonceIsStale(nonce))
+            nonce = NULL;
+    }
+    return nonce;
+}
+
+CbcPointer<Auth::CredentialsCache>
+Auth::Digest::User::Cache()
+{
+    static CbcPointer<Auth::CredentialsCache> p(new Auth::CredentialsCache("digest","GC Digest user credentials"));
+    return p;
+}
+
+void
+Auth::Digest::User::addToNameCache()
+{
+    Cache()->insert(userKey(), this);
+}
+

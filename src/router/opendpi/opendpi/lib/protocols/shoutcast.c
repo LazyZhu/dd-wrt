@@ -2,7 +2,7 @@
  * shoutcast.c
  *
  * Copyright (C) 2009-2011 by ipoque GmbH
- * Copyright (C) 2011-13 - ntop.org
+ * Copyright (C) 2011-15 - ntop.org
  *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the OpenDPI and PACE technology by ipoque GmbH
@@ -22,47 +22,41 @@
  * 
  */
 
-
 #include "ndpi_protocols.h"
 
 #ifdef NDPI_PROTOCOL_SHOUTCAST
 
 static void ndpi_int_shoutcast_add_connection(struct ndpi_detection_module_struct
-												*ndpi_struct, struct ndpi_flow_struct *flow)
+					      *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-	ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_SHOUTCAST, NDPI_CORRELATED_PROTOCOL);
+	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SHOUTCAST, NDPI_PROTOCOL_UNKNOWN);
 }
 
 static void ndpi_search_shoutcast_tcp(struct ndpi_detection_module_struct
-								 *ndpi_struct, struct ndpi_flow_struct *flow)
+				      *ndpi_struct, struct ndpi_flow_struct *flow)
 {
 	struct ndpi_packet_struct *packet = &flow->packet;
-	
 
 	NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "search shoutcast.\n");
 
 	if (flow->packet_counter == 1) {
 /* this case in paul_upload_oddcast_002.pcap */
-		if (packet->payload_packet_len >= 6
-			&& packet->payload_packet_len < 80 && memcmp(packet->payload, "123456", 6) == 0) {
+		if (packet->payload_packet_len >= 6 && packet->payload_packet_len < 80 && memcmp(packet->payload, "123456", 6) == 0) {
 			NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "Shoutcast stage 1, \"123456\".\n");
 			return;
 		}
 		if (flow->packet_counter < 3
 #ifdef NDPI_PROTOCOL_HTTP
-			&& packet->detected_protocol_stack[0] == NDPI_PROTOCOL_HTTP
+		    && packet->detected_protocol_stack[0] == NDPI_PROTOCOL_HTTP
 #endif
-			) {
-			NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG,
-					"http detected, need next packet for shoutcast detection.\n");
-			if (packet->payload_packet_len > 4
-				&& get_u_int32_t(packet->payload, packet->payload_packet_len - 4) != htonl(0x0d0a0d0a)) {
+		    ) {
+			NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "http detected, need next packet for shoutcast detection.\n");
+			if (packet->payload_packet_len > 4 && get_u_int32_t(packet->payload, packet->payload_packet_len - 4) != htonl(0x0d0a0d0a)) {
 				NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "segmented packet found.\n");
 				flow->l4.tcp.shoutcast_stage = 1 + packet->packet_direction;
 			}
 			return;
 		}
-
 
 		/*  else
 		   goto exclude_shoutcast; */
@@ -74,8 +68,7 @@ static void ndpi_search_shoutcast_tcp(struct ndpi_detection_module_struct
 		ndpi_int_shoutcast_add_connection(ndpi_struct, flow);
 		return;
 	}
-	if (flow->l4.tcp.shoutcast_stage == 1 + packet->packet_direction
-		&& flow->packet_direction_counter[packet->packet_direction] < 5) {
+	if (flow->l4.tcp.shoutcast_stage == 1 + packet->packet_direction && flow->packet_direction_counter[packet->packet_direction] < 5) {
 		return;
 	}
 
@@ -83,16 +76,16 @@ static void ndpi_search_shoutcast_tcp(struct ndpi_detection_module_struct
 		if (packet->payload_packet_len == 2 && memcmp(packet->payload, "\x0d\x0a", 2) == 0) {
 			NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "Shoutcast stage 1 continuation.\n");
 			return;
-		} else if (packet->payload_packet_len > 3 && ndpi_mem_cmp(&packet->payload[0], "OK2", 3) == 0) {
+		} else if (packet->payload_packet_len > 3 && memcmp(&packet->payload[0], "OK2", 3) == 0) {
 			NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "Shoutcast stage 2, OK2 found.\n");
 			return;
 		} else
 			goto exclude_shoutcast;
 	} else if (flow->packet_counter == 3 || flow->packet_counter == 4) {
-		if (packet->payload_packet_len > 3 && ndpi_mem_cmp(&packet->payload[0], "OK2", 3) == 0) {
+		if (packet->payload_packet_len > 3 && memcmp(&packet->payload[0], "OK2", 3) == 0) {
 			NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "Shoutcast stage 2, OK2 found.\n");
 			return;
-		} else if (packet->payload_packet_len > 4 && ndpi_mem_cmp(&packet->payload[0], "icy-", 4) == 0) {
+		} else if (packet->payload_packet_len > 4 && memcmp(&packet->payload[0], "icy-", 4) == 0) {
 			NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "Shoutcast detected.\n");
 			ndpi_int_shoutcast_add_connection(ndpi_struct, flow);
 			return;
@@ -100,8 +93,17 @@ static void ndpi_search_shoutcast_tcp(struct ndpi_detection_module_struct
 			goto exclude_shoutcast;
 	}
 
-  exclude_shoutcast:
+exclude_shoutcast:
 	NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_SHOUTCAST);
 	NDPI_LOG(NDPI_PROTOCOL_SHOUTCAST, ndpi_struct, NDPI_LOG_DEBUG, "Shoutcast excluded.\n");
+}
+
+static void init_shoutcast_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("ShoutCast", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_SHOUTCAST,
+					    ndpi_search_shoutcast_tcp, NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+
+	*id += 1;
 }
 #endif

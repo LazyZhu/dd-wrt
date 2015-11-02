@@ -1,33 +1,9 @@
 /*
- * DEBUG: section --    CGI Cache Manager
- * AUTHOR: Duane Wessels
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
 #include "squid.h"
@@ -39,17 +15,13 @@
 #include "rfc1738.h"
 #include "util.h"
 
+#include <cctype>
+#include <cerrno>
+#include <csignal>
+#include <cstring>
+#include <ctime>
 #if HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-#if HAVE_STDIO_H
-#include <stdio.h>
-#endif
-#if HAVE_CTYPE_H
-#include <ctype.h>
-#endif
-#if HAVE_ERRNO_H
-#include <errno.h>
 #endif
 #if HAVE_FCNTL_H
 #include <fcntl.h>
@@ -70,12 +42,6 @@
 #endif
 #if HAVE_PWD_H
 #include <pwd.h>
-#endif
-#if HAVE_SIGNAL_H
-#include <signal.h>
-#endif
-#if HAVE_TIME_H
-#include <time.h>
 #endif
 #if HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -100,9 +66,6 @@
 #endif
 #if HAVE_LIBC_H
 #include <libc.h>
-#endif
-#if HAVE_STRING_H
-#include <string.h>
 #endif
 #if HAVE_STRINGS_H
 #include <strings.h>
@@ -138,7 +101,7 @@ typedef struct {
 /*
  * Static variables and constants
  */
-static const time_t passwd_ttl = 60 * 60 * 3;	/* in sec */
+static const time_t passwd_ttl = 60 * 60 * 3;   /* in sec */
 static const char *script_name = "/cgi-bin/cachemgr.cgi";
 static const char *progname = NULL;
 static time_t now;
@@ -517,7 +480,7 @@ munge_menu_line(const char *buf, cachemgr_request * req)
 }
 
 static const char *
-munge_other_line(const char *buf, cachemgr_request * req)
+munge_other_line(const char *buf, cachemgr_request *)
 {
     static const char *ttags[] = {"td", "th"};
 
@@ -675,23 +638,23 @@ read_reply(int s, cachemgr_request * req)
 
             if (status == 401 || status == 407) {
                 reset_auth(req);
-                status = 403;	/* Forbiden, see comments in case isForward: */
+                status = 403;   /* Forbiden, see comments in case isForward: */
             }
 
             /* this is a way to pass HTTP status to the Web server */
             if (statusStr)
-                printf("Status: %d %s", status, statusStr);	/* statusStr has '\n' */
+                printf("Status: %d %s", status, statusStr); /* statusStr has '\n' */
 
             break;
 
         case isHeaders:
             /* forward header field */
-            if (!strcmp(buf, "\r\n")) {		/* end of headers */
-                fputs("Content-Type: text/html\r\n", stdout);	/* add our type */
+            if (!strcmp(buf, "\r\n")) {     /* end of headers */
+                fputs("Content-Type: text/html\r\n", stdout);   /* add our type */
                 istate = isBodyStart;
             }
 
-            if (strncasecmp(buf, "Content-Type:", 13))	/* filter out their type */
+            if (strncasecmp(buf, "Content-Type:", 13))  /* filter out their type */
                 fputs(buf, stdout);
 
             break;
@@ -717,7 +680,7 @@ read_reply(int s, cachemgr_request * req)
             }
 
             istate = isActions;
-            /* yes, fall through, we do not want to loose the first line */
+        /* yes, fall through, we do not want to loose the first line */
 
         case isActions:
             if (strncmp(buf, "action:", 7) == 0) {
@@ -733,7 +696,7 @@ read_reply(int s, cachemgr_request * req)
             }
 
             istate = isBody;
-            /* yes, fall through, we do not want to loose the first line */
+        /* yes, fall through, we do not want to loose the first line */
 
         case isBody:
             /* interpret [and reformat] cache response */
@@ -752,7 +715,7 @@ read_reply(int s, cachemgr_request * req)
              * 401 to .cgi because web server filters out all auth info. Thus we
              * disable authentication headers for now.
              */
-            if (!strncasecmp(buf, "WWW-Authenticate:", 17) || !strncasecmp(buf, "Proxy-Authenticate:", 19));	/* skip */
+            if (!strncasecmp(buf, "WWW-Authenticate:", 17) || !strncasecmp(buf, "Proxy-Authenticate:", 19));    /* skip */
             else
                 fputs(buf, stdout);
 
@@ -838,7 +801,7 @@ process_request(cachemgr_request * req)
 
     S = *gethostbyname(req->hostname);
 
-    if ( !S.IsAnyAddr() ) {
+    if ( !S.isAnyAddr() ) {
         (void) 0;
     } else if ((S = req->hostname))
         (void) 0;
@@ -848,9 +811,9 @@ process_request(cachemgr_request * req)
         return 1;
     }
 
-    S.SetPort(req->port);
+    S.port(req->port);
 
-    S.GetAddrInfo(AI);
+    S.getAddrInfo(AI);
 
 #if USE_IPV6
     if ((s = socket( AI->ai_family, SOCK_STREAM, 0)) < 0) {
@@ -859,27 +822,27 @@ process_request(cachemgr_request * req)
 #endif
         snprintf(buf, sizeof(buf), "socket: %s\n", xstrerror());
         error_html(buf);
-        S.FreeAddrInfo(AI);
+        Ip::Address::FreeAddr(AI);
         return 1;
     }
 
     if (connect(s, AI->ai_addr, AI->ai_addrlen) < 0) {
         snprintf(buf, sizeof(buf), "connect %s: %s\n",
-                 S.ToURL(ipbuf,MAX_IPSTRLEN),
+                 S.toUrl(ipbuf,MAX_IPSTRLEN),
                  xstrerror());
         error_html(buf);
-        S.FreeAddrInfo(AI);
+        Ip::Address::FreeAddr(AI);
         close(s);
         return 1;
     }
 
-    S.FreeAddrInfo(AI);
+    Ip::Address::FreeAddr(AI);
 
     l = snprintf(buf, sizeof(buf),
                  "GET cache_object://%s/%s%s%s HTTP/1.0\r\n"
                  "User-Agent: cachemgr.cgi/%s\r\n"
                  "Accept: */*\r\n"
-                 "%s"			/* Authentication info or nothing */
+                 "%s"           /* Authentication info or nothing */
                  "\r\n",
                  req->hostname,
                  req->action,
@@ -1017,7 +980,7 @@ read_request(void)
 
     cachemgr_request *req;
     char *s;
-    char *t;
+    char *t = NULL;
     char *q;
 
     if ((buf = read_post_request()) != NULL)
@@ -1042,6 +1005,7 @@ read_request(void)
     req = (cachemgr_request *)xcalloc(1, sizeof(cachemgr_request));
 
     for (s = strtok(buf, "&"); s != NULL; s = strtok(NULL, "&")) {
+        safe_free(t);
         t = xstrdup(s);
 
         if ((q = strchr(t, '=')) == NULL)
@@ -1054,25 +1018,26 @@ read_request(void)
 
         rfc1738_unescape(q);
 
-        if (0 == strcasecmp(t, "server") && strlen(q))
+        if (0 == strcmp(t, "server") && strlen(q))
             req->server = xstrdup(q);
-        else if (0 == strcasecmp(t, "host") && strlen(q))
+        else if (0 == strcmp(t, "host") && strlen(q))
             req->hostname = xstrdup(q);
-        else if (0 == strcasecmp(t, "port") && strlen(q))
+        else if (0 == strcmp(t, "port") && strlen(q))
             req->port = atoi(q);
-        else if (0 == strcasecmp(t, "user_name") && strlen(q))
+        else if (0 == strcmp(t, "user_name") && strlen(q))
             req->user_name = xstrdup(q);
-        else if (0 == strcasecmp(t, "passwd") && strlen(q))
+        else if (0 == strcmp(t, "passwd") && strlen(q))
             req->passwd = xstrdup(q);
-        else if (0 == strcasecmp(t, "auth") && strlen(q))
+        else if (0 == strcmp(t, "auth") && strlen(q))
             req->pub_auth = xstrdup(q), decode_pub_auth(req);
-        else if (0 == strcasecmp(t, "operation"))
+        else if (0 == strcmp(t, "operation"))
             req->action = xstrdup(q);
-        else if (0 == strcasecmp(t, "workers") && strlen(q))
+        else if (0 == strcmp(t, "workers") && strlen(q))
             req->workers = xstrdup(q);
-        else if (0 == strcasecmp(t, "processes") && strlen(q))
+        else if (0 == strcmp(t, "processes") && strlen(q))
             req->processes = xstrdup(q);
     }
+    safe_free(t);
 
     if (req->server && !req->hostname) {
         char *p;
@@ -1114,7 +1079,11 @@ make_pub_auth(cachemgr_request * req)
 
     const int encodedLen = base64_encode_len(bufLen);
     req->pub_auth = (char *) xmalloc(encodedLen);
-    base64_encode_str(req->pub_auth, encodedLen, buf, bufLen);
+    struct base64_encode_ctx ctx;
+    base64_encode_init(&ctx);
+    size_t blen = base64_encode_update(&ctx, reinterpret_cast<uint8_t*>(req->pub_auth), bufLen, reinterpret_cast<uint8_t*>(buf));
+    blen += base64_encode_final(&ctx, reinterpret_cast<uint8_t*>(req->pub_auth)+blen);
+    req->pub_auth[blen] = '\0';
     debug("cmgr: encoded: '%s'\n", req->pub_auth);
 }
 
@@ -1133,9 +1102,16 @@ decode_pub_auth(cachemgr_request * req)
     if (!req->pub_auth || strlen(req->pub_auth) < 4 + strlen(safe_str(req->hostname)))
         return;
 
-    const int decodedLen = base64_decode_len(req->pub_auth);
+    size_t decodedLen = BASE64_DECODE_LENGTH(strlen(req->pub_auth));
     buf = (char*)xmalloc(decodedLen);
-    base64_decode(buf, decodedLen, req->pub_auth);
+    struct base64_decode_ctx ctx;
+    base64_decode_init(&ctx);
+    if (!base64_decode_update(&ctx, &decodedLen, reinterpret_cast<uint8_t*>(buf), strlen(req->pub_auth), reinterpret_cast<const uint8_t*>(req->pub_auth)) ||
+            !base64_decode_final(&ctx)) {
+        debug("cmgr: base64 decode failure. Incomplete auth token string.\n");
+        xfree(buf);
+        return;
+    }
 
     debug("cmgr: length ok\n");
 
@@ -1215,14 +1191,18 @@ make_auth_header(const cachemgr_request * req)
     if (encodedLen <= 0)
         return "";
 
-    char *str64 = static_cast<char*>(xmalloc(encodedLen));
-    base64_encode_str(str64, encodedLen, buf, bufLen);
+    uint8_t *str64 = static_cast<uint8_t*>(xmalloc(encodedLen));
+    struct base64_encode_ctx ctx;
+    base64_encode_init(&ctx);
+    size_t blen = base64_encode_update(&ctx, str64, bufLen, reinterpret_cast<uint8_t*>(buf));
+    blen += base64_encode_final(&ctx, str64+blen);
+    str64[blen] = '\0';
 
-    stringLength += snprintf(buf, sizeof(buf), "Authorization: Basic %s\r\n", str64);
+    stringLength += snprintf(buf, sizeof(buf), "Authorization: Basic %.*s\r\n", (int)blen, str64);
 
     assert(stringLength < sizeof(buf));
 
-    snprintf(&buf[stringLength], sizeof(buf) - stringLength, "Proxy-Authorization: Basic %s\r\n", str64);
+    snprintf(&buf[stringLength], sizeof(buf) - stringLength, "Proxy-Authorization: Basic %.*s\r\n", (int)blen, str64);
 
     xfree(str64);
     return buf;
@@ -1289,7 +1269,7 @@ check_target_acl(const char *hostname, int port)
             if (strcmp(token, "*") == 0)
 
                 ;   /* Wildcard port specification */
-            else if (strcasecmp(token, "any") == 0)
+            else if (strcmp(token, "any") == 0)
 
                 ;   /* Wildcard port specification */
             else if (sscanf(token, "%d", &i) != 1)
@@ -1308,3 +1288,4 @@ check_target_acl(const char *hostname, int port)
     fclose(fp);
     return ret;
 }
+

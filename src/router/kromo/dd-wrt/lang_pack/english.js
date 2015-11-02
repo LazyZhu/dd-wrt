@@ -112,12 +112,12 @@ share.port="Port";
 share.ssid="SSID";
 share.channel="Channel";
 share.frequency="Frequency";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="Signal";
 share.noise="Noise";
-share.beacon="beacon";
+share.beacon="Beacon";
 share.openn="Open";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="Rate";
 share.rate="Rate";
 share.txrate="TX Rate";
@@ -174,8 +174,9 @@ share.styl_dark="Use Dark Styles";
 share.err="error";
 share.errs="errors";
 share.meters="meters";
-share.ht80="VHT (80+80 MHz)";
-share.ht40="Wide HT40 (20+20 MHz)";
+share.ht160="VHT160 (80+80 MHz)";
+share.ht80="VHT80 (80 MHz)";
+share.ht40="Wide HT40 (40 MHz)";
 share.ht20="Full HT20 (20 MHz)";
 share.dynamicturbo="Dynamic (20/40 MHz)";
 share.turbo="Turbo (40 MHz)";
@@ -412,6 +413,7 @@ bmenu.wimax="WiMAX";
 bmenu.wirelessSecurity="Wireless Security";
 bmenu.wirelessAoss="AOSS";
 bmenu.wirelessAossWPS="AOSS / WPS";
+bmenu.wirelessWPS="WPS";
 bmenu.wirelessMac="MAC Filter";
 bmenu.wirelessAdvanced="Advanced Settings";
 bmenu.wirelessAdvancedwl0="WL0-Advanced";
@@ -585,6 +587,8 @@ diag.startup="Startup";
 diag.shutdown="Shutdown";
 diag.firewall="Firewall";
 diag.custom="Custom Script";
+diag.running="Running";
+diag.stopped="Stopped";
 
 //help container
 var hdiag=new Object();
@@ -1115,6 +1119,7 @@ idx.stp_mess="(disable for COMCAST ISP)";
 idx.optional="Optional Settings";
 idx.mtu="MTU";
 idx.txqlen="TX Queue Length";
+idx.label="Label";
 idx.h23="Network Setup";
 idx.routerip="Router IP";
 idx.lanip="Local IP Address";
@@ -1136,6 +1141,7 @@ idx.dhcp_dnsmasq="Use DNSMasq for DHCP";
 idx.dns_dnsmasq="Use DNSMasq for DNS";
 idx.auth_dnsmasq="DHCP-Authoritative";
 idx.force_dnsmasq="Forced DNS Redirection";
+idx.recursive_dns="Recursive DNS Resolving";
 idx.dns_redirect="Optional DNS Target";
 idx.summt_opt1="none";
 idx.summt_opt2="first Sun Apr - last Sun Oct";
@@ -1288,10 +1294,10 @@ management.ipv6_dhcp6s_hosts="Custom hosts";
 management.ipv6_dhcp6s_cust="Dhcp6s custom";
 management.ipv6_dhcp6s_conf="Dhcp6s config";
 management.ipv6_tun_end_ipv4="Tunnel Endpoint IPv4 Address";
-management.ipv6_tun_client_addr="Tunnel Client IPv6 Adress";
+management.ipv6_tun_client_addr="Tunnel Client IPv6 Address";
 management.jffs_legend="JFFS2 Support";
-management.jffs_srv="JFFS2";
-management.jffs_clean="Clean JFFS2";
+management.jffs_srv="Internal Flash Storage";
+management.jffs_clean="Clean Internal Flash Storage";
 management.lang_legend="Language Selection";
 management.lang_srv="Language";
 management.lang_bulgarian="Bulgarian";
@@ -1436,6 +1442,7 @@ qos.legend4="MAC Priority";
 qos.legend5="Ethernet Port Priority";
 qos.legend6="Default Bandwidth Level";
 qos.legend7="TCP-Packet Priority";
+qos.legend8="Interface Priority";
 qos.pktdesc="Prioritize small TCP-packets with the following flags:";
 qos.pktack="ACK";
 qos.pktrst="RST";
@@ -1445,6 +1452,7 @@ qos.enabledefaultlvls="Enable Per User Default Limits";
 qos.bandwidth="Bandwidth in kbits";
 qos.up="Up";
 qos.down="Down";
+qos.service="Service";
 
 //help container
 var hqos=new Object();
@@ -1739,7 +1747,7 @@ hstatus_vpn.right3="General:<br><i>3 auth methods are supported: pkcs12 (+dh on 
 
 //help page
 hstatus_vpn.page1="<dd>A VPN technology by Microsoft and remote access vendors, it is implemented in multiple OS's both desktop and mobile. Configuring this allows you to access your LAN at home remotely.<ul class=\"wide\"><li>Server IP &ndash; The IP address of your router</li><li>Client IP &ndash; A list or range of IP addresses for remotely connected machines. This range should not overlap with the DHCP range (for example 192.168.0.2,192.168.0.3), a range (192.168.0.1-254 or 192.168.0-255.2) or some combination (192.168.0.2,192.168.0.5-8).</li><li>CHAP-Secrets &ndash; A list of usernames and passwords for the VPN login, one user per line (Example: joe * joespassword *). For more details look up the pppd main page.</li></ul></dd>";
-hstatus_vpn.page2="<dd>A VPN Client that enables you to connect to VPN servers by Microsoft and remote access vendors. Configuring this allows the router to VPN into a remote network.<ul class=\"wide\"><li>Server IP or DNS Name &ndash; The IP address or DNS Name of the VPN server that you would like to connect to (Example: www.MyServer.com). </li><li>Remote Subnet &ndash; Remote Subnet of the network you are connecting to (Example: 192.168.2.0). </li><li>Remote Subnet Mask &ndash; Remote Subnet Mask of the network you are connecting to (Example: 255.255.255.0). </li><li>MPPE Encryption  &ndash; The type of security to use for the connection. If you are connecting to another DD-WRT router you need (Example: mppe required). But if you are connecting to a Windows VPN server you need (Example: mppe required,no40,no56,stateless) or (Example: mppe required,no40,no56,stateful) </li><li>MTU &ndash; Maximum Transmission Unit (Default: 1450) </li><li>MRU &ndash; Maximum Receiving Unit (Default: 1450) </li><li>User Name &ndash; Enter the username that you will use to connect to the VPN server. If you are connecting to another Linux based PPTP server you just need to enter the username. But if you are connecting to a Windows VPN server you need to enter the servername and username (Example: DOMAIN\\\\username). </li><li>Password &ndash; Enter the password of the for the username </li></ul></dd><dd>Check all values and click <i>Save Settings</i> to save your settings. Click <i>Cancel Changes</i> to cancel your unsaved changes.</dd>";
+hstatus_vpn.page2="<dd>A VPN Client that enables you to connect to VPN servers by Microsoft and remote access vendors. Configuring this allows the router to VPN into a remote network.<ul class=\"wide\"><li>Server IP or DNS Name &ndash; The IP address or DNS Name of the VPN server that you would like to connect to (Example: www.MyServer.com). </li><li>Remote Subnet &ndash; Remote Subnet of the network you are connecting to (Example: 192.168.2.0). </li><li>Remote Subnet Mask &ndash; Remote Subnet Mask of the network you are connecting to (Example: 255.255.255.0). </li><li>MPPE Encryption  &ndash; The type of security to use for the connection. If you are connecting to another DD-WRT router you need (Example: mppe required). But if you are connecting to a Windows VPN server you need (Example: mppe required,no40,no56,stateless) or (Example: mppe required,no40,no56,stateful) </li><li>MTU &ndash; Maximum Transmission Unit (Default: 1436) </li><li>MRU &ndash; Maximum Receiving Unit (Default: 1436) </li><li>NAT &ndash; Enabling this option will make outbound traffic from inside appear to be coming from router IP, instead of client IP. Enabling this can improve security, but can cause issues in some cases, i.e. when VoIP is used. </li><li>User Name &ndash; Enter the username that you will use to connect to the VPN server. If you are connecting to another Linux based PPTP server you just need to enter the username. But if you are connecting to a Windows VPN server you need to enter the servername and username (Example: DOMAIN\\username). </li><li>Password &ndash; Enter the password of the for the username </li><li>Additional PPTP Options &ndash; If default options are not working for your setup, you can use this field. If defined, they will replace the default internal options. The options above are still used. </li></ul></dd><dd>Check all values and click <i>Save Settings</i> to save your settings. Click <i>Cancel Changes</i> to cancel your unsaved changes.</dd>";
 
 //vnc.repeater
 service.vncrepeater_legend="VNC";
@@ -1770,8 +1778,8 @@ service.ses_script="Custom Script";
 
 //hwmon.webservices
 service.hwmon_legend="Hardware Monitoring";
-service.hwmon_critemp="Critical Temperature (FAN Switch On)";
-service.hwmon_hystemp="Hysteresis Temperature (FAN Switch Off)";
+service.hwmon_critemp="High Temperature (FAN On)";
+service.hwmon_hystemp="Normal Temperature (FAN Off)";
 
 //rstat.webservices
 service.rstats_legend="Bandwidth Monitoring";
@@ -2275,7 +2283,6 @@ wpa.radius_key="RADIUS Key";
 wpa.algorithms="WPA Algorithms";
 wpa.shared_key="WPA Shared Key";
 
-
 var aoss=new Object();
 aoss.titl="AOSS Security";
 aoss.aoss="AOSS";
@@ -2400,6 +2407,7 @@ radius.label13="Radius Acct Server Address";
 radius.label14="Radius Acct Server Port";
 radius.label17="Radius Acct Shared Secret";
 radius.label18="Radius Accounting";
+radius.local_ip="Force Client IP";
 
 // help page
 var hradauth=new Object();
@@ -2590,6 +2598,7 @@ wl_basic.label6="Sensitivity Range (ACK Timing)";
 wl_basic.label7="802.11n Transmission Mode";
 wl_basic.igmpsnooping="Optimize Multicast Traffic";
 wl_basic.turboqam="TurboQAM (QAM256) support";
+wl_basic.nitroqam="NitroQAM (QAM1024) support";
 wl_basic.scanlist="ScanList";
 wl_basic.duallink="Dual Link";
 wl_basic.parent="Parent IP";
@@ -2606,6 +2615,7 @@ wl_basic.wdsap="WDS AP";
 wl_basic.mixed="Mixed";
 wl_basic.bft="Explicit Beamforming";
 wl_basic.bfr="Implicit Beamforming";
+wl_basic.shortgi="Short GI";
 wl_basic.greenfield="Greenfield";
 wl_basic.preamble="Short Preamble";
 wl_basic.clientRelaydDefaultGwMode="Default GW Mode";

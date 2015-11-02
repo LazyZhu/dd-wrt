@@ -213,7 +213,7 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 				goto write_data;
 			}
 #endif
-#ifdef HAVE_DIR860
+#if defined(HAVE_DIR860) || defined(HAVE_DIR859)
 #define SEAMA_MAGIC		0x5EA3A417
 
 			typedef struct seama_hdr seamahdr_t;
@@ -249,6 +249,54 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 
 			}
 #endif
+#if defined(HAVE_DIR862)
+			unsigned int *uboot_magic = (unsigned int *)buf;
+			if (*uboot_magic == HOST_TO_BE32(0x27051956)) {
+				char *write_argv_buf[8];
+				write_argv_buf[0] = "mtd";
+				write_argv_buf[1] = "-f";
+				write_argv_buf[2] = "write";
+				write_argv_buf[3] = upload_fifo;
+				write_argv_buf[4] = "linux";
+				write_argv_buf[5] = NULL;
+				if (!mktemp(upload_fifo) || mkfifo(upload_fifo, S_IRWXU) < 0 || (ret = _evalpid(write_argv_buf, NULL, 0, &pid))
+				    || !(fifo = fopen(upload_fifo, "w"))) {
+					if (!ret)
+						ret = errno;
+					goto err;
+				}
+				goto write_data;
+			}
+#endif
+#if defined(HAVE_DAP2230) || defined(HAVE_DAP2330) || defined(HAVE_DAP2660) || defined(HAVE_DAP3662) || defined(HAVE_DAP3320)
+#ifdef HAVE_DAP2660
+#define MAGIC "wapac09_dkbs_dap2660"
+#elif HAVE_DAP2330
+#define MAGIC "wapn24_dkbs_dap2330"
+#elif HAVE_DAP3662
+#define MAGIC "wapac11_dkbs_dap3662"
+#elif HAVE_DAP3320
+#define MAGIC "wapn29_dkbs_dap3320"
+#elif HAVE_DAP2230
+#define MAGIC "wapn31_dkbs_dap2230"
+#endif
+			if (!strncmp(buf, MAGIC, strlen(MAGIC))) {
+				char *write_argv_buf[8];
+				write_argv_buf[0] = "mtd";
+				write_argv_buf[1] = "-f";
+				write_argv_buf[2] = "write";
+				write_argv_buf[3] = upload_fifo;
+				write_argv_buf[4] = "linux";
+				write_argv_buf[5] = NULL;
+				if (!mktemp(upload_fifo) || mkfifo(upload_fifo, S_IRWXU) < 0 || (ret = _evalpid(write_argv_buf, NULL, 0, &pid))
+				    || !(fifo = fopen(upload_fifo, "w"))) {
+					if (!ret)
+						ret = errno;
+					goto err;
+				}
+				goto write_data;
+			}
+#endif
 #ifdef HAVE_BUFFALO
 			ralink_firmware_header fh;
 			memcpy(&fh, buf, sizeof(fh));
@@ -265,7 +313,6 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 			}
 			for (idx = 0; idx < sizeof(fh); idx++)
 				str[idx] ^= ch;
-
 			if (!strncmp(buf, "bgn", 3) || !strncmp(buf, "WZR", 3)
 			    || !strncmp(buf, "WHR", 3)
 			    || !strncmp(buf, "WLA", 3)) {
@@ -273,7 +320,6 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 				write_argv_buf[0] = "buffalo_flash";
 				write_argv_buf[1] = upload_fifo;
 				write_argv_buf[2] = NULL;
-
 				if (!mktemp(upload_fifo) || mkfifo(upload_fifo, S_IRWXU) < 0 || (ret = _evalpid(write_argv_buf, NULL, 0, &pid))
 				    || !(fifo = fopen(upload_fifo, "w"))) {
 					if (!ret)
@@ -318,15 +364,12 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 			// have code pattern
 			char ver[40];
 			long ver1, ver2, ver3;
-
 			snprintf(ver, sizeof(ver), "v%d.%d.%d", buf[11], buf[12], buf[13]);
 			ver1 = convert_ver(ver);
 			ver2 = convert_ver(INTEL_FLASH_SUPPORT_VERSION_FROM);
 			ver3 = convert_ver(BCM4712_CHIP_SUPPORT_VERSION_FROM);
-
 			fprintf(stderr, "upgrade_ver[%s] upgrade_ver[%ld] intel_ver[%ld] 4712_ver[%ld]\n", ver, ver1, ver2, ver3);
 #if defined(HAVE_WIKINGS) || defined(HAVE_ESPOD)
-
 #ifdef HAVE_WIKINGS
 #ifdef HAVE_SUB3
 #define V "XMED"
@@ -336,7 +379,6 @@ sys_upgrade(char *url, webs_t stream, int *total, int type)	// jimmy,
 #define V "XMAX"
 #endif
 #endif
-
 #ifdef HAVE_ESPOD
 #ifdef HAVE_SUB3
 #define V "EPMN"
@@ -487,11 +529,9 @@ err:
 	if (fifo)
 		fclose(fifo);
 	unlink(upload_fifo);
-
 	// diag_led(DIAG, STOP_LED);
 	C_led(0);
 	ACTION("ACT_IDLE");
-
 	return ret;
 #else
 	return 0;
@@ -507,30 +547,35 @@ do_upgrade_post(char *url, webs_t stream, int len, char *boundary)	// jimmy,
 	killall("udhcpc", SIGKILL);
 
 #ifndef ANTI_FLASH
-	char buf[1024];
 	int type = 0;
-
+	char *buf = malloc(1024);
 	upgrade_ret = EINVAL;
 
 	/*
 	 * Look for our part 
 	 */
 	while (len > 0) {
-		if (!wfgets(buf, MIN(len + 1, sizeof(buf)), stream))
+		if (!wfgets(buf, MIN(len + 1, 1024), stream)) {
+			free(buf);
 			return;
+		}
 
 		len -= strlen(buf);
 		if (!strncasecmp(buf, "Content-Disposition:", 20)) {
 			if (strstr(buf, "name=\"erase\"")) {
 				while (len > 0 && strcmp(buf, "\n")
 				       && strcmp(buf, "\r\n")) {
-					if (!wfgets(buf, MIN(len + 1, sizeof(buf)), stream))
+					if (!wfgets(buf, MIN(len + 1, 1024), stream)) {
+						free(buf);
 						return;
+					}
 
 					len -= strlen(buf);
 				}
-				if (!wfgets(buf, MIN(len + 1, sizeof(buf)), stream))
+				if (!wfgets(buf, MIN(len + 1, 1024), stream)) {
+					free(buf);
 					return;
+				}
 				len -= strlen(buf);
 				buf[1] = '\0';	// we only want the 1st digit
 				nvram_set("sv_restore_defaults", buf);
@@ -546,8 +591,10 @@ do_upgrade_post(char *url, webs_t stream, int len, char *boundary)	// jimmy,
 	 * Skip boundary and headers 
 	 */
 	while (len > 0) {
-		if (!wfgets(buf, MIN(len + 1, sizeof(buf)), stream))
+		if (!wfgets(buf, MIN(len + 1, 1024), stream)) {
+			free(buf);
 			return;
+		}
 
 		len -= strlen(buf);
 		if (!strcmp(buf, "\n") || !strcmp(buf, "\r\n"))
@@ -575,23 +622,11 @@ do_upgrade_post(char *url, webs_t stream, int len, char *boundary)	// jimmy,
 	}
 	sys_commit();
 
-	// #ifdef HAVE_WRK54G
-	// sys_reboot();
-	// #endif
 	/*
 	 * Slurp anything remaining in the request 
 	 */
 
-	while ((len--) > 0) {
-#ifdef HAVE_HTTPS
-		if (do_ssl) {
-			wfgets(buf, 1, stream);
-		} else {
-			(void)fgetc(stream->fp);
-		}
-#else
-		(void)fgetc(stream->fp);
-#endif
-	}
+	wfgets(buf, len, stream);
+	free(buf);
 #endif
 }

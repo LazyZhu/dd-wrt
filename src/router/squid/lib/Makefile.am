@@ -1,11 +1,21 @@
+## Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+##
+## Squid software is distributed under GPLv2+ license and includes
+## contributions from numerous individuals and organizations.
+## Please see the COPYING and CONTRIBUTORS files for details.
+##
+
 include $(top_srcdir)/src/Common.am
 
-DIST_SUBDIRS = ntlmauth profiler rfcnb smblib libTrie
+DIST_SUBDIRS = ntlmauth profiler rfcnb smblib libTrie snmplib
 SUBDIRS=
 EXTRA_DIST=
 
 if USE_ESI
 SUBDIRS += libTrie
+endif
+if ENABLE_SNMP
+SUBDIRS += snmplib
 endif
 if ENABLE_XPROF_STATS
 SUBDIRS += profiler
@@ -25,10 +35,10 @@ noinst_LTLIBRARIES = \
 #
 if ENABLE_WIN32SPECIFIC
 noinst_LTLIBRARIES += libsspwin32.la
-libsspwin32_la_SOURCES = sspwin32.c
+libsspwin32_la_SOURCES = sspwin32.cc
 else
 SUBDIRS += rfcnb smblib
-EXTRA_DIST += sspwin32.c
+EXTRA_DIST += sspwin32.cc
 endif
 if ENABLE_AUTH_NTLM
 SUBDIRS += ntlmauth
@@ -55,44 +65,32 @@ libmisccontainers_la_SOURCES = \
 	hash.cc
 
 libmiscutil_la_SOURCES = \
-	malloc_trace.cc \
-	MemPool.cc \
-	MemPoolChunked.cc \
-	MemPoolMalloc.cc \
 	getfullhostname.c \
 	heap.c \
 	iso3307.c \
 	radix.c \
-	rfc1035.c \
 	rfc1123.c \
-	rfc2671.c \
-	rfc3596.c \
 	$(SNPRINTFSOURCE) \
 	Splay.cc \
 	stub_memaccount.c \
 	util.c \
 	xusleep.c
 
-TESTS += tests/testAll
+TESTS += tests/testRFC1738
 
-check_PROGRAMS += tests/testAll
+check_PROGRAMS += tests/testRFC1738
 
-tests_testAll_SOURCES= \
-	tests/testArray.h \
-	tests/testArray.cc \
-	tests/testRFC1035.h \
-	tests/testRFC1035.cc \
+tests_testRFC1738_SOURCES= \
 	tests/testRFC1738.h \
-	tests/testRFC1738.cc \
-	tests/testMain.cc
+	tests/testRFC1738.cc
 
-tests_testAll_LDADD= \
+tests_testRFC1738_LDADD= \
 	$(SQUID_CPPUNIT_LA) $(SQUID_CPPUNIT_LIBS) \
 	$(top_builddir)/lib/libmiscencoding.la \
 	$(top_builddir)/lib/libmiscutil.la \
 	$(COMPAT_LIB)
 
-tests_testAll_LDFLAGS = $(LIBADD_DL)
+tests_testRFC1738_LDFLAGS = $(LIBADD_DL)
 
 
 ## Special Universal .h dependency test script

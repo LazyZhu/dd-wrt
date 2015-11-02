@@ -1,9 +1,21 @@
+GNU_ATOMICS = no
+
+ifeq ($(ARCH),i386)
+GNU_ATOMICS = yes
+LIB_ATOMIC = -latomic
+endif
+ifeq ($(ARCH),mips)
+GNU_ATOMICS = yes
+LIB_ATOMIC = -latomic
+endif
 squid-configure:
-	cd squid && ./configure --target=$(ARCH)-linux --host=$(ARCH)-linux --prefix=/usr CFLAGS="$(COPTS) -DNEED_PRINTF -L$(TOP)/openssl -pthread" CPPFLAGS="$(COPTS) -DNEED_PRINTF -pthread -L$(TOP)/openssl" CXXFLAGS="$(COPTS) -DNEED_PRINTF -pthread -L$(TOP)/openssl" \
+	cd squid && ./configure --target=$(ARCH)-linux --host=$(ARCH)-linux --prefix=/usr --libdir=/usr/lib CFLAGS="$(COPTS) -DNEED_PRINTF -L$(TOP)/openssl -lssl -lcrypto -pthread $(LIB_ATOMIC)" CPPFLAGS="$(COPTS) -DNEED_PRINTF -pthread -L$(TOP)/openssl -lcrypto -lssl $(LIB_ATOMIC)" CXXFLAGS="$(COPTS) -DNEED_PRINTF -pthread -L$(TOP)/openssl  $(LIB_ATOMIC)" \
+	CC="$(ARCH)-linux-uclibc-gcc $(COPTS)" \
 	ac_cv_header_linux_netfilter_ipv4_h=yes \
 	ac_cv_epoll_works=yes \
-	--datadir=/usr/local/squid \
-	--libexecdir=/usr/lib/squid \
+	squid_cv_gnu_atomics=$(GNU_ATOMICS) \
+	--datadir=/usr/lib/squid \
+	--libexecdir=/usr/libexec/squid \
 	--sysconfdir=/etc/squid \
 	--enable-shared \
 	--enable-static \
@@ -30,24 +42,26 @@ squid-configure:
 	--enable-useragent-log \
 	--with-openssl=$(TOP)/openssl \
 	--disable-external-acl-helpers \
-	--disable-auth-negotiate \
-	--disable-auth-ntlm \
-	--disable-auth-digest \
-	--disable-auth-basic \
+	--disable-arch-native \
+	--enable-auth-negotiate \
+	--enable-auth-ntlm \
+	--enable-auth-digest \
+	--enable-auth-basic="RADIUS" \
 	--enable-epoll \
 	--with-krb5-config=no \
 	--with-maxfd=4096
 	
 squid:
 	make -C squid
-	make -C squid/plugins/squid_radius_auth 
+#	make -C squid/plugins/squid_radius_auth 
 
 squid-install:
 	make  -C squid install DESTDIR=$(INSTALLDIR)/squid	
 	rm -rf $(INSTALLDIR)/squid/usr/share
 	rm -rf $(INSTALLDIR)/squid/usr/include
-	make -C squid/plugins/squid_radius_auth install DESTDIR=$(INSTALLDIR)/squid
+	chmod 4755 $(INSTALLDIR)/squid/usr/libexec/squid/*
+#	make -C squid/plugins/squid_radius_auth install DESTDIR=$(INSTALLDIR)/squid
 
 squid-clean:
 	make -C squid clean
-	make -C squid/plugins/squid_radius_auth clean
+#	make -C squid/plugins/squid_radius_auth clean

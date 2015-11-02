@@ -2,7 +2,7 @@
  * ipp.c
  *
  * Copyright (C) 2009-2011 by ipoque GmbH
- * Copyright (C) 2011-13 - ntop.org
+ * Copyright (C) 2011-15 - ntop.org
  *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the OpenDPI and PACE technology by ipoque GmbH
@@ -22,19 +22,18 @@
  * 
  */
 
-
 #include "ndpi_protocols.h"
+
 #ifdef NDPI_PROTOCOL_IPP
 
-static void ndpi_int_ipp_add_connection(struct ndpi_detection_module_struct *ndpi_struct,
-					struct ndpi_flow_struct *flow, ndpi_protocol_type_t protocol_type)
+static void ndpi_int_ipp_add_connection(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow /* , ndpi_protocol_type_t protocol_type */ )
 {
-	ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_IPP, protocol_type);
+	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_IPP, NDPI_PROTOCOL_UNKNOWN);
 }
 
 static void ndpi_search_ipp(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-	struct ndpi_packet_struct *packet = &flow->packet;	
+	struct ndpi_packet_struct *packet = &flow->packet;
 //      struct ndpi_id_struct         *src=ndpi_struct->src;
 //      struct ndpi_id_struct         *dst=ndpi_struct->dst;
 
@@ -43,8 +42,7 @@ static void ndpi_search_ipp(struct ndpi_detection_module_struct *ndpi_struct, st
 	NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "search ipp\n");
 	if (packet->payload_packet_len > 20) {
 
-		NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG,
-				"searching for a payload with a pattern like 'number(1to8)blanknumber(1to3)ipp://.\n");
+		NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "searching for a payload with a pattern like 'number(1to8)blanknumber(1to3)ipp://.\n");
 		/* this pattern means that there is a printer saying that his state is idle,
 		 * means that he is not printing anything at the moment */
 		i = 0;
@@ -56,11 +54,8 @@ static void ndpi_search_ipp(struct ndpi_detection_module_struct *ndpi_struct, st
 
 		for (;;) {
 			i++;
-			if (!((packet->payload[i] >= '0' && packet->payload[i] <= '9') ||
-				  (packet->payload[i] >= 'a' && packet->payload[i] <= 'f') ||
-				  (packet->payload[i] >= 'A' && packet->payload[i] <= 'F')) || i > 8) {
-				NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG,
-						"read symbols while the symbol is a number.\n");
+			if (!((packet->payload[i] >= '0' && packet->payload[i] <= '9') || (packet->payload[i] >= 'a' && packet->payload[i] <= 'f') || (packet->payload[i] >= 'A' && packet->payload[i] <= 'F')) || i > 8) {
+				NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "read symbols while the symbol is a number.\n");
 				break;
 			}
 		}
@@ -78,35 +73,42 @@ static void ndpi_search_ipp(struct ndpi_detection_module_struct *ndpi_struct, st
 		for (;;) {
 			i++;
 			if (packet->payload[i] < '0' || packet->payload[i] > '9' || i > 12) {
-				NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG,
-						"read symbols while the symbol is a number.\n");
+				NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "read symbols while the symbol is a number.\n");
 				break;
 			}
 		}
 
-		if (ndpi_mem_cmp(&packet->payload[i], " ipp://", 7) != 0) {
+		if (memcmp(&packet->payload[i], " ipp://", 7) != 0) {
 			NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "the string ' ipp://' does not follow.\n");
 			goto search_for_next_pattern;
 		}
 
 		NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "found ipp\n");
-		ndpi_int_ipp_add_connection(ndpi_struct, flow, NDPI_REAL_PROTOCOL);
+		ndpi_int_ipp_add_connection(ndpi_struct, flow);
 		return;
 	}
 
-  search_for_next_pattern:
+search_for_next_pattern:
 
 	if (packet->payload_packet_len > 3 && memcmp(packet->payload, "POST", 4) == 0) {
 		ndpi_parse_packet_line_info(ndpi_struct, flow);
-		if (packet->content_line.ptr != NULL && packet->content_line.len > 14
-			&& memcmp(packet->content_line.ptr, "application/ipp", 15) == 0) {
+		if (packet->content_line.offs != 0xffff && packet->content_line.len > 14 && memcmp(packet_hdr(content_line), "application/ipp", 15) == 0) {
 			NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "found ipp via POST ... application/ipp.\n");
-			ndpi_int_ipp_add_connection(ndpi_struct, flow, NDPI_CORRELATED_PROTOCOL);
+			ndpi_int_ipp_add_connection(ndpi_struct, flow);
 			return;
 		}
 	}
 	NDPI_LOG(NDPI_PROTOCOL_IPP, ndpi_struct, NDPI_LOG_DEBUG, "no ipp detected.\n");
 	NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_IPP);
+}
+
+static void init_ipp_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("IPP", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_IPP,
+					    ndpi_search_ipp, NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_OR_UDP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+
+	*id += 1;
 }
 
 #endif

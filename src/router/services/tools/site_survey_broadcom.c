@@ -445,10 +445,23 @@ int site_survey_main(int argc, char *argv[])
 	for (i = 0; i < scan_res->count; i++) {
 		strcpy(site_survey_lists[i].SSID, bss_info->SSID);
 		strcpy(site_survey_lists[i].BSSID, ether_etoa(bss_info->BSSID.octet, mac));
-#ifndef HAVE_RB500
 		site_survey_lists[i].channel = bss_info->chanspec & 0xff;
-#endif
-		site_survey_lists[i].frequency = ieee80211_ieee2mhz(site_survey_lists[i].channel);
+		switch ((bss_info->chanspec & 0x3800)) {
+		case 0:
+		case 0x800:
+		case 0x1000:
+			site_survey_lists[i].channel = bss_info->chanspec & 0xff;
+			break;
+		case 0x0C00:	// for older version
+		case 0x1800:
+			site_survey_lists[i].channel = bss_info->ctl_ch | 0x2000;
+			break;
+		case 0x2000:
+		case 0x2800:
+		case 0x3000:
+			site_survey_lists[i].channel = bss_info->ctl_ch;
+		}
+
 #ifdef WL_CHANSPEC_BW_80
 		switch (bss_info->chanspec & 0x3800) {
 		case WL_CHANSPEC_BW_80:
@@ -462,6 +475,7 @@ int site_survey_main(int argc, char *argv[])
 			break;
 		}
 #endif
+		site_survey_lists[i].frequency = ieee80211_ieee2mhz(site_survey_lists[i].channel&0xff);
 
 		site_survey_lists[i].RSSI = bss_info->RSSI;
 		site_survey_lists[i].phy_noise = bss_info->phy_noise;

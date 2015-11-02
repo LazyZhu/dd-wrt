@@ -1,98 +1,56 @@
-
 /*
- * DEBUG: section 90    HTTP Cache Control Header
- * AUTHOR: Alex Rousskov
- *         Robert Collins (Surrogate-Control is derived from
- *         		   Cache-Control).
- *         Francesco Chemolli (c++ refactoring)
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
+/* DEBUG: section 90    HTTP Cache Control Header */
+
 #include "squid.h"
-#include "HttpHdrSc.h"
+#include "base/LookupTable.h"
+//#include "HttpHdrSc.h" // pulled in by HttpHdrScTarget.h
+#include "HttpHdrScTarget.h"
 #include "HttpHeader.h"
-#include "HttpHeaderFieldInfo.h"
 #include "HttpHeaderFieldStat.h"
 #include "HttpHeaderStat.h"
 #include "HttpHeaderTools.h"
 #include "Store.h"
 #include "StrList.h"
+#include "util.h"
 
-#if HAVE_MAP
 #include <map>
-#endif
-
-/* a row in the table used for parsing surrogate-control header and statistics */
-typedef struct {
-    const char *name;
-    http_hdr_sc_type id;
-    HttpHeaderFieldStat stat;
-} HttpHeaderScFields;
+#include <vector>
 
 /* this table is used for parsing surrogate control header */
 /* order must match that of enum http_hdr_sc_type. The constraint is verified at initialization time */
 //todo: implement constraint
-static const HttpHeaderFieldAttrs ScAttrs[SC_ENUM_END] = {
-    {"no-store", (http_hdr_type)SC_NO_STORE},
-    {"no-store-remote", (http_hdr_type)SC_NO_STORE_REMOTE},
-    {"max-age", (http_hdr_type)SC_MAX_AGE},
-    {"content", (http_hdr_type)SC_CONTENT},
-    {"Other,", (http_hdr_type)SC_OTHER}	/* ',' will protect from matches */
+static const LookupTable<http_hdr_sc_type>::Record ScAttrs[] {
+    {"no-store", SC_NO_STORE},
+    {"no-store-remote", SC_NO_STORE_REMOTE},
+    {"max-age", SC_MAX_AGE},
+    {"content", SC_CONTENT},
+    {"Other,", SC_OTHER}, /* ',' will protect from matches */
+    {nullptr, SC_ENUM_END} /* SC_ENUM_END taken as invalid value */
 };
+LookupTable<http_hdr_sc_type> scLookupTable(SC_ENUM_END, ScAttrs);
+std::vector<HttpHeaderFieldStat> scHeaderStats(SC_ENUM_END);
 
-HttpHeaderFieldInfo *ScFieldsInfo = NULL;
-
+// used when iterating over flags
 http_hdr_sc_type &operator++ (http_hdr_sc_type &aHeader)
 {
-    int tmp = (int)aHeader;
-    aHeader = (http_hdr_sc_type)(++tmp);
+    int tmp = static_cast<int>(aHeader);
+    aHeader = static_cast<http_hdr_sc_type>(++tmp);
     return aHeader;
 }
-
-int operator - (http_hdr_sc_type const &anSc, http_hdr_sc_type const &anSc2)
-{
-    return (int)anSc - (int)anSc2;
-}
-
-/* module initialization */
 
 void
 httpHdrScInitModule(void)
 {
-    ScFieldsInfo = httpHeaderBuildFieldsInfo(ScAttrs, SC_ENUM_END);
-}
-
-void
-httpHdrScCleanModule(void)
-{
-    httpHeaderDestroyFieldsInfo(ScFieldsInfo, SC_ENUM_END);
-    ScFieldsInfo = NULL;
+    // check invariant on ScAttrs
+    for (int i = 0; ScAttrs[i].name != nullptr; ++i)
+        assert(i == ScAttrs[i].id);
 }
 
 /* implementation */
@@ -117,11 +75,11 @@ HttpHdrSc::parse(const String * str)
 {
     HttpHdrSc * sc=this;
     const char *item;
-    const char *p;		/* '=' parameter */
+    const char *p;      /* '=' parameter */
     const char *pos = NULL;
     const char *target = NULL; /* ;foo */
     const char *temp = NULL; /* temp buffer */
-    int type;
+    http_hdr_sc_type type;
     int ilen, vlen;
     int initiallen;
     HttpHdrScTarget *sct;
@@ -147,11 +105,9 @@ HttpHdrSc::parse(const String * str)
         }
 
         /* find type */
-        /* TODO: use a type-safe map-based lookup */
-        type = httpHeaderIdByName(item, ilen,
-                                  ScFieldsInfo, SC_ENUM_END);
+        type = scLookupTable.lookup(SBuf(item,ilen));
 
-        if (type < 0) {
+        if (type == SC_ENUM_END) {
             debugs(90, 2, "hdr sc: unknown control-directive: near '" << item << "' in '" << str << "'");
             type = SC_OTHER;
         }
@@ -174,11 +130,11 @@ HttpHdrSc::parse(const String * str)
 
         safe_free (temp);
 
-        if (sct->isSet(static_cast<http_hdr_sc_type>(type))) {
+        if (sct->isSet(type)) {
             if (type != SC_OTHER)
                 debugs(90, 2, "hdr sc: ignoring duplicate control-directive: near '" << item << "' in '" << str << "'");
 
-            ++ ScFieldsInfo[type].stat.repCount;
+            ++ scHeaderStats[type].repCount;
 
             continue;
         }
@@ -262,7 +218,7 @@ HttpHdrSc::HttpHdrSc(const HttpHdrSc &sc)
 }
 
 void
-HttpHdrScTarget::packInto(Packer * p) const
+HttpHdrScTarget::packInto(Packable * p) const
 {
     http_hdr_sc_type flag;
     int pcount = 0;
@@ -272,27 +228,26 @@ HttpHdrScTarget::packInto(Packer * p) const
         if (isSet(flag) && flag != SC_OTHER) {
 
             /* print option name */
-            packerPrintf(p, (pcount ? ", " SQUIDSTRINGPH : SQUIDSTRINGPH),
-                         SQUIDSTRINGPRINT(ScFieldsInfo[flag].name));
+            p->appendf((pcount ? ", %s" : "%s"), ScAttrs[flag].name);
 
             /* handle options with values */
 
             if (flag == SC_MAX_AGE)
-                packerPrintf(p, "=%d", (int) max_age);
+                p->appendf("=%d", (int) max_age);
 
             if (flag == SC_CONTENT)
-                packerPrintf(p, "=\"" SQUIDSTRINGPH "\"", SQUIDSTRINGPRINT(content_));
+                p->appendf("=\"" SQUIDSTRINGPH "\"", SQUIDSTRINGPRINT(content_));
 
             ++pcount;
         }
     }
 
     if (hasTarget())
-        packerPrintf (p, ";" SQUIDSTRINGPH, SQUIDSTRINGPRINT(target));
+        p->appendf(";" SQUIDSTRINGPH, SQUIDSTRINGPRINT(target));
 }
 
 void
-HttpHdrSc::packInto(Packer * p) const
+HttpHdrSc::packInto(Packable * p) const
 {
     dlink_node *node;
     assert(p);
@@ -330,12 +285,12 @@ HttpHdrSc::updateStats(StatHist * hist) const
 }
 
 void
-httpHdrScTargetStatDumper(StoreEntry * sentry, int idx, double val, double size, int count)
+httpHdrScTargetStatDumper(StoreEntry * sentry, int, double val, double, int count)
 {
     extern const HttpHeaderStat *dump_stat;     /* argh! */
     const int id = (int) val;
-    const int valid_id = id >= 0 && id < SC_ENUM_END;
-    const char *name = valid_id ? ScFieldsInfo[id].name.termedBuf() : "INVALID";
+    const bool valid_id = id >= 0 && id < SC_ENUM_END;
+    const char *name = valid_id ? ScAttrs[id].name : "INVALID";
 
     if (count || valid_id)
         storeAppendPrintf(sentry, "%2d\t %-20s\t %5d\t %6.2f\n",
@@ -343,12 +298,12 @@ httpHdrScTargetStatDumper(StoreEntry * sentry, int idx, double val, double size,
 }
 
 void
-httpHdrScStatDumper(StoreEntry * sentry, int idx, double val, double size, int count)
+httpHdrScStatDumper(StoreEntry * sentry, int, double val, double, int count)
 {
-    extern const HttpHeaderStat *dump_stat;	/* argh! */
+    extern const HttpHeaderStat *dump_stat; /* argh! */
     const int id = (int) val;
-    const int valid_id = id >= 0 && id < SC_ENUM_END;
-    const char *name = valid_id ? ScFieldsInfo[id].name.termedBuf() : "INVALID";
+    const bool valid_id = id >= 0 && id < SC_ENUM_END;
+    const char *name = valid_id ? ScAttrs[id].name : "INVALID";
 
     if (count || valid_id)
         storeAppendPrintf(sentry, "%2d\t %-20s\t %5d\t %6.2f\n",
@@ -364,9 +319,9 @@ HttpHdrSc::findTarget(const char *target)
     while (node) {
         HttpHdrScTarget *sct = (HttpHdrScTarget *)node->data;
 
-        if (target && sct->target.defined() && !strcmp (target, sct->target.termedBuf()))
+        if (target && sct->target.size() > 0 && !strcmp(target, sct->target.termedBuf()))
             return sct;
-        else if (!target && sct->target.undefined())
+        else if (!target && sct->target.size() == 0)
             return sct;
 
         node = node->next;
@@ -395,3 +350,14 @@ HttpHdrSc::getMergedTarget(const char *ourtarget)
 
     return NULL;
 }
+
+void
+HttpHdrSc::addTarget(HttpHdrScTarget *t) {
+    dlinkAdd(t, &t->node, &targets);
+}
+
+void
+HttpHdrSc::addTargetAtTail(HttpHdrScTarget *t) {
+    dlinkAddTail (t, &t->node, &targets);
+}
+

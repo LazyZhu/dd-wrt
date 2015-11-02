@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2014 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2015 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #define CHILD_LIFETIME 150 /* secs 'till terminated (RFC1035 suggests > 120s) */
 #define TCP_MAX_QUERIES 100 /* Maximum number of queries per incoming TCP connection */
 #define EDNS_PKTSZ 4096 /* default max EDNS.0 UDP packet from RFC5625 */
+#define SAFE_PKTSZ 1280 /* "go anywhere" UDP packet size */
 #define KEYBLOCK_LEN 40 /* choose to mininise fragmentation when storing DNSSEC keys */
 #define DNSSEC_WORK 50 /* Max number of queries to validate one question */
 #define TIMEOUT 10 /* drop UDP queries after TIMEOUT seconds */
@@ -115,6 +116,8 @@ HAVE_DNSSEC
 HAVE_LOOP
    include functionality to probe for and remove DNS forwarding loops.
 
+HAVE_INOTIFY
+   use the Linux inotify facility to efficiently re-read configuration files.
 
 NO_IPV6
 NO_TFTP
@@ -123,6 +126,7 @@ NO_DHCP6
 NO_SCRIPT
 NO_LARGEFILE
 NO_AUTH
+NO_INOTIFY
    these are avilable to explictly disable compile time options which would 
    otherwise be enabled automatically (HAVE_IPV6, >2Gb file sizes) or 
    which are enabled  by default in the distributed source tree. Building dnsmasq
@@ -359,6 +363,10 @@ HAVE_SOCKADDR_SA_LEN
 #undef HAVE_LOOP
 #endif
 
+//#if defined (HAVE_LINUX_NETWORK) && !defined(NO_INOTIFY)
+//#define HAVE_INOTIFY
+//#endif
+
 /* Define a string indicating which options are in use.
    DNSMASQP_COMPILE_OPTS is only defined in dnsmasq.c */
 
@@ -432,7 +440,11 @@ static char *compile_opts =
 #ifndef HAVE_LOOP
 "no-"
 #endif
-"loop-detect";
+"loop-detect "
+#ifndef HAVE_INOTIFY
+"no-"
+#endif
+"inotify";
 
 
 #endif

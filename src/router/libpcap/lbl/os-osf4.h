@@ -17,12 +17,10 @@
  * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * @(#) $Header: /repository/WRT54G/src/router/libpcap/lbl/Attic/os-osf4.h,v 1.1.2.1 2004/06/11 11:06:37 nikki Exp $ (LBL)
  */
 
 /* Prototypes missing in Digital UNIX 4.x */
 int	snprintf(char *, size_t, const char *, ...);
 int	vsnprintf(char *, size_t, const char *, va_list);
 int	pfopen(char *, int);
-   
+

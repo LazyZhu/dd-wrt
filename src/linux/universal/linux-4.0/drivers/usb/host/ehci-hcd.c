@@ -45,7 +45,7 @@
 #include <asm/irq.h>
 #include <asm/unaligned.h>
 
-#if defined(CONFIG_MACH_AR7240) || defined(CONFIG_MACH_HORNET) || defined(CONFIG_WASP_SUPPORT)
+#if defined(CONFIG_MACH_AR7240) || defined(CONFIG_WASP_SUPPORT)
 
 #ifdef CONFIG_WASP_SUPPORT
 #include "../gadget/ath_defs.h"
@@ -263,7 +263,7 @@ static int ehci_reset (struct ehci_hcd *ehci)
 	dbg_cmd (ehci, "reset", command);
 	ehci_writel(ehci, command, &ehci->regs->command);
 
-#if ((defined(CONFIG_MACH_AR7240) || defined(CONFIG_MACH_HORNET) || defined(CONFIG_WASP_SUPPORT)) && !defined(CONFIG_AP135)) || defined(CONFIG_MMS344) 
+#if ((defined(CONFIG_MACH_AR7240) || defined(CONFIG_WASP_SUPPORT)) && !defined(CONFIG_AP135)  && !defined(CONFIG_DIR859)) || defined(CONFIG_MMS344) 
 #define ath_usb_reg_wr		ar7240_reg_wr
 #define ath_usb_reg_rd		ar7240_reg_rd
 #define ATH_USB_USB_MODE	AR9130_USB_MODE
@@ -866,12 +866,12 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 					ehci->reset_done[i] == 0))
 				continue;
 
-			/* start 20 msec resume signaling from this port,
-			 * and make hub_wq collect PORT_STAT_C_SUSPEND to
-			 * stop that signaling.  Use 5 ms extra for safety,
-			 * like usb_port_resume() does.
+			/* start USB_RESUME_TIMEOUT msec resume signaling from
+			 * this port, and make hub_wq collect
+			 * PORT_STAT_C_SUSPEND to stop that signaling.
 			 */
-			ehci->reset_done[i] = jiffies + msecs_to_jiffies(25);
+			ehci->reset_done[i] = jiffies +
+				msecs_to_jiffies(USB_RESUME_TIMEOUT);
 			set_bit(i, &ehci->resuming_ports);
 			ehci_dbg (ehci, "port %d remote wakeup\n", i + 1);
 			usb_hcd_start_port_resume(&hcd->self, i);

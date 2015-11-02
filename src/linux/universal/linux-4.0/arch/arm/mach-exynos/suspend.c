@@ -87,8 +87,8 @@ static unsigned int exynos_pmu_spare3;
 static u32 exynos_irqwake_intmask = 0xffffffff;
 
 static const struct exynos_wkup_irq exynos3250_wkup_irq[] = {
-	{ 73, BIT(1) }, /* RTC alarm */
-	{ 74, BIT(2) }, /* RTC tick */
+	{ 105, BIT(1) }, /* RTC alarm */
+	{ 106, BIT(2) }, /* RTC tick */
 	{ /* sentinel */ },
 };
 
@@ -235,6 +235,8 @@ static void exynos_pm_enter_sleep_mode(void)
 
 static void exynos_pm_prepare(void)
 {
+	exynos_set_delayed_reset_assertion(false);
+
 	/* Set wake-up mask registers */
 	exynos_pm_set_wakeup_mask();
 
@@ -383,6 +385,7 @@ early_wakeup:
 
 	/* Clear SLEEP mode set in INFORM1 */
 	pmu_raw_writel(0x0, S5P_INFORM1);
+	exynos_set_delayed_reset_assertion(true);
 }
 
 static void exynos3250_pm_resume(void)

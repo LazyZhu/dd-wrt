@@ -2,7 +2,7 @@
  * tds.c
  *
  * Copyright (C) 2009-2011 by ipoque GmbH
- * Copyright (C) 2011-13 - ntop.org
+ * Copyright (C) 2011-15 - ntop.org
  *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the OpenDPI and PACE technology by ipoque GmbH
@@ -22,28 +22,25 @@
  * 
  */
 
-
 #include "ndpi_protocols.h"
 #ifdef NDPI_PROTOCOL_TDS
 
 static void ndpi_int_tds_add_connection(struct ndpi_detection_module_struct
-										  *ndpi_struct, struct ndpi_flow_struct *flow)
+					*ndpi_struct, struct ndpi_flow_struct *flow)
 {
-	ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_TDS, NDPI_REAL_PROTOCOL);
+	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_TDS, NDPI_PROTOCOL_UNKNOWN);
 }
 
 static void ndpi_search_tds_tcp(struct ndpi_detection_module_struct
-						   *ndpi_struct, struct ndpi_flow_struct *flow)
+				*ndpi_struct, struct ndpi_flow_struct *flow)
 {
 	struct ndpi_packet_struct *packet = &flow->packet;
-	
-//      struct ndpi_id_struct         *src=ndpi_struct->src;
-//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
+
+	//      struct ndpi_id_struct         *src=ndpi_struct->src;
+	//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
 
 	if (packet->payload_packet_len > 8
-		&& packet->payload_packet_len < 512
-		&& packet->payload[1] < 0x02
-		&& ntohs(get_u_int16_t(packet->payload, 2)) == packet->payload_packet_len && get_u_int16_t(packet->payload, 4) == 0x0000) {
+	    && packet->payload_packet_len < 512 && packet->payload[1] < 0x02 && ntohs(get_u_int16_t(packet->payload, 2)) == packet->payload_packet_len && get_u_int16_t(packet->payload, 4) == 0x0000) {
 
 		if (flow->l4.tcp.tds_stage == 0) {
 			if (packet->payload[0] != 0x02 && packet->payload[0] != 0x07 && packet->payload[0] != 0x12) {
@@ -83,9 +80,18 @@ static void ndpi_search_tds_tcp(struct ndpi_detection_module_struct
 		}
 	}
 
-  exclude_tds:
+exclude_tds:
 
 	NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_TDS);
+}
+
+static void init_tds_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("TDS", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_TDS,
+					    ndpi_search_tds_tcp, NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+
+	*id += 1;
 }
 
 #endif

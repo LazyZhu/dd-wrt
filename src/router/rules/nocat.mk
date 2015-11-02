@@ -1,7 +1,9 @@
 nocat-configure:
 	rm -f $(TOP)/glib/config.cache
-	cd glib && ./config.sh -a && ./config.sh "$(CC)" "$(COPTS) $(MIPS16_OPT)" ac_cv_host=$(ARCH)-uclibc-linux --target=$(ARCH)-linux --host=$(ARCH)
-	cd nocat && ./configure --with-remote-splash CC="$(CC)" CFLAGS="$(COPTS) $(MIPS16_OPT) -DNEED_PRINTF -I../libghttp " --prefix=/tmp/ --with-glib-prefix=$(TOP)/glib-1.2.10-install --disable-glibtest --host=$(ARCH)-linux
+#	cd glib && ./config.sh -a && ./config.sh "$(CC)" "$(COPTS) $(MIPS16_OPT)" ac_cv_host=$(ARCH)-uclibc-linux --target=$(ARCH)-linux --host=$(ARCH)
+#	cd nocat && ./configure --with-remote-splash CC="$(CC)" CFLAGS="$(COPTS) $(MIPS16_OPT) -DNEED_PRINTF -I../libghttp " --prefix=/tmp/ --with-glib-prefix=$(TOP)/glib-1.2.10-install --disable-glibtest --host=$(ARCH)-linux
+	cd glib && ./config.sh "$(CC)" "$(COPTS) $(MIPS16_OPT)  -std=gnu89" ac_cv_host=$(ARCH)-uclibc-linux --target=$(ARCH)-linux --host=$(ARCH)
+	cd nocat && ./configure --with-remote-splash CC="$(CC)" CFLAGS="$(COPTS) $(MIPS16_OPT) -std=gnu89 -DNEED_PRINTF -I../libghttp " --prefix=/tmp/ --with-glib-prefix=$(TOP)/glib-1.2.10-install --disable-glibtest --host=$(ARCH)-linux
 
 nocat:
 	make  -C glib
@@ -14,7 +16,6 @@ nocat-clean:
 	make  -C glib clean
 	make  -C nocat clean
 	
-
 nocat-install:
 	install -D nocat/src/splashd $(INSTALLDIR)/nocat/usr/sbin/splashd
 	$(STRIP) $(INSTALLDIR)/nocat/usr/sbin/splashd

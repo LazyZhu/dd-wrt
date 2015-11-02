@@ -32,11 +32,6 @@
  * SUCH DAMAGE.
  */
 
-#ifndef lint
-static const char rcsid[] _U_ =
-    "@(#) $Header: /repository/WRT54G/src/router/libpcap/Attic/fad-null.c,v 1.1.2.1 2004/06/11 11:06:31 nikki Exp $ (LBL)";
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -53,7 +48,7 @@ static const char rcsid[] _U_ =
  * packet capture.
  */
 int
-pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
+pcap_findalldevs_interfaces(pcap_if_t **alldevsp, char *errbuf)
 {
 	/*
 	 * Succeed, but don't return any interfaces; we return only those

@@ -84,15 +84,15 @@ int ej_active_wireless_if_ath9k(webs_t wp, int argc, char_t ** argv, char *ifnam
 		int vht = 0;
 		char info[32];
 
-		if (wc->is_40mhz)
+		if (wc->rx_is_40mhz || wc->is_40mhz)
 			ht = 1;
-		if (wc->is_80mhz)
+		if (wc->rx_is_80mhz || wc->is_80mhz)
 			ht = 2;
-		if (wc->is_160mhz)
+		if (wc->rx_is_160mhz || wc->is_160mhz)
 			ht = 3;
-		if (wc->is_vht)
+		if (wc->rx_is_vht || wc->is_vht)
 			vht = 1;
-		if (wc->is_short_gi)
+		if (wc->rx_is_short_gi || wc->is_short_gi)
 			sgi = 1;
 
 		if (sgi)
@@ -110,9 +110,11 @@ int ej_active_wireless_if_ath9k(webs_t wp, int argc, char_t ** argv, char *ifnam
 			sprintf(info, "%s80", info);
 		if (ht == 3)
 			sprintf(info, "%s160", info);
-
-		websWrite(wp, "'%s','%s','%s','%dM','%dM','%s','%d','%d','%d','%d'", mac, wc->ifname, UPTIME(wc->uptime), wc->txrate / 10, wc->rxrate / 10, info, wc->signal + bias, wc->noise + bias, wc->signal - wc->noise,
-			  qual);
+		if (wc->ht40intol)
+			sprintf(info, "%sintol",info); //ht40 intolerant
+		
+		websWrite(wp, "'%s','%s','%s','%dM','%dM','%s','%d','%d','%d','%d'", mac, wc->ifname, UPTIME(wc->uptime), wc->txrate / 10, wc->rxrate / 10, info, wc->signal + bias, wc->noise + bias,
+			  wc->signal - wc->noise, qual);
 		cnt++;
 //              }
 	}

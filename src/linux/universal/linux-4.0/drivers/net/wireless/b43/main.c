@@ -5365,11 +5365,16 @@ static void b43_supported_bands(struct b43_wldev *dev, bool *have_2ghz_phy,
 		*have_5ghz_phy = true;
 		return;
 	case 0x4321: /* BCM4306 */
+		/* There are 14e4:4321 PCI devs with 2.4 GHz BCM4321 (N-PHY) */
+		if (dev->phy.type != B43_PHYTYPE_G)
+			break;
+		/* fall through */
 	case 0x4313: /* BCM4311 */
 	case 0x431a: /* BCM4318 */
 	case 0x432a: /* BCM4321 */
 	case 0x432d: /* BCM4322 */
 	case 0x4352: /* BCM43222 */
+	case 0x435a: /* BCM43228 */
 	case 0x4333: /* BCM4331 */
 	case 0x43a2: /* BCM4360 */
 	case 0x43b3: /* BCM4352 */

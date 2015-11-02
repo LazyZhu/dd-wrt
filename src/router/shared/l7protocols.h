@@ -4,873 +4,577 @@
     /*
      * 2009-05-28 
      */
-
-typedef struct _l7filters	// l7 and p2p filters
+     
+typedef struct _l7filters 
 {
 
 	char *name;
 	int protocol;		// 1=p2p, 0=l7, 2=opendpi
 
 } l7filters;
-
+#define L7_ONLY 0
+#define PDPI_ONLY 1
+#define NDPI_ONLY 2
 
 #ifdef HAVE_OPENDPI
-#define DPI 2 //open dpi based
-#define PDPI 2 //open dpi based
+#define DPI 2			//open dpi based
+#define PDPI 2			//open dpi based
 #else
-#define DPI 0 //default l7
-#define PDPI 1 //default l7
+#define DPI 0			//default l7
+#define PDPI 1			//default p2p
 #endif
 //Added ,  (in extra), dazhihui, .
 
 l7filters filters_list[] = {
-
-	{
-	 "100bao", 0},		// 100bao - a Chinese P2P protocol/program -
-	// http://www.100bao.com
 #ifdef HAVE_OPENDPI
-	{
-	 "afp", 2},
+	{"unknown", NDPI_ONLY},
 #endif
-	{
-	 "aim", 0},		// AIM - AOL instant messenger (OSCAR and
+	{"100bao", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "aimini", 2},
+	{"99taxi", NDPI_ONLY},
+	{"afp", NDPI_ONLY},
 #endif
-	// TOC)
-	{
-	 "aimwebcontent", 0},	// AIM web content - ads/news content
-	// downloaded by AOL Instant Messenger
-	{
-	 "applejuice", 1},	// Apple Juice - P2P filesharing -
-	// http://www.applejuicenet.de
-	{
-	 "ares", 1},		// Ares - P2P filesharing -
-	// http://aresgalaxy.sf.net
-	{
-	 "armagetron", DPI},	// Armagetron Advanced - open source
-	// Tron/snake based multiplayer game
-	{
-	 "audiogalaxy", 0},	// Audiogalaxy - (defunct) Peer to Peer
+	{"aim", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "avi", 2},
+	{"aimini", NDPI_ONLY},
 #endif
-	// filesharing
+	{"aimwebcontent", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "battlefield", 2},
+	{"amazon", NDPI_ONLY},
+	{"apple", NDPI_ONLY},
+	{"apple_icloud", NDPI_ONLY},
+	{"apple_itunes", NDPI_ONLY},
 #endif
-	{
-	 "battlefield1942", 0},	// Battlefield 1942 - An EA game
-	{
-	 "battlefield2", 0},	// Battlefield 2 - An EA game.
-	{
-	 "battlefield2142", 0},	// Battlefield 2142 - An EA game.
-	{
-	 "bgp", DPI},		// BGP - Border Gateway Protocol - RFC 1771
-	{
-	 "biff", 0},		// Biff - new mail notification
-	{
-	 "bittorrent", PDPI},	// Bittorrent - P2P filesharing / publishing
-	// tool - http://www.bittorrent.com
-	{
-	 "bt", 0},
-	{
-	 "bt1", 0},
-	{
-	 "bt2", 0},
-	{
-	 "bt3", 0},
-	{
-	 "chikka", 0},		// Chikka - SMS service which can be used
-	// without phones - http://chikka.com
-	{
-	 "cimd", 0},		// Computer Interface to Message
-	// Distribution, an SMSC protocol by Nokia
-	{
-	 "ciscovpn", DPI},	// Cisco VPN - VPN client software to a Cisco 
-	// VPN server
-	{
-	 "citrix", DPI},		// Citrix ICA - proprietary remote desktop
+	{"applejuice", PDPI},
+	{"ares", PDPI_ONLY},
+	{"armagetron", DPI},
+	{"audiogalaxy", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "citrixonline", 2},		// Citrix ICA - proprietary remote desktop
+	{"avi", NDPI_ONLY},
+	{"ayiya", NDPI_ONLY},
+	{"battlefield", NDPI_ONLY},
 #endif
-	// application - http://citrix.com
-	{
-	 "clubbox", 0},
-	{
-	 "code_red", 0},	// Code Red - a worm that attacks Microsoft
-	// IIS web servers
-	{
-	 "counterstrike-source", 0},	// Counterstrike (using the new
-	// "Source" engine) - network game
+	{"battlefield1942", L7_ONLY},
+	{"battlefield2", L7_ONLY},
+	{"battlefield2142", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "crossfire", 2},	// Dazhihui - stock analysis and trading; Chinese - http://www.gw.com.cn
+	{"battlenet", NDPI_ONLY},
 #endif
-	{
-	 "cvs", 0},		// CVS - Concurrent Versions System
-	{
-	 "dayofdefeat-source", 0},	// Day of Defeat: Source - game
-	// (Half-Life 2 mod) -
-	// http://www.valvesoftware.com
-	{
-	 "dazhihui", 0},	// Dazhihui - stock analysis and trading; Chinese - http://www.gw.com.cn
+	{"bearshare", PDPI_ONLY},
+	{"bgp", DPI},
+	{"biff", L7_ONLY},
+	{"bittorrent", PDPI},
+	{"chikka", L7_ONLY},
+	{"cimd", L7_ONLY},
+	{"ciscovpn", DPI},
+	{"citrix", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "dcerpc", 2},	// Dazhihui - stock analysis and trading; Chinese - http://www.gw.com.cn
-	{
-	 "ddl", 2},	// Dazhihui - stock analysis and trading; Chinese - http://www.gw.com.cn
+	{"citrix_online", NDPI_ONLY},
 #endif
-	{
-	 "dhcp", DPI},		// DHCP - Dynamic Host Configuration Protocol 
+	{"clubbox", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "dhcpv6", 2},	// Dazhihui - stock analysis and trading; Chinese - http://www.gw.com.cn
+	{"cnn", NDPI_ONLY},
 #endif
-	// - RFC 1541
-	{
-	 "directconnect", PDPI},	// Direct Connect - P2P filesharing -
-	// http://www.neo-modus.com
-	{
-	 "dns", DPI},		// DNS - Domain Name System - RFC 1035
+	{"code_red", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "dofus", 2},	// Dazhihui - stock analysis and trading; Chinese - http://www.gw.com.cn
+	{"collectd", NDPI_ONLY},
+	{"corba", NDPI_ONLY},
 #endif
-	{
-	 "doom3", 0},		// Doom 3 - computer game
+	{"counterstrike-source", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "dropbox", 2},	// Dazhihui - stock analysis and trading; Chinese - http://www.gw.com.cn
+	{"crossfire", NDPI_ONLY},
 #endif
-	{
-	 "edonkey", PDPI},		// eDonkey2000 - P2P filesharing -
+	{"cvs", L7_ONLY},
+	{"dayofdefeat-source", L7_ONLY},
+	{"dazhihui", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "egp", 2},
+	{"dcerpc", NDPI_ONLY},
+	{"deezer", NDPI_ONLY},
 #endif
-	// http://edonkey2000.com and others
-	{
-	 "exe", 0},		// Executable - Microsoft PE file format.
-	{
-	 "fasttrack", DPI},	// FastTrack - P2P filesharing (Kazaa,
-	// Morpheus, iMesh, Grokster, etc)
+	{"dhcp", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "feidian", 2},
-	{
-	 "fiesta", 2},	// FastTrack - P2P filesharing (Kazaa,
+	{"dhcpv6", NDPI_ONLY},
+	{"direct_download_link", NDPI_ONLY},
 #endif
-	{
-	 "filetopia", DPI},	// FastTrack - P2P filesharing (Kazaa,
-	{
-	 "finger", 0},		// Finger - User information server - RFC
-	// 1288
-	{
-	 "flash", 0},		// Flash - Macromedia Flash.
+	{"directconnect", PDPI},
+	{"dns", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "florensia", 2},
+	{"dofus", NDPI_ONLY},
 #endif
-	{
-	 "freenet", 0},		// Freenet - Anonymous information retrieval
-	// - http://freenetproject.org
-	{
-	 "freegate_dns", 0},
-	{
-	 "freegate_http", 0},
-	{
-	 "ftp", DPI},		// FTP - File Transfer Protocol - RFC 959
+	{"doom3", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "gadugadu", 2},
+	{"dropbox", NDPI_ONLY},
+	{"easytaxi", NDPI_ONLY},
+	{"eaq", NDPI_ONLY},
+	{"ebay", NDPI_ONLY},
 #endif
-	{
-	 "gif", 0},		// GIF - Popular Image format.
-	{
-	 "gkrellm", 0},		// Gkrellm - a system monitor -
-	// http://gkrellm.net
-	{
-	 "gnucleuslan", 0},	// GnucleusLAN - LAN-only P2P filesharing
-	{
-	 "gnutella", PDPI},	// Gnutella - P2P filesharing
-	{
-	 "goboogy", 0},		// GoBoogy - a Korean P2P protocol
+	{"edonkey", PDPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "google", 2},
+	{"egp", NDPI_ONLY},
+	{"epp", NDPI_ONLY},
 #endif
-	{
-	 "gogobox", 0},
-	{
-	 "gopher", 0},		// Gopher - A precursor to HTTP - RFC 1436
+	{"exe", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "gre", 2},
+	{"facebook", NDPI_ONLY},
 #endif
+	{"fasttrack", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "groveshark", 2},
+	{"feidian", NDPI_ONLY},
+	{"fiesta", NDPI_ONLY},
 #endif
-	{
-	 "gtalk", 0},		// GTalk, a Jabber (XMPP) client
-	{
-	 "gtalk1", 0},
-	{
-	 "gtalk2", 0},
-	{
-	 "gtalk_file", 0},
-	{
-	 "gtalk_file_1", 0},
-	{
-	 "gtalk_vista", 0},
+	{"filetopia", DPI},
+	{"finger", L7_ONLY},
+	{"flash", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "gtp", 2},		// LPD - Line Printer Daemon Protocol
+	{"florensia", NDPI_ONLY},
 #endif
-	{
-	 "guildwars", DPI},	// Guild Wars - online game - http://guildwars.com
-	{
-	 "h323", 0},		// H.323 - Voice over IP.
-	{
-	 "hamachi1", 0},
-	{
-	 "halflife2-deathmatch", 0},	// Half-Life 2 Deathmatch - popular
-	// computer game
-	{
-	 "hddtemp", 0},		// hddtemp - Hard drive temperature
-	// reporting
+	{"freegate_dns", L7_ONLY},
+	{"freegate_http", L7_ONLY},
+	{"freenet", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "hl2", 2},
-#endif
-	{
-	 "hotline", 0},		// Hotline - An old P2P filesharing protocol
-	{
-	 "hotspot-shield", 0},
-	{
-	 "html", 0},		// (X)HTML - (Extensible) Hypertext Markup
-	// Language - http://w3.org
-#ifdef HAVE_OPENDPI
-	{
-	 "http_connect", 2},		// HTTP - HyperText Transfer Protocol - RFC
-	{
-	 "http_proxy", 2},		// HTTP - HyperText Transfer Protocol - RFC
-	// 2616
-#endif
-	{
-	 "http-rtsp", 0},	// RTSP tunneled within HTTP
-	{
-	 "http", DPI},		// HTTP - HyperText Transfer Protocol - RFC
-#ifdef HAVE_OPENDPI
-	{
-	 "httpactivesync", 2},		// HTTP - HyperText Transfer Protocol - RFC
-	// 2616
-#endif
-	{
-	 "http-dap", 0},	// HTTP by Download Accelerator Plus -
-	// http://www.speedbit.com
-	{
-	 "http-freshdownload", 0},	// HTTP by Fresh Download -
-	// http://www.freshdevices.com
-	{
-	 "http-itunes", 0},	// HTTP - iTunes (Apple's music program)
-	{
-	 "httpaudio", 0},	// HTTP - Audio over HyperText Transfer
-	// Protocol (RFC 2616)
-	{
-	 "httpcachehit", 0},	// HTTP - Proxy Cache hit for HyperText
-	// Transfer Protocol (RFC 2616)
-	{
-	 "httpcachemiss", 0},	// HTTP - Proxy Cache miss for HyperText
-	// Transfer Protocol (RFC 2616)
-	{
-	 "httpvideo", 0},	// HTTP - Video over HyperText Transfer
-	// Protocol (RFC 2616)
-#ifdef HAVE_OPENDPI
-	{
-	 "i23v5", 2},
-	{
-	 "iax", 2},
-	{
-	 "icecast", 2},
-	{
-	 "igmp", 2},
-	{
-	 "icmp", 2},
-#endif
-	{
-	 "icq_file", 0},
-	{
-	 "icq_file_1", 0},
-	{
-	 "icq_file_2", 0},
-	{
-	 "icq_login", 0},
-	{
-	 "ident", 0},		// Ident - Identification Protocol - RFC
-	// 1413
-	{
-	 "imap", DPI},		// IMAP - Internet Message Access Protocol (A 
-	// common e-mail protocol)
-#ifdef HAVE_OPENDPI
-	{
-	 "imesh", 2},
-	{
-	 "imessage_facetime", 2},
+	{"ftp_control", NDPI_ONLY},
+	{"ftp_data", NDPI_ONLY},
+	{"gadugadu", NDPI_ONLY},
 #else
-	{
-	 "imesh", 0},		// iMesh - the native protocol of iMesh, a
+	{"ftp", DPI},
 #endif
-	// P2P application - http://imesh.com
+	{"gif", L7_ONLY},
+	{"gkrellm", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "ipip", 2},
+	{"globotv", NDPI_ONLY},
+	{"gmail", NDPI_ONLY},
 #endif
-	{
-	 "ipp", DPI},		// IP printing - a new standard for UNIX
-	// printing - RFC 2911
+	{"gnucleuslan", L7_ONLY},
+	{"gnutella", PDPI},
+	{"goboogy", L7_ONLY},
+	{"gogobox", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "ipsec", 2},
+	{"google", NDPI_ONLY},
+	{"google_maps", NDPI_ONLY},
 #endif
-	{
-	 "irc", DPI},		// IRC - Internet Relay Chat - RFC 1459
-	{
-	 "jabber", DPI},		// Jabber (XMPP) - open instant messenger
-	// protocol - RFC 3920 - http://jabber.org
-	{
-	 "jpeg", 0},		// JPEG - Joint Picture Expert Group image
-	// format.
+	{"gopher", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "kerberos", 2},
+	{"gre", NDPI_ONLY},
+	{"grooveshark", NDPI_ONLY},
 #endif
-	{
-	 "kugoo", 0},		// KuGoo - a Chinese P2P program -
+	{"gtalk", L7_ONLY},
+	{"gtalk1", L7_ONLY},
+	{"gtalk2", L7_ONLY},
+	{"gtalk_file", L7_ONLY},
+	{"gtalk_file_1", L7_ONLY},
+	{"gtalk_vista", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "kontiki", 2},
-	{
-	 "ldap", 2},
+	{"gtp", NDPI_ONLY},
 #endif
-	// http://www.kugoo.com
-	{
-	 "live365", 0},		// live365 - An Internet radio site -
-	// http://live365.com
-	{
-	 "liveforspeed", 0},	// Live For Speed - A racing game.
+	{"guildwars", DPI},
+	{"h323", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "lotus_notes", 2},		// LPD - Line Printer Daemon Protocol
+	{"halflife2", NDPI_ONLY},
 #endif
-
+	{"halflife2-deathmatch", L7_ONLY},
+	{"hamachi1", L7_ONLY},
+	{"hddtemp", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "llmnr", 2},		// LPD - Line Printer Daemon Protocol
+	{"hep", NDPI_ONLY},
+	{"hl2", NDPI_ONLY},
 #endif
-	{
-	 "lpd", 0},		// LPD - Line Printer Daemon Protocol
-	// (old-style UNIX printing) - RFC 1179
+	{"hotline", L7_ONLY},
+	{"hotspot-shield", DPI},
+	{"html", L7_ONLY},
+	{"http", DPI},
+	{"http-dap", L7_ONLY},
+	{"http-freshdownload", L7_ONLY},
+	{"http-itunes", L7_ONLY},
+	{"http-rtsp", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "manolito", 2},		// Medal of Honor Allied Assault - an
-	{
-	 "maplestory", 2},		// Medal of Honor Allied Assault - an
-	{
-	 "mdns", 2},		// Medal of Honor Allied Assault - an
-	{
-	 "megaco", 2},
-	{
-	 "mgcp", 2},		// Medal of Honor Allied Assault - an
+	{"http_app_activesync", NDPI_ONLY},
+	{"http_app_veohtv", NDPI_ONLY},
+	{"http_connect", NDPI_ONLY},
+	{"http_proxy", NDPI_ONLY},
+	{"httpactivesync", NDPI_ONLY},
 #endif
+	{"httpaudio", L7_ONLY},
+	{"httpcachehit", L7_ONLY},
+	{"httpcachemiss", L7_ONLY},
+	{"httpvideo", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "mms", 2},
+	{"i23v5", NDPI_ONLY},
+	{"iax", NDPI_ONLY},
+	{"icecast", NDPI_ONLY},
+	{"icmp", NDPI_ONLY},
 #endif
-	{
-	 "mohaa", 0},		// Medal of Honor Allied Assault - an
-	// Electronic Arts game
+	{"icq_file", L7_ONLY},
+	{"icq_file_1", L7_ONLY},
+	{"icq_file_2", L7_ONLY},
+	{"icq_login", L7_ONLY},
+	{"ident", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "move", 2},
+	{"igmp", NDPI_ONLY},
 #endif
-	{
-	 "mp3", 0},		// MP3 - Moving Picture Experts Group Audio
+	{"imap", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "mpeg", 2},
+	{"imap_ssl", NDPI_ONLY},
 #endif
-	// Layer III
+	{"imesh", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "msn", 2},
+	{"imessage_facetime", NDPI_ONLY},
+	{"instagram", NDPI_ONLY},
+	{"ip_egp", NDPI_ONLY},
+	{"ip_gre", NDPI_ONLY},
+	{"ip_icmp", NDPI_ONLY},
+	{"ip_icmpv6", NDPI_ONLY},
+	{"ip_igmp", NDPI_ONLY},
+	{"ip_ip_in_ip", NDPI_ONLY},
+	{"ip_ipsec", NDPI_ONLY},
+	{"ip_ospf", NDPI_ONLY},
+	{"ip_sctp", NDPI_ONLY},
+	{"ip_vrrp", NDPI_ONLY},
+	{"ipip", NDPI_ONLY},
 #endif
-	{
-	 "msn-filetransfer", 0},	// MSN (Micosoft Network) Messenger file
-	// transfers (MSNFTP and MSNSLP)
-	{
-	 "msnmessenger", 0},	// MSN Messenger - Microsoft Network chat
-	// client
+	{"ipp", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "mssql", 2},
+	{"ipsec", NDPI_ONLY},
 #endif
-	{
-	 "mute", 1},		// MUTE - P2P filesharing -
-	// http://mute-net.sourceforge.net
+	{"irc", DPI},
+	{"jabber", DPI},
+	{"jpeg", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "mysql", 2},	// Subversion - a version control system
+	{"kakaotalk", NDPI_ONLY},
+	{"kakaotalk_voice", NDPI_ONLY},
 #endif
-	{
-	 "napster", 0},		// Napster - P2P filesharing
-	{
-	 "nbns", 0},		// NBNS - NetBIOS name service
-	{
-	 "ncp", 0},		// NCP - Novell Core Protocol
-	{
-	 "netbios", DPI},		// NetBIOS - Network Basic Input Output
+	{"kazaa", PDPI_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "netflix", 2},		// Medal of Honor Allied Assault - an
-	{
-	 "netflow", 2},		// Medal of Honor Allied Assault - an
+	{"kerberos", NDPI_ONLY},
+	{"kontiki", NDPI_ONLY},
 #endif
+	{"kugoo", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "nfs", 2},		// Medal of Honor Allied Assault - an
+	{"lastfm", NDPI_ONLY},
+	{"ldap", NDPI_ONLY},
 #endif
-	// System
-	{
-	 "nimda", 0},		// Nimda - a worm that attacks Microsoft IIS
-	// web servers, and MORE!
+	{"live365", L7_ONLY},
+	{"liveforspeed", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "noe", 2},		// Medal of Honor Allied Assault - an
+	{"llmnr", NDPI_ONLY},
+	{"lotus_notes", NDPI_ONLY},
 #endif
-	{
-	 "nntp", 0},		// NNTP - Network News Transfer Protocol -
-	// RFCs 977 and 2980
-	{
-	 "ntp", DPI},		// (S)NTP - (Simple) Network Time Protocol -
-	// RFCs 1305 and 2030
+	{"lpd", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "off", 2},	// Subversion - a version control system
+	{"manolito", NDPI_ONLY},
+	{"maplestory", NDPI_ONLY},
+	{"mdns", NDPI_ONLY},
+	{"meebo", NDPI_ONLY},
+	{"megaco", NDPI_ONLY},
+	{"meu", NDPI_ONLY},
+	{"mgcp", NDPI_ONLY},
+	{"microsoft", NDPI_ONLY},
+	{"mms", NDPI_ONLY},
 #endif
-	{
-	 "ogg", DPI},		// Ogg - Ogg Vorbis music format (not any ogg 
-	// file, just vorbis)
-	{
-	 "openft", DPI},		// OpenFT - P2P filesharing (implemented in
+	{"mohaa", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "openvpn", 2},
+	{"move", NDPI_ONLY},
 #endif
+	{"mp3", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "oscar", 2},
+	{"mpeg", NDPI_ONLY},
+	{"ms_lync", NDPI_ONLY},
+	{"msn", NDPI_ONLY},
 #endif
-	// giFT library)
+	{"msn-filetransfer", L7_ONLY},
+	{"msnmessenger", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "pando", 2},	// Subversion - a version control system
+	{"mssql", NDPI_ONLY},
 #endif
-	{
-	 "pcanywhere", DPI},	// pcAnywhere - Symantec remote access
-	// program
-	{
-	 "pdf", 0},		// PDF - Portable Document Format -
-	// Postscript-like format by Adobe
-	{
-	 "perl", 0},		// Perl - A scripting language by Larry
-	// Wall.
-	{
-	 "png", 0},		// PNG - Portable Network Graphics, a popular 
-	// image format
-	{
-	 "poco", 0},		// POCO and PP365 - Chinese P2P filesharing - 
-	// http://pp365.com http://poco.cn
-	{
-	 "pop3", DPI},		// POP3 - Post Office Protocol version 3
+	{"mute", PDPI_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "popo", 2},
-	{
-	 "postgres", 2},	// Subversion - a version control system
+	{"mysql", NDPI_ONLY},
 #endif
-	{
-	 "postscript", 0},	// Postscript - Printing Language
-	{
-	 "pplive", DPI},		// PPLive - Chinese P2P streaming video - http://pplive.com
+	{"napster", L7_ONLY},
+	{"nbns", L7_ONLY},
+	{"ncp", L7_ONLY},
+	{"netbios", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "ppstream", 2},
-	{
-	 "pptp", 2},
+	{"netflix", NDPI_ONLY},
+	{"netflow", NDPI_ONLY},
+	{"nfs", NDPI_ONLY},
 #endif
-	{
-	 "pre_icq_login", 0},
-	{
-	 "pre_msn_login", 0},
-	{
-	 "pre_urlblock", 0},
-	{
-	 "pre_yahoo_login", 0},
-	{
-	 "pressplay", 0},	// pressplay - A legal music distribution
-	{
-	 "qianlong", 0},
-	{
-	 "qq", DPI},		// Tencent QQ Protocol - Chinese instant
-	// messenger protocol - http://www.qq.com
-	// site - http://pressplay.com
-	{
-	 "qq_login", 0},
-	{
-	 "qq_login_1", 0},
-	{
-	 "qq_tcp_file", 0},
-	{
-	 "qq_udp_file", 0},
-	{
-	 "qqdownload_1", 0},
-	{
-	 "qqdownload_2", 0},
-	{
-	 "qqdownload_3", 0},
-	{
-	 "qqfile", 0},
-	{
-	 "qqgame", 0},
-	{
-	 "qqlive", DPI},
-	{
-	 "qqlive2", 0},
+	{"nimda", L7_ONLY},
+	{"nntp", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "quake", 2},
+	{"noe", NDPI_ONLY},
 #endif
-	{
-	 "quake-halflife", 0},	// Half Life 1 engine games (HL 1, Quake
-	// 2/3/World, Counterstrike 1.6, etc.)
-	{
-	 "quake1", 0},		// Quake 1 - A popular computer game.
-	{
-	 "quicktime", DPI},	// Quicktime HTTP
+	{"ntp", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "radius", 2},
+	{"off", NDPI_ONLY},
 #endif
-	{
-	 "radmin", 0},		// Famatech Remote Administrator - remote
-	// desktop for MS Windows
-	{
-	 "rar", 0},		// RAR - The WinRAR archive format
-	{
-	 "rdp", DPI},		// RDP - Remote Desktop Protocol (used in
-	// Windows Terminal Services)
+	{"ogg", DPI},
+	{"openft", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "realmedia", 2},
-	{
-	 "redis", 2},
-	{
-	 "remotescan", 2},
+	{"opensignal", NDPI_ONLY},
+	{"openvpn", NDPI_ONLY},
+	{"oracle", NDPI_ONLY},
+	{"oscar", NDPI_ONLY},
+	{"pando", NDPI_ONLY},
+	{"pandora", NDPI_ONLY},
 #endif
-	{
-	 "replaytv-ivs", 0},	// ReplayTV Internet Video Sharing - Digital
-	// Video Recorder - http://replaytv.com
-	{
-	 "rlogin", 0},		// rlogin - remote login - RFC 1282
-	{
-	 "rpm", 0},		// RPM - Redhat Package Management packages
-	{
-	 "rtf", 0},		// RTF - Rich Text Format - an open document
-	// format
-	{
-	 "rtp", DPI},		// RTP - Real-time Transport Protocol - RFC
-	// 3550
-	{
-	 "rtsp", DPI},		// RTSP - Real Time Streaming Protocol -
-	// http://www.rtsp.org - RFC 2326
-	{
-	 "runesofmagic", 0},	// Runes of Magic - game - http://www.runesofmagic.com
+	{"pcanywhere", DPI},
+	{"pdf", L7_ONLY},
+	{"perl", L7_ONLY},
+	{"png", L7_ONLY},
+	{"poco", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "sap", 2},		// LPD - Line Printer Daemon Protocol
+	{"pop", NDPI_ONLY},
 #endif
+	{"pop3", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "sctp", 2},
-	{
-	 "secondlife", 2},
+	{"pop3_ssl", NDPI_ONLY},
+	{"popo", NDPI_ONLY},
+	{"postgres", NDPI_ONLY},
 #endif
-	{
-	 "shoutcast", DPI},	// Shoutcast and Icecast - streaming audio
-	{
-	 "sip", DPI},		// SIP - Session Initiation Protocol -
-	// Internet telephony - RFC 3261
+	{"postscript", L7_ONLY},
+	{"pplive", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "skyfile_pre", 2},
-	{
-	 "skyfile_ru", 2},
-	{
-	 "skyfile_post", 2},
+	{"ppstream", NDPI_ONLY},
+	{"pptp", NDPI_ONLY},
 #endif
+	{"pre_icq_login", L7_ONLY},
+	{"pre_msn_login", L7_ONLY},
+	{"pre_urlblock", L7_ONLY},
+	{"pre_yahoo_login", L7_ONLY},
+	{"pressplay", L7_ONLY},
+	{"qianlong", L7_ONLY},
+	{"qq", DPI},
+	{"qq_login", L7_ONLY},
+	{"qq_login_1", L7_ONLY},
+	{"qq_tcp_file", L7_ONLY},
+	{"qq_udp_file", L7_ONLY},
+	{"qqdownload_1", L7_ONLY},
+	{"qqdownload_2", L7_ONLY},
+	{"qqdownload_3", L7_ONLY},
+	{"qqfile", L7_ONLY},
+	{"qqgame", L7_ONLY},
+	{"qqlive", DPI},
+	{"qqlive2", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "skype", 2},
-#else
-	{
-	 "skypeout", 0},	// Skype to phone - UDP voice call (program
-	// to POTS phone) - http://skype.com
-	{
-	 "skypetoskype", 0},	// Skype to Skype - UDP voice call (program
+	{"quake", NDPI_ONLY},
 #endif
-	// to program) - http://skype.com
-	{
-	 "smb", DPI},		// Samba/SMB - Server Message Block -
-	// Microsoft Windows filesharing
-	{
-	 "smtp", DPI},		// SMTP - Simple Mail Transfer Protocol - RFC 
-	// 2821 (See also RFC 1869)
-	{
-	 "snmp", DPI},		// SNMP - Simple Network Management Protocol
-	// - RFC 1157
-	{
-	 "snmp-mon", 0},	// SNMP Monitoring - Simple Network
-	// Management Protocol (RFC1157)
-	{
-	 "snmp-trap", 0},	// SNMP Traps - Simple Network Management
-	// Protocol (RFC1157)
-	{
-	 "socks", 0},		// SOCKS Version 5 - Firewall traversal
-	// protocol - RFC 1928
-	{
-	 "soribada", 0},	// Soribada - A Korean P2P filesharing
-	// program/protocol -
-	// http://www.soribada.com
-	{
-	 "soulseek", PDPI},	// Soulseek - P2P filesharing -
-	// http://slsknet.org
-	{
-	 "ssdp", DPI},		// SSDP - Simple Service Discovery Protocol - 
-	// easy discovery of network devices
-	{
-	 "ssh", DPI},		// SSH - Secure SHell
-	{
-	 "ssl", DPI},		// SSL and TLS - Secure Socket Layer /
-	// Transport Layer Security - RFC 2246
-	{
-	 "stun", DPI},		// STUN - Simple Traversal of UDP Through NAT 
-	// - RFC 3489
-	{
-	 "subspace", 0},	// Subspace - 2D asteroids-style space game - 
-	// http://sscentral.com
-	{
-	 "subversion", 0},	// Subversion - a version control system
+	{"quake-halflife", L7_ONLY},
+	{"quake1", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "steam", 2},	// Subversion - a version control system
-	{
-	 "stealthnet", 2},	// Subversion - a version control system
-	{
-	 "socrates", 2},	// Subversion - a version control system
+	{"quic", NDPI_ONLY},
+	{"quickplay", NDPI_ONLY},
+#endif
+	{"quicktime", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "sopcast", 2},
+	{"radius", NDPI_ONLY},
 #endif
-	{
-	 "syslog", 2},	// Subversion - a version control system
-#endif
-	{
-	 "tar", 0},		// Tar - tape archive. Standard UNIX file
+	{"radmin", L7_ONLY},
+	{"rar", L7_ONLY},
+	{"rdp", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "tds", 2},	// Subversion - a version control system
+	{"realmedia", NDPI_ONLY},
+	{"redis", NDPI_ONLY},
+	{"remote_scan", NDPI_ONLY},
+	{"remotescan", NDPI_ONLY},
 #endif
-
-	// archiver, not just for tapes.
-	{
-	 "teamfortress2", 0},	// Team Fortress 2 - network game -
-	// http://www.valvesoftware.com
-	{
-	 "teamspeak", DPI},	// TeamSpeak - VoIP application -
-	{
-	 "teamviewer", DPI},
-	{
-	 "teamviewer1", 0},
-	{
-	 "telnet", DPI},		// Telnet - Insecure remote login - RFC 854
-	{
-	 "tesla", 0},		// Tesla Advanced Communication - P2P
-	// filesharing (?)
-	{
-	 "tftp", DPI},		// TFTP - Trivial File Transfer Protocol -
-	// used for bootstrapping - RFC 1350
-	{
-	 "thecircle", 0},	// The Circle - P2P application -
-	// http://thecircle.org.au
+	{"replaytv-ivs", L7_ONLY},
+	{"rlogin", L7_ONLY},
+	{"rpm", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "thunder", 2},
+	{"rsync", NDPI_ONLY},
+	{"rtcp", NDPI_ONLY},
 #endif
-	{
-	 "thunder5_see", 0},
-	{
-	 "thunder5_tcp", 0},
-	{
-	 "tonghuashun", 0},	// Tonghuashun - stock analysis and trading; Chinese - http://www.10jqka.com.cn
-	{
-	 "tor", DPI},		// Tor - The Onion Router - used for
-	// anonymization - http://tor.eff.org
+	{"rtf", L7_ONLY},
+	{"rtmp", DPI},
+	{"rtp", DPI},
+	{"rtsp", DPI},
+	{"runesofmagic", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "truphone", 2},
+	{"sap", NDPI_ONLY},
+	{"sctp", NDPI_ONLY},
+	{"secondlife", NDPI_ONLY},
+	{"sflow", NDPI_ONLY},
 #endif
-	{
-	 "tsp", 0},		// TSP - Berkely UNIX Time Synchronization
-	// Protocol
+	{"shoutcast", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "tvants", 2},
-	{
-	 "tvuplayer", 2},
-	{
-	 "twitter", 2},
+	{"simet", NDPI_ONLY},
 #endif
-	{
-	 "unknown", 0},		// -
+	{"sip", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "upnp", 2},		// LPD - Line Printer Daemon Protocol
+	{"skinny", NDPI_ONLY},
+	{"skyfile_post", NDPI_ONLY},
+	{"skyfile_postpaid", NDPI_ONLY},
+	{"skyfile_pre", NDPI_ONLY},
+	{"skyfile_prepaid", NDPI_ONLY},
+	{"skyfile_ru", NDPI_ONLY},
+	{"skyfile_rudics", NDPI_ONLY},
+	{"skype", NDPI_ONLY},
 #endif
-	{
-	 "uucp", 0},		// UUCP - Unix to Unix Copy
+	{"skypeout", L7_ONLY},
+	{"skypetoskype", L7_ONLY},
+	{"smb", DPI},
+	{"smtp", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "usenet", 2},
+	{"smtp_ssl", NDPI_ONLY},
+	{"snapchat", NDPI_ONLY},
 #endif
-	{
-	 "validcertssl", 0},	// Valid certificate SSL
-	{
-	 "ventrilo", 0},	// Ventrilo - VoIP - http://ventrilo.com
+	{"snmp", DPI},
+	{"snmp-mon", L7_ONLY},
+	{"snmp-trap", L7_ONLY},
+	{"socks", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "veohtv", 2},
+	{"socks4", NDPI_ONLY},
+	{"socks5", NDPI_ONLY},
+	{"socrates", NDPI_ONLY},
+	{"sopcast", NDPI_ONLY},
 #endif
+	{"soribada", L7_ONLY},
+	{"soulseek", PDPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "vhua", 2},
-	{
-	 "viber", 2},
+	{"spotify", NDPI_ONLY},
 #endif
-	{
-	 "vnc", DPI},		// VNC - Virtual Network Computing. Also
-	// known as RFB - Remote Frame Buffer
+	{"ssdp", DPI},
+	{"ssh", DPI},
+	{"ssl", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "warcraft3", 2},
+	{"ssl_no_cert", NDPI_ONLY},
+	{"starcraft", NDPI_ONLY},
+	{"stealthnet", NDPI_ONLY},
+	{"steam", NDPI_ONLY},
 #endif
+	{"stun", DPI},
+	{"subspace", L7_ONLY},
+	{"subversion", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "webex", 2},
+	{"syslog", NDPI_ONLY},
 #endif
-	{
-	 "webmail_163", 0},
-	{
-	 "webmail_gmail", 0},
-	{
-	 "webmail_hinet", 0},
-	{
-	 "webmail_hotmail", 0},
-	{
-	 "webmail_pchome", 0},
-	{
-	 "webmail_qq", 0},
-	{
-	 "webmail_seednet", 0},
-	{
-	 "webmail_sina", 0},
-	{
-	 "webmail_sohu", 0},
-	{
-	 "webmail_tom", 0},
-	{
-	 "webmail_url", 0},
-	{
-	 "webmail_yahoo", 0},
-	{
-	 "webmail_yam", 0},
+	{"tar", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "whatOAsapp", 2},
+	{"tds", NDPI_ONLY},
 #endif
-	{
-	 "whois", 0},		// Whois - query/response system, usually
-	// used for domain name info - RFC 3912
+	{"teamfortress2", L7_ONLY},
+	{"teamspeak", DPI},
+	{"teamviewer", DPI},
+	{"teamviewer1", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "windowsmedia", 2},
+	{"telegram", NDPI_ONLY},
 #endif
-	{
-	 "winmx", PDPI},		// Whois - query/response system, usually
+	{"telnet", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "winupdate", 2},
+	{"teredo", NDPI_ONLY},
 #endif
+	{"tesla", L7_ONLY},
+	{"tftp", DPI},
+	{"thecircle", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "wokf", 2},
+	{"thunder", NDPI_ONLY},
 #endif
-	{
-	 "worldofwarcraft", DPI},	// World of Warcraft - popular network game - 
-	// http://blizzard.com/
-	{
-	 "x11", 0},		// X Windows Version 11 - Networked GUI
-	// system used in most Unices
-	{
-	 "xboxlive", 0},	// XBox Live - Console gaming
-	{
-	 "xdcc", 1},		// XBox Live - Console gaming
+	{"thunder5_see", L7_ONLY},
+	{"thunder5_tcp", L7_ONLY},
 #ifdef HAVE_OPENDPI
-	{
-	 "xdmcp", 2},		// XBox Live - Console gaming
+	{"timmeu", NDPI_ONLY},
+	{"timsomdechamada", NDPI_ONLY},
+	{"timmenu", NDPI_ONLY},
+	{"timportasabertas", NDPI_ONLY},
+	{"timrecarga", NDPI_ONLY},
+	{"timbeta", NDPI_ONLY},
 #endif
-	{
-	 "xunlei", 0},		// Xunlei - Chinese P2P filesharing -
-	// http://xunlei.com
-	{
-	 "yahoo", DPI},		// Yahoo messenger - an instant messenger
-	// protocol - http://yahoo.com
-	{
-	 "yahoo_camera", 0},
-	{
-	 "yahoo_file", 0},
-	{
-	 "yahoo_login", 0},
-	{
-	 "yahoo_voice", 0},
-	{
-	 "youtube", 0},
+	{"tonghuashun", L7_ONLY},
+	{"tor", DPI},
 #ifdef HAVE_OPENDPI
-	{
-	 "zattoo", 2},
-	{
-	 "zeromq", 2},
+	{"torcedor", NDPI_ONLY},
+	{"truphone", NDPI_ONLY},
 #endif
-	{
-	 "zip", 0},		// ZIP - (PK|Win)Zip archive format
-	{
-	 "zmaap", 0},		// ZMAAP - Zeroconf Multicast Address
-	// Allocation Protocol
-	{
-	 0, 0}
+	{"tsp", L7_ONLY},
+#ifdef HAVE_OPENDPI
+	{"tuenti", NDPI_ONLY},
+	{"tvants", NDPI_ONLY},
+	{"tvuplayer", NDPI_ONLY},
+	{"twitch", NDPI_ONLY},
+	{"twitter", NDPI_ONLY},
+	{"ubntac2", NDPI_ONLY},
+	{"ubuntuone", NDPI_ONLY},
+	{"unencryped_jabber", NDPI_ONLY},
+#endif
+	{"unset", L7_ONLY},
+#ifdef HAVE_OPENDPI
+	{"upnp", NDPI_ONLY},
+	{"usenet", NDPI_ONLY},
+#endif
+	{"uucp", L7_ONLY},
+	{"validcertssl", L7_ONLY},
+	{"ventrilo", L7_ONLY},
+#ifdef HAVE_OPENDPI
+	{"veohtv", NDPI_ONLY},
+	{"vevo", NDPI_ONLY},
+	{"vhua", NDPI_ONLY},
+	{"viber", NDPI_ONLY},
+	{"vmware", NDPI_ONLY},
+#endif
+	{"vnc", DPI},
+#ifdef HAVE_OPENDPI
+	{"warcraft3", NDPI_ONLY},
+#endif
+	{"waste", PDPI_ONLY},
+#ifdef HAVE_OPENDPI
+	{"webex", NDPI_ONLY},
+	{"webm", NDPI_ONLY},
+#endif
+	{"webmail_163", L7_ONLY},
+	{"webmail_gmail", L7_ONLY},
+	{"webmail_hinet", L7_ONLY},
+	{"webmail_hotmail", L7_ONLY},
+	{"webmail_pchome", L7_ONLY},
+	{"webmail_qq", L7_ONLY},
+	{"webmail_seednet", L7_ONLY},
+	{"webmail_sina", L7_ONLY},
+	{"webmail_sohu", L7_ONLY},
+	{"webmail_tom", L7_ONLY},
+	{"webmail_url", L7_ONLY},
+	{"webmail_yahoo", L7_ONLY},
+	{"webmail_yam", L7_ONLY},
+#ifdef HAVE_OPENDPI
+	{"whatOAsapp", NDPI_ONLY},
+	{"whatsapp", NDPI_ONLY},
+#endif
+	{"whois", L7_ONLY},
+#ifdef HAVE_OPENDPI
+	{"whois_das", NDPI_ONLY},
+	{"wikipedia", NDPI_ONLY},
+	{"windows_update", NDPI_ONLY},
+	{"windowsmedia", NDPI_ONLY},
+#endif
+	{"winmx", PDPI},
+#ifdef HAVE_OPENDPI
+	{"winupdate", NDPI_ONLY},
+	{"wokf", NDPI_ONLY},
+	{"world_of_kung_fu", NDPI_ONLY},
+#endif
+	{"worldofwarcraft", DPI},
+	{"x11", L7_ONLY},
+#ifdef HAVE_OPENDPI
+	{"xbox", NDPI_ONLY},
+#endif
+	{"xboxlive", L7_ONLY},
+	{"xdcc", PDPI_ONLY},
+#ifdef HAVE_OPENDPI
+	{"xdmcp", NDPI_ONLY},
+#endif
+	{"xunlei", L7_ONLY},
+	{"yahoo", DPI},
+	{"yahoo_camera", L7_ONLY},
+	{"yahoo_file", L7_ONLY},
+	{"yahoo_login", L7_ONLY},
+	{"yahoo_voice", L7_ONLY},
+	{"youtube", DPI},
+#ifdef HAVE_OPENDPI
+	{"zattoo", NDPI_ONLY},
+	{"zeromq", NDPI_ONLY},
+#endif
+	{"zip", L7_ONLY},
+	{"zmaap", L7_ONLY},
+#ifdef HAVE_OPENDPI
+	{"zmq", NDPI_ONLY},
+#endif
+	{0, 0},
 };

@@ -1,5 +1,5 @@
 /*
- * ssh.c
+ * whoisdas.c
  *
  * Copyright (C) 2013 - ntop.org
  *
@@ -18,41 +18,50 @@
  *
  */
 
-
 #include "ndpi_protocols.h"
 #ifdef NDPI_PROTOCOL_WHOIS_DAS
 
-void ndpi_search_whois_das(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
+static void ndpi_search_whois_das(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+	struct ndpi_packet_struct *packet = &flow->packet;
+	u_int16_t sport = ntohs(packet->tcp->source), dport = ntohs(packet->tcp->dest);
 
-  if ((packet->tcp != NULL)
-      && (
-	  ((ntohs(packet->tcp->source) == 43) || (ntohs(packet->tcp->dest) == 43))
-	  ||
-	  ((ntohs(packet->tcp->source) == 4343) || (ntohs(packet->tcp->dest) == 4343))
-	  )
-      ) {
-    if(packet->payload_packet_len > 0) {
-      u_int max_len = sizeof(flow->host_server_name)-1;
-      u_int i, j;
+	if ((packet->tcp != NULL)
+	    && (((sport == 43) || (dport == 43))
+		|| ((sport == 4343) || (dport == 4343))
+	    )
+	    ) {
+		if (packet->payload_packet_len > 0) {
+			u_int max_len = sizeof(flow->host_server_name) - 1;
+			u_int i, j;
 
-      for(i=strlen((const char *)flow->host_server_name), j=0; (i<max_len) && (j<packet->payload_packet_len); i++, j++) {
-	if((packet->payload[j] == '\n') || (packet->payload[j] == '\r')) break;
+			for (i = strlen((const char *)flow->host_server_name), j = 0; (i < max_len) && (j < packet->payload_packet_len); i++, j++) {
+				if ((packet->payload[j] == '\n') || (packet->payload[j] == '\r'))
+					break;
 
-	flow->host_server_name[i] = packet->payload[j];
-      }
+				flow->host_server_name[i] = packet->payload[j];
+			}
 
-      flow->host_server_name[i] = '\0';
+			flow->host_server_name[i] = '\0';
+			flow->server_id = ((sport == 43) || (sport == 4343)) ? flow->src : flow->dst;
 
-      NDPI_LOG(NDPI_PROTOCOL_WHOIS_DAS, ndpi_struct, NDPI_LOG_DEBUG, "{WHOIS/DAS] %s\n", flow->host_server_name);
-    }
+			NDPI_LOG(NDPI_PROTOCOL_WHOIS_DAS, ndpi_struct, NDPI_LOG_DEBUG, "[WHOIS/DAS] %s\n", flow->host_server_name);
+		}
 
-    ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_WHOIS_DAS, NDPI_REAL_PROTOCOL);
-  } else {
-    NDPI_LOG(NDPI_PROTOCOL_WHOIS_DAS, ndpi_struct, NDPI_LOG_TRACE, "WHOIS Excluded.\n");
-    NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_WHOIS_DAS);
-  }
+		ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_WHOIS_DAS, NDPI_PROTOCOL_UNKNOWN);
+	} else {
+		NDPI_LOG(NDPI_PROTOCOL_WHOIS_DAS, ndpi_struct, NDPI_LOG_TRACE, "WHOIS Excluded.\n");
+		NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_WHOIS_DAS);
+	}
+}
+
+static void init_whois_das_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("Whois-DAS", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_WHOIS_DAS,
+					    ndpi_search_whois_das, NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+
+	*id += 1;
 }
 
 #endif

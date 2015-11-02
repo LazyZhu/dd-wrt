@@ -60,16 +60,10 @@ void ej_get_firmware_version(webs_t wp, int argc, char_t ** argv)
 	char *p;
 	char string[32], date[16];
 	sprintf(string, CYBERTAN_VERSION);
-	p = strtok(string, "(");
-	if (p != NULL) {
-		p = strtok(NULL, ")");
-		if (p != NULL) {
-			sprintf(date, "%s", p);
-		}
-	}
+	sprintf(date, "%s", BUILD_DATE);
 #endif
 #ifdef HAVE_BUFFALO
-	websWrite(wp, " %s%s %s%s", CYBERTAN_VERSION, MINOR_VERSION, nvram_safe_get("dist_type"), DIST_OPT);
+	websWrite(wp, " DD-WRT v3.0-r%s %s%s (" BUILD_DATE ")", SVN_REVISION, nvram_safe_get("dist_type"), DIST_OPT);
 #else
 
 #ifdef HAVE_REGISTER
@@ -143,6 +137,8 @@ void ej_get_firmware_version(webs_t wp, int argc, char_t ** argv)
 			}
 		} else if (nvram_match("DD_BOARD", "Compex WP546")) {
 			websWrite(wp, " OTAi 724S (%s)", date);
+		} else if (nvram_match("DD_BOARD", "Compex MMS344")) {
+			websWrite(wp, " OTAi DBDC344 (%s)", date);
 		} else {
 			websWrite(wp, " OTAi %s (%s)", nvram_get("DD_BOARD"), date);
 		}
@@ -153,9 +149,17 @@ void ej_get_firmware_version(webs_t wp, int argc, char_t ** argv)
 #elif HAVE_SANSFIL
 		websWrite(wp, " SANSFIL %s %s%s", MINOR_VERSION, nvram_safe_get("dist_type"), DIST_OPT);
 #elif HAVE_HOBBIT
-		websWrite(wp, " Hobb-IT %s %s%s", MINOR_VERSION, nvram_safe_get("dist_type"), DIST_OPT);
+		websWrite(wp, " HQ-NDS %s %s%s", MINOR_VERSION, nvram_safe_get("dist_type"), DIST_OPT);
+#elif HAVE_ERC
+		websWrite(wp, " RemoteEngineer FW 1.1 r%s (" BUILD_DATE ")", SVN_REVISION);
+#elif HAVE_IDEXX
+#ifdef HAVE_IDEXX_WORLD
+		websWrite(wp, " DD-WRT v3.0-r%s %s%s (" BUILD_DATE ") WW", SVN_REVISION, nvram_safe_get("dist_type"), DIST_OPT);
 #else
-		websWrite(wp, " %s%s %s%s", CYBERTAN_VERSION, MINOR_VERSION, nvram_safe_get("dist_type"), DIST_OPT);
+		websWrite(wp, " DD-WRT v3.0-r%s %s%s (" BUILD_DATE ") US", SVN_REVISION, nvram_safe_get("dist_type"), DIST_OPT);
+#endif
+#else
+		websWrite(wp, " DD-WRT v3.0-r%s %s%s (" BUILD_DATE ")", SVN_REVISION, nvram_safe_get("dist_type"), DIST_OPT);
 #endif
 	}
 #endif

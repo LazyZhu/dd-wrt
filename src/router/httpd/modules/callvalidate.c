@@ -150,7 +150,7 @@ struct wl_client_mac wl_client_macs[MAX_LEASES];
 
 // extern struct wl_client_mac *wl_client_macs;
 
-extern char *live_translate(char *tran);
+extern char *live_translate(const char *tran);
 extern void validate_cgi(webs_t wp);
 
 static int initWeb(void *handle)
@@ -174,9 +174,7 @@ static int initWeb(void *handle)
 #endif
 	env.PejArgs = ejArgs;
 	env.PgetWebsFile = getWebsFile;
-	env.Pwfputc = wfputc;
 	env.Pwfputs = wfputs;
-	env.Pwfflush = wfflush;
 	env.PwebsRomPageIndex = websRomPageIndex;
 	env.Plive_translate = live_translate;
 	env.PGOZILA_GET = GOZILA_GET;

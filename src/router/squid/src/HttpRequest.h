@@ -1,43 +1,23 @@
 /*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
 #ifndef SQUID_HTTPREQUEST_H
 #define SQUID_HTTPREQUEST_H
 
 #include "base/CbcPointer.h"
-#include "Debug.h"
+#include "dns/forward.h"
 #include "err_type.h"
 #include "HierarchyLogEntry.h"
+#include "http/RequestMethod.h"
 #include "HttpMsg.h"
-#include "HttpRequestMethod.h"
+#include "Notes.h"
 #include "RequestFlags.h"
+#include "URL.h"
 
 #if USE_AUTH
 #include "auth/UserRequest.h"
@@ -56,59 +36,35 @@
 class ConnStateData;
 
 /*  Http Request */
-void httpRequestPack(void *obj, Packer *p);
+void httpRequestPack(void *obj, Packable *p);
 
 class HttpHdrRange;
-class DnsLookupDetails;
 
 class HttpRequest: public HttpMsg
 {
+    MEMPROXY_CLASS(HttpRequest);
 
 public:
-    typedef HttpMsgPointerT<HttpRequest> Pointer;
+    typedef RefCount<HttpRequest> Pointer;
 
-    MEMPROXY_CLASS(HttpRequest);
     HttpRequest();
     HttpRequest(const HttpRequestMethod& aMethod, AnyP::ProtocolType aProtocol, const char *aUrlpath);
     ~HttpRequest();
     virtual void reset();
 
-    // use HTTPMSGLOCK() instead of calling this directly
-    virtual HttpRequest *_lock() {
-        return static_cast<HttpRequest*>(HttpMsg::_lock());
-    };
-
     void initHTTP(const HttpRequestMethod& aMethod, AnyP::ProtocolType aProtocol, const char *aUrlpath);
 
     virtual HttpRequest *clone() const;
 
-    /* are responses to this request potentially cachable */
-    bool cacheable() const;
+    /// Whether response to this request is potentially cachable
+    /// \retval false  Not cacheable.
+    /// \retval true   Possibly cacheable. Response factors will determine.
+    bool maybeCacheable();
 
     bool conditional() const; ///< has at least one recognized If-* header
 
     /// whether the client is likely to be able to handle a 1xx reply
     bool canHandle1xx() const;
-
-    /* Now that we care what host contains it is better off being protected. */
-    /* HACK: These two methods are only inline to get around Makefile dependancies */
-    /*      caused by HttpRequest being used in places it really shouldn't.        */
-    /*      ideally they would be methods of URL instead. */
-    inline void SetHost(const char *src) {
-        host_addr.SetEmpty();
-        host_addr = src;
-        if ( host_addr.IsAnyAddr() ) {
-            xstrncpy(host, src, SQUIDHOSTNAMELEN);
-            host_is_numeric = 0;
-        } else {
-            host_addr.ToHostname(host, SQUIDHOSTNAMELEN);
-            debugs(23, 3, "HttpRequest::SetHost() given IP: " << host_addr);
-            host_is_numeric = 1;
-        }
-        safe_free(canonical); // force its re-build
-    };
-    inline const char* GetHost(void) const { return host; };
-    inline int GetHostIsNumeric(void) const { return host_is_numeric; };
 
 #if USE_ADAPTATION
     /// Returns possibly nil history, creating it if adapt. logging is enabled
@@ -123,7 +79,7 @@ public:
     Adaptation::Icap::History::Pointer icapHistory() const;
 #endif
 
-    void recordLookup(const DnsLookupDetails &detail);
+    void recordLookup(const Dns::LookupDetails &detail);
 
     /// sets error detail if no earlier detail was available
     void detailError(err_type aType, int aDetail);
@@ -137,13 +93,9 @@ protected:
 
 public:
     HttpRequestMethod method;
-
-    char login[MAX_LOGIN_SZ];
+    URL url; ///< the request URI
 
 private:
-    char host[SQUIDHOSTNAMELEN];
-    int host_is_numeric;
-
 #if USE_ADAPTATION
     mutable Adaptation::History::Pointer adaptHistory_; ///< per-HTTP transaction info
 #endif
@@ -152,15 +104,20 @@ private:
 #endif
 
 public:
-    Ip::Address host_addr;
 #if USE_AUTH
     Auth::UserRequest::Pointer auth_user_request;
 #endif
-    unsigned short port;
 
-    String urlpath;
+    /// RFC 7230 section 5.5 - Effective Request URI
+    const SBuf &effectiveRequestUri() const;
 
-    char *canonical;
+    /**
+     * If defined, store_id_program mapped the request URL to this ID.
+     * Store uses this ID (and not the URL) to find and store entries,
+     * avoiding caching duplicate entries when different URLs point to
+     * "essentially the same" cachable resource.
+     */
+    String store_id;
 
     RequestFlags flags;
 
@@ -185,27 +142,29 @@ public:
     err_type errType;
     int errDetail; ///< errType-specific detail about the transaction error
 
-    char *peer_login;		/* Configured peer login:password */
+    char *peer_login;       /* Configured peer login:password */
 
     char *peer_host;           /* Selected peer host*/
 
-    time_t lastmod;		/* Used on refreshes */
+    time_t lastmod;     /* Used on refreshes */
 
-    const char *vary_headers;	/* Used when varying entities are detected. Changes how the store key is calculated */
+    const char *vary_headers;   /* Used when varying entities are detected. Changes how the store key is calculated */
 
-    char *peer_domain;		/* Configured peer forceddomain */
+    char *peer_domain;      /* Configured peer forceddomain */
 
     String myportname; // Internal tag name= value from port this requests arrived in.
 
-    String tag;			/* Internal tag for this request */
+    NotePairs::Pointer notes; ///< annotations added by the note directive and helpers
 
-    String extacl_user;		/* User name returned by extacl lookup */
+    String tag;         /* Internal tag for this request */
 
-    String extacl_passwd;	/* Password returned by extacl lookup */
+    String extacl_user;     /* User name returned by extacl lookup */
 
-    String extacl_log;		/* String to be used for access.log purposes */
+    String extacl_passwd;   /* Password returned by extacl lookup */
 
-    String extacl_message;	/* String to be used for error page purposes */
+    String extacl_log;      /* String to be used for access.log purposes */
+
+    String extacl_message;  /* String to be used for error page purposes */
 
 #if FOLLOW_X_FORWARDED_FOR
     String x_forwarded_for_iterator; /* XXX a list of IP addresses */
@@ -214,30 +173,38 @@ public:
     /// A strong etag of the cached entry. Used for refreshing that entry.
     String etag;
 
+    /// whether we have responded with HTTP 100 or FTP 150 already
+    bool forcedBodyContinuation;
+
 public:
     bool multipartRangeRequest() const;
 
     bool parseFirstLine(const char *start, const char *end);
 
-    int parseHeader(const char *parse_start, int len);
-
     virtual bool expectingBody(const HttpRequestMethod& unused, int64_t&) const;
 
     bool bodyNibbled() const; // the request has a [partially] consumed body
 
-    int prefixLen();
+    int prefixLen() const;
 
     void swapOut(StoreEntry * e);
 
-    void pack(Packer * p);
+    void pack(Packable * p);
 
-    static void httpRequestPack(void *obj, Packer *p);
+    static void httpRequestPack(void *obj, Packable *p);
 
     static HttpRequest * CreateFromUrlAndMethod(char * url, const HttpRequestMethod& method);
 
     static HttpRequest * CreateFromUrl(char * url);
 
     ConnStateData *pinnedConnection();
+
+    /**
+     * Returns the current StoreID for the request as a nul-terminated char*.
+     * Always returns the current id for the request
+     * (either the effective request URI or modified ID by the helper).
+     */
+    const SBuf storeId();
 
     /**
      * The client connection manager, if known;
@@ -251,20 +218,17 @@ public:
     int64_t getRangeOffsetLimit(); /* the result of this function gets cached in rangeOffsetLimit */
 
 private:
-    const char *packableURI(bool full_uri) const;
-
     mutable int64_t rangeOffsetLimit;  /* caches the result of getRangeOffsetLimit */
 
 protected:
-    virtual void packFirstLineInto(Packer * p, bool full_uri) const;
+    virtual void packFirstLineInto(Packable * p, bool full_uri) const;
 
-    virtual bool sanityCheckStartLine(MemBuf *buf, const size_t hdr_len, http_status *error);
+    virtual bool sanityCheckStartLine(const char *buf, const size_t hdr_len, Http::StatusCode *error);
 
     virtual void hdrCacheInit();
 
     virtual bool inheritProperties(const HttpMsg *aMsg);
 };
 
-MEMPROXY_CLASS_INLINE(HttpRequest);
-
 #endif /* SQUID_HTTPREQUEST_H */
+

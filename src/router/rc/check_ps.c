@@ -66,10 +66,15 @@ struct mon mons[] = {
 #ifdef HAVE_MULTICAST
 	{"igmprt", 1, M_WAN, "block_multicast", "0"},
 #endif
+#ifdef HAVE_ERC
+#ifdef HAVE_OPENVPN
+	{"openvpn", 1, M_LAN, "openvpncl_enable", "1"},
+#endif
+#endif
 	{NULL, 0, 0}
 };
 
-int search_process(char *name, int count)
+static int search_process(char *name, int count)
 {
 	int c = 0;
 
@@ -88,7 +93,7 @@ int search_process(char *name, int count)
 	}
 }
 
-void checknas(void)		// for broadcom v24 only
+static void checknas(void)		// for broadcom v24 only
 {
 #if !defined(HAVE_MADWIFI) && !defined(HAVE_RT2880)
 
@@ -119,7 +124,7 @@ void checknas(void)		// for broadcom v24 only
 		/* 
 		 * software wlan led control 
 		 */
-void softcontrol_wlan_led(void)	// done in watchdog.c for non-micro builds.
+static void softcontrol_wlan_led(void)	// done in watchdog.c for non-micro builds.
 {
 #if defined(HAVE_MICRO) && !defined(HAVE_ADM5120) && !defined(HAVE_WRK54G)
 	int brand;
@@ -220,7 +225,7 @@ void softcontrol_wlan_led(void)	// done in watchdog.c for non-micro builds.
  * end software wlan led control 
  */
 
-void checkupgrade(void)
+static void checkupgrade(void)
 {
 #ifndef HAVE_X86
 	FILE *in = fopen("/tmp/firmware.bin", "rb");
@@ -243,7 +248,7 @@ void checkupgrade(void)
 #endif
 }
 
-int do_mon(void)
+static int do_mon(void)
 {
 	struct mon *v;
 

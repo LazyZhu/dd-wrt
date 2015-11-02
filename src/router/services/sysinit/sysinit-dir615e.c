@@ -138,11 +138,12 @@ void start_sysinit(void)
 	eval("ifconfig", "eth0", "up");
 	eval("ifconfig", "eth1", "up");
 #ifdef HAVE_SWCONFIG
-	system("swconfig dev eth1 set reset 1");
-	system("swconfig dev eth1 set enable_vlan 1");
-	system("swconfig dev eth1 vlan 1 set ports \"0 1 2 3 4\"");
-	system("swconfig dev eth1 set apply");
+	eval("swconfig", "dev", "eth1", "set", "reset", "1");
+	eval("swconfig", "dev", "eth1", "set", "enable_vlan", "0");
+	eval("swconfig", "dev", "eth1", "vlan", "1", "set", "ports", "0 1 2 3 4");
+	eval("swconfig", "dev", "eth1", "set", "apply");
 
+#ifndef HAVE_DAP2230
 #ifndef HAVE_DIR615I
 #ifndef HAVE_DIR632
 	setEthLED(17, "eth0");
@@ -165,7 +166,7 @@ void start_sysinit(void)
 	setSwitchLED(21, 0x10);
 	setSwitchLED(12, 0x02);
 #endif
-
+#endif
 #endif
 	struct ifreq ifr;
 	int s;
@@ -187,11 +188,14 @@ void start_sysinit(void)
 		free(lanmac);
 	}
 #endif
-#ifdef HAVE_DIR632
+#ifndef HAVE_DAP3320
+#ifdef HAVE_DAP2230
+//      setWirelessLedGeneric(0, 11);
+#elif HAVE_DIR632
 	setWirelessLedPhy0(0);
-#endif
-#ifdef HAVE_DIR615I
+#elif HAVE_DIR615I
 	setWirelessLedGeneric(0, 13);
+#endif
 #endif
 	led_control(LED_POWER, LED_ON);
 	led_control(LED_SES, LED_OFF);

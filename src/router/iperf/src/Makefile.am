@@ -21,10 +21,13 @@ libiperf_la_SOURCES     = \
                         iperf_tcp.h \
                         iperf_udp.c \
                         iperf_udp.h \
+			iperf_sctp.c \
+	                iperf_sctp.h \
                         iperf_util.c \
                         iperf_util.h \
                         net.c \
                         net.h \
+			portable_endian.h \
                         queue.h \
                         tcp_info.c \
                         tcp_window_size.c \

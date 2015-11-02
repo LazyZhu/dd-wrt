@@ -32,11 +32,6 @@
  * SUCH DAMAGE.
  */
 
-#ifndef lint
-static const char rcsid[] _U_ =
-    "@(#) $Header: /repository/WRT54G/src/router/libpcap/Attic/fad-glifc.c,v 1.1.2.1 2004/06/11 11:06:31 nikki Exp $ (LBL)";
-#endif
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -75,12 +70,12 @@ struct rtentry;		/* declarations in <net/if.h> */
  * The list, as returned through "alldevsp", may be null if no interfaces
  * were up and could be opened.
  *
- * This is the implementation used on platforms that have SIOCLGIFCONF
+ * This is the implementation used on platforms that have SIOCGLIFCONF
  * but don't have "getifaddrs()".  (Solaris 8 and later; we use
- * SIOCLGIFCONF rather than SIOCGIFCONF in order to get IPv6 addresses.)
+ * SIOCGLIFCONF rather than SIOCGIFCONF in order to get IPv6 addresses.)
  */
 int
-pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
+pcap_findalldevs_interfaces(pcap_if_t **alldevsp, char *errbuf)
 {
 	pcap_if_t *devlist = NULL;
 	register int fd4, fd6, fd;
@@ -89,6 +84,9 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 	struct lifconf ifc;
 	char *buf = NULL;
 	unsigned buf_size;
+#ifdef HAVE_SOLARIS
+	char *p, *q;
+#endif
 	struct lifreq ifrflags, ifrnetmask, ifrbroadaddr, ifrdstaddr;
 	struct sockaddr *netmask, *broadaddr, *dstaddr;
 	int ret = 0;
@@ -175,8 +173,37 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 			fd = fd4;
 
 		/*
-		 * Get the flags for this interface, and skip it if it's
-		 * not up.
+		 * Skip entries that begin with "dummy".
+		 * XXX - what are these?  Is this Linux-specific?
+		 * Are there platforms on which we shouldn't do this?
+		 */
+		if (strncmp(ifrp->lifr_name, "dummy", 5) == 0)
+			continue;
+
+#ifdef HAVE_SOLARIS
+		/*
+		 * Skip entries that have a ":" followed by a number
+		 * at the end - those are Solaris virtual interfaces
+		 * on which you can't capture.
+		 */
+		p = strchr(ifrp->lifr_name, ':');
+		if (p != NULL) {
+			/*
+			 * We have a ":"; is it followed by a number?
+			 */
+			while (isdigit((unsigned char)*p))
+				p++;
+			if (*p == '\0') {
+				/*
+				 * All digits after the ":" until the end.
+				 */
+				continue;
+			}
+		}
+#endif
+
+		/*
+		 * Get the flags for this interface.
 		 */
 		strncpy(ifrflags.lifr_name, ifrp->lifr_name,
 		    sizeof(ifrflags.lifr_name));
@@ -191,8 +218,6 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 			ret = -1;
 			break;
 		}
-		if (!(ifrflags.lifr_flags & IFF_UP))
-			continue;
 
 		/*
 		 * Get the netmask for this address on this interface.
@@ -284,6 +309,34 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 		} else
 			dstaddr = NULL;
 
+#ifdef HAVE_SOLARIS
+		/*
+		 * If this entry has a colon followed by a number at
+		 * the end, it's a logical interface.  Those are just
+		 * the way you assign multiple IP addresses to a real
+		 * interface, so an entry for a logical interface should
+		 * be treated like the entry for the real interface;
+		 * we do that by stripping off the ":" and the number.
+		 */
+		p = strchr(ifrp->lifr_name, ':');
+		if (p != NULL) {
+			/*
+			 * We have a ":"; is it followed by a number?
+			 */
+			q = p + 1;
+			while (isdigit((unsigned char)*q))
+				q++;
+			if (*q == '\0') {
+				/*
+				 * All digits after the ":" until the end.
+				 * Strip off the ":" and everything after
+				 * it.
+				 */
+				*p = '\0';
+			}
+		}
+#endif
+
 		/*
 		 * Add information for this address to the list.
 		 */
@@ -300,15 +353,6 @@ pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
 	free(buf);
 	(void)close(fd6);
 	(void)close(fd4);
-
-	if (ret != -1) {
-		/*
-		 * We haven't had any errors yet; do any platform-specific
-		 * operations to add devices.
-		 */
-		if (pcap_platform_finddevs(&devlist, errbuf) < 0)
-			ret = -1;
-	}
 
 	if (ret == -1) {
 		/*

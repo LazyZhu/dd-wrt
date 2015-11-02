@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef SQUID_MMAPPEDFILE_H
 #define SQUID_MMAPPEDFILE_H
 
@@ -7,10 +15,9 @@
 
 class MmappedFile : public DiskFile
 {
+    CBDATA_CLASS(MmappedFile);
 
 public:
-    void *operator new(size_t);
-    void operator delete(void *);
     MmappedFile(char const *path);
     ~MmappedFile();
     virtual void open(int flags, mode_t mode, RefCount<IORequestor> callback);
@@ -39,8 +46,7 @@ private:
     bool error_;
 
     void doClose();
-
-    CBDATA_CLASS(MmappedFile);
 };
 
 #endif /* SQUID_MMAPPEDFILE_H */
+

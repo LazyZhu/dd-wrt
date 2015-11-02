@@ -1,39 +1,19 @@
 /*
- * DEBUG: section 37    ICMP Routines
- * AUTHOR: Duane Wessels, Amos Jeffries
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 37    ICMP Routines */
 
 #include "squid.h"
 #include "comm.h"
 #include "comm/Loops.h"
+#include "defines.h"
 #include "fd.h"
+#include "icmp/IcmpConfig.h"
 #include "icmp/IcmpSquid.h"
 #include "icmp/net_db.h"
 #include "ip/tools.h"
@@ -41,9 +21,7 @@
 #include "SquidIpc.h"
 #include "SquidTime.h"
 
-#if HAVE_ERRNO_H
-#include <errno.h>
-#endif
+#include <cerrno>
 
 // Instance global to be available in main() and elsewhere.
 IcmpSquid icmpEngine;
@@ -51,9 +29,6 @@ IcmpSquid icmpEngine;
 #if USE_ICMP
 
 #define S_ICMP_ECHO     1
-#if DEAD_CODE
-#define S_ICMP_ICP      2
-#endif
 #define S_ICMP_DOM      3
 
 static void * hIpc;
@@ -179,7 +154,7 @@ IcmpSquid::Recv()
 
     F = preply.from;
 
-    F.SetPort(0);
+    F.port(0);
 
     switch (preply.opcode) {
 
@@ -219,14 +194,14 @@ IcmpSquid::Open(void)
     Ip::Address localhost;
 
     /* User configured disabled. */
-    if (!Config.pinger.enable) {
+    if (!IcmpCfg.enable) {
         Close();
         return -1;
     }
 
     args[0] = "(pinger)";
     args[1] = NULL;
-    localhost.SetLocalhost();
+    localhost.setLocalhost();
 
     /*
      * Do NOT use IPC_DGRAM (=IPC_UNIX_DGRAM) here because you can't
@@ -234,7 +209,7 @@ IcmpSquid::Open(void)
      * least on FreeBSD).
      */
     pid = ipcCreate(IPC_UDP_SOCKET,
-                    Config.pinger.program,
+                    IcmpCfg.program.c_str(),
                     args,
                     "Pinger Socket",
                     localhost,
@@ -260,7 +235,7 @@ IcmpSquid::Open(void)
     /* Tests the pinger immediately using localhost */
     if (Ip::EnableIpv6)
         SendEcho(localhost, S_ICMP_ECHO, "ip6-localhost");
-    if (localhost.SetIPv4())
+    if (localhost.setIPv4())
         SendEcho(localhost, S_ICMP_ECHO, "localhost");
 
 #if _SQUID_WINDOWS_
@@ -308,3 +283,4 @@ IcmpSquid::Close(void)
 
 #endif
 }
+

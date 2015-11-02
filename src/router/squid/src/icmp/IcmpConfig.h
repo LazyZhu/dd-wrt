@@ -1,66 +1,53 @@
 /*
- * DEBUG: section 03    Configuration Settings
- * AUTHOR: Amos Jeffries
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from the
- *  Internet community.  Development is led by Duane Wessels of the
- *  National Laboratory for Applied Network Research and funded by the
- *  National Science Foundation.  Squid is Copyrighted (C) 1998 by
- *  the Regents of the University of California.  Please see the
- *  COPYRIGHT file for full details.  Squid incorporates software
- *  developed and/or copyrighted by other sources.  Please see the
- *  CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
- *  This code is copyright (C) 2007 by Treehouse Networks Ltd
- *  of New Zealand. It is published and Lisenced as an extension of
- *  squid under the same conditions as the main squid application.
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 03    Configuration Settings */
+
 #ifndef ICMPCONFIG_H
 #define ICMPCONFIG_H
 
+#if USE_ICMP
+
+#include "cache_cf.h"
+#include "SBuf.h"
+
 /**
  * Squid pinger Configuration settings
- *
- \par
- * This structure is included as a child field of the global Config
- * such that if ICMP is built it can be accessed as Config.pinger.*
  */
 class IcmpConfig
 {
-
 public:
+    IcmpConfig() : enable(0) {}
+    ~IcmpConfig() {}
 
-    /** \todo These methods should really be defined in an ICMPConfig.cc file
-     * alongside any custom parsing routines needed for this component.
-     * First though, the whole global Config dependancy tree needs fixing */
-    IcmpConfig() : program(NULL), enable(0) {};
-    ~IcmpConfig() { if (program) delete program; program = NULL; };
-
-    /* variables */
+    void clear() {enable=0; program.clear();}
+    void parse();
 
     /** pinger helper application path */
-    char *program;
+    SBuf program;
 
     /** Whether the pinger helper is enabled for use or not */
-    /** \todo make this much more memory efficient for a boolean */
     int enable;
 };
 
+extern IcmpConfig IcmpCfg;
+
+/* wrappers for the legacy squid.conf parser */
+#define dump_icmp(e,n,v) \
+        if (!(v).program.isEmpty()) { \
+            (e)->append((n), strlen((n))); \
+            (e)->append(" ", 1); \
+            (e)->append((v).program.rawContent(), (v).program.length()); \
+            (e)->append("\n", 1); \
+        } else {}
+#define parse_icmp(v) (v)->parse()
+#define free_icmp(x) (x)->clear()
+
+#endif /* USE_ICMP */
 #endif /* ICMPCONFIG_H */
+

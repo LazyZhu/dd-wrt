@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////////////////////
 //		Turkish reference translation file - DD-WRT V24 SP2       Sep/2012 by Buffalo //
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -101,12 +101,12 @@ share.manual="Manuel";
 share.port="Port";
 share.ssid="SSID";
 share.channel="Kanal";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="Sinyal";
 share.noise="Gürültü";
-share.beacon="sinyal";
+share.beacon="Sinyal";
 share.openn="Aç";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="Hız";
 share.rate="Hız";
 share.txrate="TX Hızı";

@@ -1,47 +1,23 @@
 /*
- * DEBUG: section 41    Event Processing
- * AUTHOR: Henrik Nordstrom
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
+/* DEBUG: section 41    Event Processing */
+
 #include "squid.h"
-#include "compat/drand48.h"
 #include "event.h"
 #include "mgr/Registration.h"
-#include "Store.h"
-#include "SquidTime.h"
 #include "profiler/Profiler.h"
+#include "SquidTime.h"
+#include "Store.h"
 #include "tools.h"
 
-#if HAVE_MATH_H
-#include <math.h>
-#endif
+#include <cmath>
+#include <random>
 
 /* The list of event processes */
 
@@ -71,14 +47,14 @@ private:
 };
 
 EventDialer::EventDialer(EVH *aHandler, void *anArg, bool lockedArg):
-        theHandler(aHandler), theArg(anArg), isLockedArg(lockedArg)
+    theHandler(aHandler), theArg(anArg), isLockedArg(lockedArg)
 {
     if (isLockedArg)
         (void)cbdataReference(theArg);
 }
 
 EventDialer::EventDialer(const EventDialer &d):
-        theHandler(d.theHandler), theArg(d.theArg), isLockedArg(d.isLockedArg)
+    theHandler(d.theHandler), theArg(d.theArg), isLockedArg(d.isLockedArg)
 {
     if (isLockedArg)
         (void)cbdataReference(theArg);
@@ -112,10 +88,14 @@ EventDialer::print(std::ostream &os) const
     os << ')';
 }
 
-ev_entry::ev_entry(char const * aName, EVH * aFunction, void * aArgument, double evWhen,
-                   int aWeight, bool haveArgument) : name(aName), func(aFunction),
-        arg(haveArgument ? cbdataReference(aArgument) : aArgument), when(evWhen), weight(aWeight),
-        cbdata(haveArgument)
+ev_entry::ev_entry(char const * aName, EVH * aFunction, void * aArgument, double evWhen, int aWeight, bool haveArg) :
+    name(aName),
+    func(aFunction),
+    arg(haveArg ? cbdataReference(aArgument) : aArgument),
+    when(evWhen),
+    weight(aWeight),
+    cbdata(haveArg),
+    next(NULL)
 {
 }
 
@@ -136,12 +116,12 @@ void
 eventAddIsh(const char *name, EVH * func, void *arg, double delta_ish, int weight)
 {
     if (delta_ish >= 3.0) {
-        const double two_third = (2.0 * delta_ish) / 3.0;
-        delta_ish = two_third + (drand48() * two_third);
-        /*
-         * I'm sure drand48() isn't portable.  Tell me what function
-         * you have that returns a random double value in the range 0,1.
-         */
+        // Default seed is fine. We just need values random enough
+        // relative to each other to prevent waves of synchronised activity.
+        static std::mt19937 rng;
+        auto third = (delta_ish/3.0);
+        xuniform_real_distribution<> thirdIsh(delta_ish - third, delta_ish + third);
+        delta_ish = thirdIsh(rng);
     }
 
     eventAdd(name, func, arg, delta_ish, weight);
@@ -243,7 +223,7 @@ EventScheduler::timeRemaining() const
 }
 
 int
-EventScheduler::checkEvents(int timeout)
+EventScheduler::checkEvents(int)
 {
     int result = timeRemaining();
     if (result != 0)
@@ -308,7 +288,7 @@ EventScheduler::dump(StoreEntry * sentry)
     while (e != NULL) {
         storeAppendPrintf(sentry, "%-25s\t%0.3f sec\t%5d\t %s\n",
                           e->name, e->when ? e->when - current_dtime : 0, e->weight,
-                  (e->arg && e->cbdata) ? cbdataReferenceValid(e->arg) ? "yes" : "no" : "N/A");
+                          (e->arg && e->cbdata) ? cbdataReferenceValid(e->arg) ? "yes" : "no" : "N/A");
         e = e->next;
     }
 }
@@ -354,3 +334,4 @@ EventScheduler::schedule(const char *name, EVH * func, void *arg, double when, i
     event->next = *E;
     *E = event;
 }
+

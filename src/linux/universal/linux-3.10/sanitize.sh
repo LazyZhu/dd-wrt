@@ -49,8 +49,13 @@ do
 	    echo CONFIG_DAP3310=y >> .config
 	    echo CONFIG_WR1043V2=y >> .config
 	    echo CONFIG_ARCHERC7=y >> .config
+	    echo CONFIG_DIR859=y >> .config
 	    echo CONFIG_MMS344=y >> .config
+	    echo CONFIG_DIR862=y >> .config
+	    echo CONFIG_ERC=y >> .config
+	    echo CONFIG_WR710=y >> .config
 	    make oldconfig ARCH=mips
+	    sed -i 's/\CONFIG_WR710=y/ /g' .config	    
 	    sed -i 's/\CONFIG_WR841V8=y/ /g' .config	    
 	    sed -i 's/\CONFIG_WR841V9=y/ /g' .config	    
 	    sed -i 's/\CONFIG_WPE72=y/ /g' .config	    
@@ -66,7 +71,10 @@ do
 	    sed -i 's/\CONFIG_DAP3310=y/ /g' .config	    
 	    sed -i 's/\CONFIG_WR1043V2=y/ /g' .config	    
 	    sed -i 's/\CONFIG_ARCHERC7=y/ /g' .config	    
+	    sed -i 's/\CONFIG_DIR859=y/ /g' .config	    
 	    sed -i 's/\CONFIG_MMS344=y/ /g' .config	    
+	    sed -i 's/\CONFIG_DIR862=y/ /g' .config	    
+	    sed -i 's/\CONFIG_ERC=y/ /g' .config	    
 	    cp .config $i
     fi
 done

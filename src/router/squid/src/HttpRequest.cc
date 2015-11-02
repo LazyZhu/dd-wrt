@@ -1,46 +1,24 @@
 /*
- * DEBUG: section 73    HTTP Request
- * AUTHOR: Duane Wessels
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
- * Copyright (c) 2003, Robert Collins <robertc@squid-cache.org>
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 73    HTTP Request */
 
 #include "squid.h"
 #include "AccessLogEntry.h"
 #include "acl/AclSizeLimit.h"
 #include "acl/FilledChecklist.h"
 #include "client_side.h"
-#include "DnsLookupDetails.h"
+#include "dns/LookupDetails.h"
 #include "err_detail_type.h"
 #include "globals.h"
 #include "gopher.h"
 #include "http.h"
+#include "http/one/RequestParser.h"
 #include "HttpHdrCc.h"
 #include "HttpHeaderRange.h"
 #include "HttpRequest.h"
@@ -57,12 +35,14 @@
 #include "adaptation/icap/icap_log.h"
 #endif
 
-HttpRequest::HttpRequest() : HttpMsg(hoRequest)
+HttpRequest::HttpRequest() :
+    HttpMsg(hoRequest)
 {
     init();
 }
 
-HttpRequest::HttpRequest(const HttpRequestMethod& aMethod, AnyP::ProtocolType aProtocol, const char *aUrlpath) : HttpMsg(hoRequest)
+HttpRequest::HttpRequest(const HttpRequestMethod& aMethod, AnyP::ProtocolType aProtocol, const char *aUrlpath) :
+    HttpMsg(hoRequest)
 {
     static unsigned int id = 1;
     debugs(93,7, HERE << "constructed, this=" << this << " id=" << ++id);
@@ -80,38 +60,33 @@ void
 HttpRequest::initHTTP(const HttpRequestMethod& aMethod, AnyP::ProtocolType aProtocol, const char *aUrlpath)
 {
     method = aMethod;
-    protocol = aProtocol;
-    urlpath = aUrlpath;
+    url.setScheme(aProtocol);
+    url.path(aUrlpath);
 }
 
 void
 HttpRequest::init()
 {
-    method = METHOD_NONE;
-    protocol = AnyP::PROTO_NONE;
-    urlpath = NULL;
-    login[0] = '\0';
-    host[0] = '\0';
-    host_is_numeric = -1;
+    method = Http::METHOD_NONE;
+    url.clear();
 #if USE_AUTH
     auth_user_request = NULL;
 #endif
-    port = 0;
-    canonical = NULL;
     memset(&flags, '\0', sizeof(flags));
     range = NULL;
     ims = -1;
     imslen = 0;
     lastmod = -1;
-    client_addr.SetEmpty();
-    my_addr.SetEmpty();
+    client_addr.setEmpty();
+    my_addr.setEmpty();
     body_pipe = NULL;
     // hier
     dnsWait = -1;
     errType = ERR_NONE;
     errDetail = ERR_DETAIL_NONE;
-    peer_login = NULL;		// not allocated/deallocated by this class
-    peer_domain = NULL;		// not allocated/deallocated by this class
+    peer_login = NULL;      // not allocated/deallocated by this class
+    peer_domain = NULL;     // not allocated/deallocated by this class
+    peer_host = NULL;
     vary_headers = NULL;
     myportname = null_string;
     tag = null_string;
@@ -123,7 +98,7 @@ HttpRequest::init()
     extacl_message = null_string;
     pstate = psReadyToParseStartLine;
 #if FOLLOW_X_FORWARDED_FOR
-    indirect_client_addr.SetEmpty();
+    indirect_client_addr.setEmpty();
 #endif /* FOLLOW_X_FORWARDED_FOR */
 #if USE_ADAPTATION
     adaptHistory_ = NULL;
@@ -132,6 +107,7 @@ HttpRequest::init()
     icapHistory_ = NULL;
 #endif
     rangeOffsetLimit = -2; //a value of -2 means not checked yet
+    forcedBodyContinuation = false;
 }
 
 void
@@ -143,11 +119,9 @@ HttpRequest::clean()
 #if USE_AUTH
     auth_user_request = NULL;
 #endif
-    safe_free(canonical);
-
     safe_free(vary_headers);
 
-    urlpath.clean();
+    url.clear();
 
     header.clean();
 
@@ -162,6 +136,8 @@ HttpRequest::clean()
     }
 
     myportname.clean();
+
+    notes = NULL;
 
     tag.clean();
 #if USE_AUTH
@@ -192,7 +168,8 @@ HttpRequest::reset()
 HttpRequest *
 HttpRequest::clone() const
 {
-    HttpRequest *copy = new HttpRequest(method, protocol, urlpath.termedBuf());
+    HttpRequest *copy = new HttpRequest();
+    copy->method = method;
     // TODO: move common cloning clone to Msg::copyTo() or copy ctor
     copy->header.append(&header);
     copy->hdrCacheInit();
@@ -201,13 +178,11 @@ HttpRequest::clone() const
     copy->pstate = pstate; // TODO: should we assert a specific state here?
     copy->body_pipe = body_pipe;
 
-    strncpy(copy->login, login, sizeof(login)); // MAX_LOGIN_SZ
-    strncpy(copy->host, host, sizeof(host)); // SQUIDHOSTNAMELEN
-    copy->host_addr = host_addr;
-
-    copy->port = port;
-    // urlPath handled in ctor
-    copy->canonical = canonical ? xstrdup(canonical) : NULL;
+    copy->url.setScheme(url.getScheme());
+    copy->url.userInfo(url.userInfo());
+    copy->url.host(url.host());
+    copy->url.port(url.port());
+    copy->url.path(url.path());
 
     // range handled in hdrCacheInit()
     copy->ims = ims;
@@ -269,9 +244,12 @@ HttpRequest::inheritProperties(const HttpMsg *aMsg)
 
     myportname = aReq->myportname;
 
+    forcedBodyContinuation = aReq->forcedBodyContinuation;
+
     // main property is which connection the request was received on (if any)
     clientConnectionManager = aReq->clientConnectionManager;
 
+    notes = aReq->notes;
     return true;
 }
 
@@ -282,23 +260,25 @@ HttpRequest::inheritProperties(const HttpMsg *aMsg)
  * NP: Other errors are left for detection later in the parse.
  */
 bool
-HttpRequest::sanityCheckStartLine(MemBuf *buf, const size_t hdr_len, http_status *error)
+HttpRequest::sanityCheckStartLine(const char *buf, const size_t hdr_len, Http::StatusCode *error)
 {
     // content is long enough to possibly hold a reply
     // 2 being magic size of a 1-byte request method plus space delimiter
-    if ( buf->contentSize() < 2 ) {
+    if (hdr_len < 2) {
         // this is ony a real error if the headers apparently complete.
         if (hdr_len > 0) {
             debugs(58, 3, HERE << "Too large request header (" << hdr_len << " bytes)");
-            *error = HTTP_INVALID_HEADER;
+            *error = Http::scInvalidHeader;
         }
         return false;
     }
 
-    /* See if the request buffer starts with a known HTTP request method. */
-    if (HttpRequestMethod(buf->content(),NULL) == METHOD_NONE) {
+    /* See if the request buffer starts with a non-whitespace HTTP request 'method'. */
+    HttpRequestMethod m;
+    m.HttpRequestMethodXXX(buf);
+    if (m == Http::METHOD_NONE) {
         debugs(73, 3, "HttpRequest::sanityCheckStartLine: did not find HTTP request method");
-        *error = HTTP_INVALID_HEADER;
+        *error = Http::scInvalidHeader;
         return false;
     }
 
@@ -308,13 +288,16 @@ HttpRequest::sanityCheckStartLine(MemBuf *buf, const size_t hdr_len, http_status
 bool
 HttpRequest::parseFirstLine(const char *start, const char *end)
 {
-    const char *t = start + strcspn(start, w_space);
-    method = HttpRequestMethod(start, t);
+    method.HttpRequestMethodXXX(start);
 
-    if (method == METHOD_NONE)
+    if (method == Http::METHOD_NONE)
         return false;
 
-    start = t + strspn(t, w_space);
+    // XXX: performance regression, strcspn() over the method bytes a second time.
+    // cheaper than allocate+copy+deallocate cycle to SBuf convert a piece of start.
+    const char *t = start + strcspn(start, w_space);
+
+    start = t + strspn(t, w_space); // skip w_space after method
 
     const char *ver = findTrailingHTTPVersion(start, end);
 
@@ -352,53 +335,36 @@ HttpRequest::parseFirstLine(const char *start, const char *end)
     return true;
 }
 
-int
-HttpRequest::parseHeader(const char *parse_start, int len)
-{
-    const char *blk_start, *blk_end;
-
-    if (!httpMsgIsolateHeaders(&parse_start, len, &blk_start, &blk_end))
-        return 0;
-
-    int result = header.parse(blk_start, blk_end);
-
-    if (result)
-        hdrCacheInit();
-
-    return result;
-}
-
 /* swaps out request using httpRequestPack */
 void
 HttpRequest::swapOut(StoreEntry * e)
 {
-    Packer p;
     assert(e);
-    packerToStoreInit(&p, e);
-    pack(&p);
-    packerClean(&p);
+    e->buffer();
+    pack(e);
+    e->flush();
 }
 
 /* packs request-line and headers, appends <crlf> terminator */
 void
-HttpRequest::pack(Packer * p)
+HttpRequest::pack(Packable * p)
 {
     assert(p);
     /* pack request-line */
-    packerPrintf(p, "%s " SQUIDSTRINGPH " HTTP/%d.%d\r\n",
-                 RequestMethodStr(method), SQUIDSTRINGPRINT(urlpath),
-                 http_ver.major, http_ver.minor);
+    p->appendf(SQUIDSBUFPH " " SQUIDSBUFPH " HTTP/%d.%d\r\n",
+               SQUIDSBUFPRINT(method.image()), SQUIDSBUFPRINT(url.path()),
+               http_ver.major, http_ver.minor);
     /* headers */
     header.packInto(p);
     /* trailer */
-    packerAppend(p, "\r\n", 2);
+    p->append("\r\n", 2);
 }
 
 /*
  * A wrapper for debugObj()
  */
 void
-httpRequestPack(void *obj, Packer *p)
+httpRequestPack(void *obj, Packable *p)
 {
     HttpRequest *request = static_cast<HttpRequest*>(obj);
     request->pack(p);
@@ -406,10 +372,10 @@ httpRequestPack(void *obj, Packer *p)
 
 /* returns the length of request line + headers + crlf */
 int
-HttpRequest::prefixLen()
+HttpRequest::prefixLen() const
 {
-    return strlen(RequestMethodStr(method)) + 1 +
-           urlpath.size() + 1 +
+    return method.image().length() + 1 +
+           url.path().length() + 1 +
            4 + 1 + 3 + 2 +
            header.len + 2;
 }
@@ -473,7 +439,7 @@ HttpRequest::adaptHistoryImport(const HttpRequest &them)
 bool
 HttpRequest::multipartRangeRequest() const
 {
-    return (range && range->specs.count > 1);
+    return (range && range->specs.size() > 1);
 }
 
 bool
@@ -504,24 +470,16 @@ HttpRequest::clearError()
     errDetail = ERR_DETAIL_NONE;
 }
 
-const char *HttpRequest::packableURI(bool full_uri) const
+void
+HttpRequest::packFirstLineInto(Packable * p, bool full_uri) const
 {
-    if (full_uri)
-        return urlCanonical((HttpRequest*)this);
+    const SBuf tmp(full_uri ? effectiveRequestUri() : url.path());
 
-    if (urlpath.size())
-        return urlpath.termedBuf();
-
-    return "/";
-}
-
-void HttpRequest::packFirstLineInto(Packer * p, bool full_uri) const
-{
     // form HTTP request-line
-    packerPrintf(p, "%s %s HTTP/%d.%d\r\n",
-                 RequestMethodStr(method),
-                 packableURI(full_uri),
-                 http_ver.major, http_ver.minor);
+    p->appendf(SQUIDSBUFPH " " SQUIDSBUFPH " HTTP/%d.%d\r\n",
+               SQUIDSBUFPRINT(method.image()),
+               SQUIDSBUFPRINT(tmp),
+               http_ver.major, http_ver.minor);
 }
 
 /*
@@ -529,7 +487,7 @@ void HttpRequest::packFirstLineInto(Packer * p, bool full_uri) const
  * along with this request
  */
 bool
-HttpRequest::expectingBody(const HttpRequestMethod& unused, int64_t& theSize) const
+HttpRequest::expectingBody(const HttpRequestMethod &, int64_t &theSize) const
 {
     bool expectBody = false;
 
@@ -571,43 +529,45 @@ HttpRequest::CreateFromUrlAndMethod(char * url, const HttpRequestMethod& method)
 HttpRequest *
 HttpRequest::CreateFromUrl(char * url)
 {
-    return urlParse(METHOD_GET, url, NULL);
+    return urlParse(Http::METHOD_GET, url, NULL);
 }
 
-/*
+/**
  * Are responses to this request possible cacheable ?
  * If false then no matter what the response must not be cached.
  */
 bool
-HttpRequest::cacheable() const
+HttpRequest::maybeCacheable()
 {
     // Intercepted request with Host: header which cannot be trusted.
     // Because it failed verification, or someone bypassed the security tests
     // we cannot cache the reponse for sharing between clients.
     // TODO: update cache to store for particular clients only (going to same Host: and destination IP)
-    if (!flags.hostVerified && (flags.intercepted || flags.spoofClientIp))
+    if (!flags.hostVerified && (flags.intercepted || flags.interceptTproxy))
         return false;
 
-    if (protocol == AnyP::PROTO_HTTP)
-        return httpCachable(method);
+    switch (url.getScheme()) {
+    case AnyP::PROTO_HTTP:
+    case AnyP::PROTO_HTTPS:
+        if (!method.respMaybeCacheable())
+            return false;
 
-    /*
-     * The below looks questionable: what non HTTP protocols use connect,
-     * trace, put and post? RC
-     */
+        // XXX: this would seem the correct place to detect request cache-controls
+        //      no-store, private and related which block cacheability
+        break;
 
-    if (!method.isCacheble())
+    case AnyP::PROTO_GOPHER:
+        if (!gopherCachable(this))
+            return false;
+        break;
+
+    case AnyP::PROTO_CACHE_OBJECT:
         return false;
 
-    /*
-     * XXX POST may be cached sometimes.. ignored
-     * for now
-     */
-    if (protocol == AnyP::PROTO_GOPHER)
-        return gopherCachable(this);
-
-    if (protocol == AnyP::PROTO_CACHE_OBJECT)
-        return false;
+    //case AnyP::PROTO_FTP:
+    default:
+        break;
+    }
 
     return true;
 }
@@ -616,12 +576,12 @@ bool
 HttpRequest::conditional() const
 {
     return flags.ims ||
-           header.has(HDR_IF_MATCH) ||
-           header.has(HDR_IF_NONE_MATCH);
+           header.has(Http::HdrType::IF_MATCH) ||
+           header.has(Http::HdrType::IF_NONE_MATCH);
 }
 
 void
-HttpRequest::recordLookup(const DnsLookupDetails &dns)
+HttpRequest::recordLookup(const Dns::LookupDetails &dns)
 {
     if (dns.wait >= 0) { // known delay
         if (dnsWait >= 0) // have recorded DNS wait before
@@ -676,8 +636,8 @@ bool
 HttpRequest::canHandle1xx() const
 {
     // old clients do not support 1xx unless they sent Expect: 100-continue
-    // (we reject all other HDR_EXPECT values so just check for HDR_EXPECT)
-    if (http_ver <= HttpVersion(1,0) && !header.has(HDR_EXPECT))
+    // (we reject all other Http::HdrType::EXPECT values so just check for Http::HdrType::EXPECT)
+    if (http_ver <= Http::ProtocolVersion(1,0) && !header.has(Http::HdrType::EXPECT))
         return false;
 
     // others must support 1xx control messages
@@ -691,3 +651,23 @@ HttpRequest::pinnedConnection()
         return clientConnectionManager.get();
     return NULL;
 }
+
+const SBuf
+HttpRequest::storeId()
+{
+    if (store_id.size() != 0) {
+        debugs(73, 3, "sent back store_id: " << store_id);
+        return SBuf(store_id);
+    }
+    debugs(73, 3, "sent back effectiveRequestUrl: " << effectiveRequestUri());
+    return effectiveRequestUri();
+}
+
+const SBuf &
+HttpRequest::effectiveRequestUri() const
+{
+    if (method.id() == Http::METHOD_CONNECT)
+        return url.authority(true); // host:port
+    return url.absolute();
+}
+

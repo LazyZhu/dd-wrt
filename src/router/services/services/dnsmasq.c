@@ -41,7 +41,7 @@ extern void addHost(char *host, char *ip, int withdomain);
 
 void stop_dnsmasq(void);
 
-char *getmdhcp(int count, int index)
+static char *getmdhcp(int count, int index)
 {
 	int cnt = 0;
 	static char word[256];
@@ -70,21 +70,23 @@ char *getmdhcp(int count, int index)
 			max = leasetime;
 			leasetime = "3660";
 		}
-		if (count == 0)
+		switch (count) {
+		case 0:
 			return interface;
-		if (count == 1)
+		case 1:
 			return dhcpon;
-		if (count == 2)
+		case 2:
 			return start;
-		if (count == 3)
+		case 3:
 			return max;
-		if (count == 4)
+		case 4:
 			return leasetime;
+		}
 	}
 	return "";
 }
 
-int landhcp(void)
+static int landhcp(void)
 {
 	if (!getWET())
 		if (nvram_match("dhcp_dnsmasq", "1")
@@ -94,20 +96,16 @@ int landhcp(void)
 	return 0;
 }
 
-int hasdhcp(void)
+static int hasmdhcp(void)
 {
-	int count = 0;
-	int ret = landhcp();
-
-	return ret;
-	// for now, keep it disabled
-/*    if( nvram_get( "mdhcpd_count" ) != NULL )
-	count = atoi( nvram_safe_get( "mdhcpd_count" ) );
-    ret |= count;
-    return ret > 0 ? 1 : 0;*/
+	if (nvram_get("mdhcpd_count") != NULL) {
+		int mdhcpcount = atoi(nvram_safe_get("mdhcpd_count"));
+		return mdhcpcount > 0 ? 1 : 0;
+	}
+	return 0;
 }
 
-int canlan(void)
+static int canlan(void)
 {
 	if (nvram_match("dhcpfwd_enable", "0"))
 		return 1;
@@ -118,7 +116,6 @@ void start_dnsmasq(void)
 {
 	FILE *fp;
 	struct dns_lists *dns_list = NULL;
-	int ret;
 	int i;
 
 	if (nvram_match("dhcp_dnsmasq", "1")
@@ -196,6 +193,13 @@ void start_dnsmasq(void)
 	if (nvram_match("dnsmasq_strict", "1"))
 		fprintf(fp, "strict-order\n");
 
+	fprintf(fp, "cache-size=1500\n");
+
+#ifdef HAVE_UNBOUND
+	if (nvram_match("recursive_dns", "1")) {
+		fprintf(fp, "port=0\n");
+	}
+#endif
 	/*
 	 * Domain 
 	 */
@@ -214,7 +218,7 @@ void start_dnsmasq(void)
 	 */
 
 	//bs mod
-	if (hasdhcp()) {
+	if (landhcp() || hasmdhcp()) {
 		/*
 		 * DHCP leasefile 
 		 */
@@ -240,7 +244,7 @@ void start_dnsmasq(void)
 		}
 		fprintf(fp, "dhcp-lease-max=%d\n", dhcp_max);
 		if (landhcp())
-			fprintf(fp, "dhcp-option=lan,3,%s\n", nvram_safe_get("lan_ipaddr"));
+			fprintf(fp, "dhcp-option=%s,3,%s\n", nvram_safe_get("lan_ifname"), nvram_safe_get("lan_ipaddr"));
 		for (i = 0; i < mdhcpcount; i++) {
 			if (strlen(nvram_nget("%s_ipaddr", getmdhcp(0, i))) == 0 || strlen(nvram_nget("%s_netmask", getmdhcp(0, i)))
 			    == 0)
@@ -273,6 +277,19 @@ void start_dnsmasq(void)
 
 			if (dns_list)
 				free(dns_list);
+		} else {
+#ifdef HAVE_UNBOUND
+			if (nvram_match("recursive_dns", "1")) {
+				fprintf(fp, "dhcp-option=%s,6,%s\n", nvram_safe_get("lan_ifname"), nvram_safe_get("lan_ipaddr"));
+				for (i = 0; i < mdhcpcount; i++) {
+					if (strlen(nvram_nget("%s_ipaddr", getmdhcp(0, i))) == 0 || strlen(nvram_nget("%s_netmask", getmdhcp(0, i)))
+					    == 0)
+						continue;
+					fprintf(fp, "dhcp-option=%s,6,", getmdhcp(0, i));
+					fprintf(fp, "%s\n", nvram_nget("%s_ipaddr", getmdhcp(0, i)));
+				}
+			}
+#endif
 		}
 
 		if (nvram_match("auth_dnsmasq", "1"))
@@ -293,7 +310,7 @@ void start_dnsmasq(void)
 			// Do new code - multi-subnet range
 			// Assumes that lan_netmask is set accordingly
 			// Assumes that dhcp_num is a multiple of 256
-			fprintf(fp, "dhcp-range=lan,");
+			fprintf(fp, "dhcp-range=%s,", nvram_safe_get("lan_ifname"));
 			fprintf(fp, "%d.%d.%d.%d,", ip1 & im1, ip2 & im2, ip3 & im3, dhcpstart);
 			fprintf(fp, "%d.%d.%d.%d,", (eip >> 24) & 0xff, (eip >> 16) & 0xff, (eip >> 8) & 0xff, eip & 0xff);
 			fprintf(fp, "%s,", nvram_safe_get("lan_netmask"));
@@ -349,7 +366,10 @@ void start_dnsmasq(void)
 				else
 					fprintf(fp, "dhcp-host=%s,%s,%s,%sm\n", mac, host, ip, time);
 
-				addHost(host, ip, 1);
+#ifdef HAVE_UNBOUND
+				if (!nvram_match("recursive_dns", "1"))
+#endif
+					addHost(host, ip, 1);
 			}
 			free(cp);
 		}
@@ -372,7 +392,7 @@ void start_dnsmasq(void)
 	dns_to_resolv();
 
 	chmod("/etc/lease_update.sh", 0700);
-	ret = eval("dnsmasq", "-u", "root", "-g", "root", "--conf-file=/tmp/dnsmasq.conf");
+	eval("dnsmasq", "-u", "root", "-g", "root", "--conf-file=/tmp/dnsmasq.conf");
 	dd_syslog(LOG_INFO, "dnsmasq : dnsmasq daemon successfully started\n");
 
 	cprintf("done\n");

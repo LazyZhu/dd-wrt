@@ -2,7 +2,7 @@
  * netbios.c
  *
  * Copyright (C) 2009-2011 by ipoque GmbH
- * Copyright (C) 2011-13 - ntop.org
+ * Copyright (C) 2011-15 - ntop.org
  *
  * This file is part of nDPI, an open source deep packet inspection
  * library based on the OpenDPI and PACE technology by ipoque GmbH
@@ -22,25 +22,56 @@
  * 
  */
 
-
 #include "ndpi_protocols.h"
 
 #ifdef NDPI_PROTOCOL_NETBIOS
 
-static void ndpi_int_netbios_add_connection(struct ndpi_detection_module_struct
-											  *ndpi_struct, struct ndpi_flow_struct *flow)
+/* The function below has been inherited by tcpdump */
+static int netbios_name_interpret(char *in, char *out, u_int out_len)
 {
-	ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_NETBIOS, NDPI_REAL_PROTOCOL);
+	int ret, len;
+	char *b;
+
+	len = (*in++) / 2;
+	b = out;
+	*out = 0;
+
+	if (len > (out_len - 1) || len < 1)
+		return (-1);
+
+	while (len--) {
+		if (in[0] < 'A' || in[0] > 'P' || in[1] < 'A' || in[1] > 'P') {
+			*out = 0;
+			return (-1);
+		}
+
+		*out = ((in[0] - 'A') << 4) + (in[1] - 'A');
+		in += 2;
+		out++;
+	}
+	ret = *(--out);
+	*out = 0;
+
+	/* Courtesy of Roberto F. De Luca <deluca@tandar.cnea.gov.ar> */
+	/* Trim trailing whitespace from the returned string */
+	for (out--; out >= b && *out == ' '; out--)
+		*out = '\0';
+
+	return (ret);
 }
 
+static void ndpi_int_netbios_add_connection(struct ndpi_detection_module_struct
+					    *ndpi_struct, struct ndpi_flow_struct *flow)
+{
+	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_NETBIOS, NDPI_PROTOCOL_UNKNOWN);
+}
 
 static void ndpi_search_netbios(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
 	struct ndpi_packet_struct *packet = &flow->packet;
-	
-//      struct ndpi_id_struct         *src=ndpi_struct->src;
-//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
 
+	//      struct ndpi_id_struct         *src=ndpi_struct->src;
+	//      struct ndpi_id_struct         *dst=ndpi_struct->dst;
 
 	u_int16_t dport;
 
@@ -52,99 +83,76 @@ static void ndpi_search_netbios(struct ndpi_detection_module_struct *ndpi_struct
 		/*check standard NETBIOS over udp to port 137  */
 		if ((dport == 137 || 0) && packet->payload_packet_len >= 50) {
 
-			NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-					NDPI_LOG_DEBUG, "found netbios port 137 and payload_packet_len 50\n");
-
+			NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios port 137 and payload_packet_len 50\n");
 
 			if (ntohs(get_u_int16_t(packet->payload, 2)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 0 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG, "found netbios with questions = 1 and answers = 0, authority = 0  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with questions = 1 and answers = 0, authority = 0  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
 			}
 			if (packet->payload[2] == 0x80 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 1) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 0 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 1) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG, "found netbios with questions = 1 and answers, authority, additional = 0  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with questions = 1 and answers, authority, additional = 0  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
 			}
 			if (ntohs(get_u_int16_t(packet->payload, 2)) == 0x4000 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 1) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 0 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 1) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG, "found netbios with questions = 1 and answers = 0, authority = 0  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with questions = 1 and answers = 0, authority = 0  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
 			}
 			if (ntohs(get_u_int16_t(packet->payload, 2)) == 0x8400 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 0 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 1 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG,
-						"found netbios with flag 8400 questions = 0 and answers = 1, authority, additional = 0  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with flag 8400 questions = 0 and answers = 1, authority, additional = 0  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
 			}
 			if (ntohs(get_u_int16_t(packet->payload, 2)) == 0x8500 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 0 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 1 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG,
-						"found netbios with flag 8500 questions = 0 and answers = 1, authority, additional = 0  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with flag 8500 questions = 0 and answers = 1, authority, additional = 0  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
 			}
 			if (ntohs(get_u_int16_t(packet->payload, 2)) == 0x2910 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 1) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 0 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 1) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG,
-						"found netbios with flag 2910, questions = 1 and answers, authority=0, additional = 1  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with flag 2910, questions = 1 and answers, authority=0, additional = 1  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
 			}
 			if (ntohs(get_u_int16_t(packet->payload, 2)) == 0xAD86 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 0 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 1 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG,
-						"found netbios with flag ad86 questions = 0 and answers = 1, authority, additional = 0  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with flag ad86 questions = 0 and answers = 1, authority, additional = 0  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
 			}
 			if (ntohs(get_u_int16_t(packet->payload, 2)) == 0x0110 &&
-				ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
-				ntohs(get_u_int16_t(packet->payload, 6)) == 0 &&
-				ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
+			    ntohs(get_u_int16_t(packet->payload, 4)) == 1 &&
+			    ntohs(get_u_int16_t(packet->payload, 6)) == 0 && ntohs(get_u_int16_t(packet->payload, 8)) == 0 && ntohs(get_u_int16_t(packet->payload, 10)) == 0) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG,
-						"found netbios with flag 0110 questions = 1 and answers = 0, authority, additional = 0  \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with flag 0110 questions = 1 and answers = 0, authority, additional = 0  \n");
 
 				ndpi_int_netbios_add_connection(ndpi_struct, flow);
 				return;
@@ -154,28 +162,22 @@ static void ndpi_search_netbios(struct ndpi_detection_module_struct *ndpi_struct
 
 				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios name query request\n");
 
-				if (get_u_int16_t(packet->payload, 4) == htons(1) &&
-					get_u_int16_t(packet->payload, 6) == 0 &&
-					get_u_int16_t(packet->payload, 8) == 0 && get_u_int16_t(packet->payload, 10) == 0) {
+				if (get_u_int16_t(packet->payload, 4) == htons(1) && get_u_int16_t(packet->payload, 6) == 0 && get_u_int16_t(packet->payload, 8) == 0 && get_u_int16_t(packet->payload, 10) == 0) {
 
 					/* name is encoded as described in rfc883 */
 					u_int8_t name_length = packet->payload[12];
 
-					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-							"possible netbios name query request, one question\n");
+					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios name query request, one question\n");
 
 					if (packet->payload_packet_len == 12 + 1 + name_length + 1 + 2 + 2) {
 
-						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-								"possible netbios name query request, length matches\n");
+						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios name query request, length matches\n");
 
 						/* null terminated? */
 						if (packet->payload[12 + name_length + 1] == 0 &&
-							get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x0020) &&
-							get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
+						    get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x0020) && get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
 
-							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-									"found netbios name query request\n");
+							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios name query request\n");
 							ndpi_int_netbios_add_connection(ndpi_struct, flow);
 							return;
 						}
@@ -183,83 +185,65 @@ static void ndpi_search_netbios(struct ndpi_detection_module_struct *ndpi_struct
 				}
 			} else if ((ntohs(get_u_int16_t(packet->payload, 2)) & 0xf800) == 0x8000) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-						"possible netbios name query response\n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios name query response\n");
 
-				if (get_u_int16_t(packet->payload, 4) == 0 &&
-					get_u_int16_t(packet->payload, 6) == htons(1) &&
-					get_u_int16_t(packet->payload, 8) == 0 && get_u_int16_t(packet->payload, 10) == 0) {
+				if (get_u_int16_t(packet->payload, 4) == 0 && get_u_int16_t(packet->payload, 6) == htons(1) && get_u_int16_t(packet->payload, 8) == 0 && get_u_int16_t(packet->payload, 10) == 0) {
 
 					/* name is encoded as described in rfc883 */
 					u_int8_t name_length = packet->payload[12];
 
-					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-							"possible netbios positive name query response, one answer\n");
+					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios positive name query response, one answer\n");
 
 					if (packet->payload_packet_len >= 12 + 1 + name_length + 1 + 2 + 2) {
 
-						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-								"possible netbios name query response, length matches\n");
+						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios name query response, length matches\n");
 
 						/* null terminated? */
 						if (packet->payload[12 + name_length + 1] == 0 &&
-							get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x0020) &&
-							get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
+						    get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x0020) && get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
 
-							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-									"found netbios name query response\n");
+							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios name query response\n");
+							ndpi_int_netbios_add_connection(ndpi_struct, flow);
+							return;
+						}
+					}
+				} else if (get_u_int16_t(packet->payload, 4) == 0 && get_u_int16_t(packet->payload, 6) == 0 && get_u_int16_t(packet->payload, 8) == 0 && get_u_int16_t(packet->payload, 10) == 0) {
+
+					/* name is encoded as described in rfc883 */
+					u_int8_t name_length = packet->payload[12];
+
+					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios negative name query response, one answer\n");
+
+					if (packet->payload_packet_len >= 12 + 1 + name_length + 1 + 2 + 2) {
+
+						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios name query response, length matches\n");
+
+						/* null terminated? */
+						if (packet->payload[12 + name_length + 1] == 0 &&
+						    get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x000A) && get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
+
+							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios name query response\n");
 							ndpi_int_netbios_add_connection(ndpi_struct, flow);
 							return;
 						}
 					}
 				} else if (get_u_int16_t(packet->payload, 4) == 0 &&
-						   get_u_int16_t(packet->payload, 6) == 0 &&
-						   get_u_int16_t(packet->payload, 8) == 0 && get_u_int16_t(packet->payload, 10) == 0) {
+					   get_u_int16_t(packet->payload, 6) == 0 && get_u_int16_t(packet->payload, 8) == htons(1) && get_u_int16_t(packet->payload, 10) == htons(1)) {
 
 					/* name is encoded as described in rfc883 */
 					u_int8_t name_length = packet->payload[12];
 
-					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-							"possible netbios negative name query response, one answer\n");
+					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios redirect name query response, one answer\n");
 
 					if (packet->payload_packet_len >= 12 + 1 + name_length + 1 + 2 + 2) {
 
-						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-								"possible netbios name query response, length matches\n");
+						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "possible netbios name query response, length matches\n");
 
 						/* null terminated? */
 						if (packet->payload[12 + name_length + 1] == 0 &&
-							get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x000A) &&
-							get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
+						    get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x0002) && get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
 
-							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-									"found netbios name query response\n");
-							ndpi_int_netbios_add_connection(ndpi_struct, flow);
-							return;
-						}
-					}
-				} else if (get_u_int16_t(packet->payload, 4) == 0 &&
-						   get_u_int16_t(packet->payload, 6) == 0 &&
-						   get_u_int16_t(packet->payload, 8) == htons(1) && get_u_int16_t(packet->payload, 10) == htons(1)) {
-
-					/* name is encoded as described in rfc883 */
-					u_int8_t name_length = packet->payload[12];
-
-					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-							"possible netbios redirect name query response, one answer\n");
-
-					if (packet->payload_packet_len >= 12 + 1 + name_length + 1 + 2 + 2) {
-
-						NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-								"possible netbios name query response, length matches\n");
-
-						/* null terminated? */
-						if (packet->payload[12 + name_length + 1] == 0 &&
-							get_u_int16_t(packet->payload, 12 + name_length + 2) == htons(0x0002) &&
-							get_u_int16_t(packet->payload, 12 + name_length + 4) == htons(0x0001)) {
-
-							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG,
-									"found netbios name query response\n");
+							NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios name query response\n");
 							ndpi_int_netbios_add_connection(ndpi_struct, flow);
 							return;
 						}
@@ -269,32 +253,25 @@ static void ndpi_search_netbios(struct ndpi_detection_module_struct *ndpi_struct
 			/* TODO: extend according to rfc1002 */
 		}
 
-
-
 		/*check standard NETBIOS over udp to port 138 */
 
 		/*netbios header token from http://www.protocolbase.net/protocols/protocol_NBDGM.php */
 
-		if ((dport == 138 ||
-			 0) &&
-			packet->payload_packet_len >= 14 &&
-			ntohs(get_u_int16_t(packet->payload, 10)) == packet->payload_packet_len - 14) {
+		if ((dport == 138) && packet->payload_packet_len >= 14 && ntohs(get_u_int16_t(packet->payload, 10)) == packet->payload_packet_len - 14) {
 
-			NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-					NDPI_LOG_DEBUG, "found netbios port 138 and payload length >= 112 \n");
-
+			NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios port 138 and payload length >= 112 \n");
 
 			if (packet->payload[0] >= 0x11 && packet->payload[0] <= 0x16) {
 
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG, "found netbios with MSG-type 0x11,0x12,0x13,0x14,0x15 or 0x16\n");
-
-
-
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with MSG-type 0x11,0x12,0x13,0x14,0x15 or 0x16\n");
 
 				if (ntohl(get_u_int32_t(packet->payload, 4)) == ntohl(packet->iph->saddr)) {
-					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-							NDPI_LOG_DEBUG, "found netbios with checked ip-address.\n");
+					char name[32];
+
+					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with checked ip-address.\n");
+
+					if (netbios_name_interpret((char *)&packet->payload[14], name, sizeof(name)) > 0)
+						snprintf((char *)flow->host_server_name, sizeof(flow->host_server_name), "%s", name);
 
 					ndpi_int_netbios_add_connection(ndpi_struct, flow);
 					return;
@@ -315,13 +292,10 @@ static void ndpi_search_netbios(struct ndpi_detection_module_struct *ndpi_struct
 
 			/* payload_packet_len must be 72 */
 			if (packet->payload_packet_len == 72) {
-				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-						NDPI_LOG_DEBUG, "found netbios with payload_packen_len = 72. \n");
+				NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with payload_packen_len = 72. \n");
 
 				if (packet->payload[0] == 0x81 && packet->payload[1] == 0 && ntohs(get_u_int16_t(packet->payload, 2)) == 68) {
-					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct,
-							NDPI_LOG_DEBUG,
-							"found netbios with session request = 81, flags=0 and length od following bytes = 68. \n");
+					NDPI_LOG(NDPI_PROTOCOL_NETBIOS, ndpi_struct, NDPI_LOG_DEBUG, "found netbios with session request = 81, flags=0 and length od following bytes = 68. \n");
 
 					ndpi_int_netbios_add_connection(ndpi_struct, flow);
 					return;
@@ -335,4 +309,14 @@ static void ndpi_search_netbios(struct ndpi_detection_module_struct *ndpi_struct
 	NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_NETBIOS);
 
 }
+
+static void init_netbios_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("NETBIOS", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_NETBIOS,
+					    ndpi_search_netbios, NDPI_SELECTION_BITMASK_PROTOCOL_TCP_OR_UDP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+
+	*id += 1;
+}
+
 #endif

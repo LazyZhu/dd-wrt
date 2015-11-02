@@ -330,10 +330,33 @@ endif
 ifeq ($(CONFIG_WNDR3700V4),y)
 	cp $(LINUXDIR)/.config_wndr3700v4 $(LINUXDIR)/.config
 endif
+ifeq ($(CONFIG_DAP2230),y)
+	cp $(LINUXDIR)/.config_dap2230 $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_WR710),y)
+ifeq ($(CONFIG_WR710V1),y)
+	cp $(LINUXDIR)/.config_carambola $(LINUXDIR)/.config
+endif
+	sed -i 's/\# CONFIG_AG7240_GE0_IS_CONNECTED is not set/CONFIG_AG7240_GE0_IS_CONNECTED=y/g' $(LINUXDIR)/.config
+	sed -i 's/\# CONFIG_WR741 is not set/CONFIG_WR741=y/g' $(LINUXDIR)/.config
+	echo "# CONFIG_WZRG450 is not set" >> $(LINUXDIR)/.config
+	echo "# CONFIG_AR7242_RTL8309G_PHY is not set" >> $(LINUXDIR)/.config
+	echo "# CONFIG_AR7242_VIR_PHY is not set" >> $(LINUXDIR)/.config
+	echo "# CONFIG_AR7242_RGMII_PHY is not set" >> $(LINUXDIR)/.config
+	echo "CONFIG_AR7242_S16_PHY=y" >> $(LINUXDIR)/.config
+	echo "CONFIG_WR710=y" >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_WR710 is not set" >> $(LINUXDIR)/.config
+endif
 ifeq ($(CONFIG_ALFANX),y)
 	echo CONFIG_ALFANX=y >> $(LINUXDIR)/.config
 else
 	echo "# CONFIG_ALFANX is not set" >> $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_DIR859),y)
+	echo CONFIG_DIR859=y >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_DIR859 is not set" >> $(LINUXDIR)/.config
 endif
 ifeq ($(CONFIG_AP135),y)
 	echo CONFIG_AP135=y >> $(LINUXDIR)/.config
@@ -358,6 +381,23 @@ ifeq ($(CONFIG_ARCHERC7),y)
 	echo CONFIG_ARCHERC7=y >> $(LINUXDIR)/.config
 else
 	echo "# CONFIG_ARCHERC7 is not set" >> $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_DAP3662),y)
+	echo CONFIG_DAP3662=y >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_DAP3662 is not set" >> $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_DAP2330),y)
+	sed -i 's/\# CONFIG_AT803X_PHY is not set/CONFIG_AT803X_PHY=y/g' $(LINUXDIR)/.config
+	echo CONFIG_DAP2330=y >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_DAP2330 is not set" >> $(LINUXDIR)/.config
+
+endif
+ifeq ($(CONFIG_DAP2230),y)
+	echo CONFIG_DAP2230=y >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_DAP2230 is not set" >> $(LINUXDIR)/.config
 endif
 ifeq ($(CONFIG_KERNEL_ELF_CORE),y)
 	sed -i 's/\# CONFIG_ELF_CORE is not set/CONFIG_ELF_CORE=y/g' $(LINUXDIR)/.config
@@ -419,6 +459,17 @@ ifeq ($(CONFIG_MMS344),y)
 else
 	echo "# CONFIG_MMS344 is not set" >> $(LINUXDIR)/.config
 endif
+ifeq ($(CONFIG_DIR862),y)
+	echo CONFIG_DIR862=y >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_DIR862 is not set" >> $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_ERC),y)
+	sed -i 's/\# CONFIG_ERC is not set/CONFIG_ERC=y/g' $(LINUXDIR)/.config
+	echo CONFIG_ERC=y >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_ERC is not set" >> $(LINUXDIR)/.config
+endif
 ifeq ($(CONFIG_EHCI),y)
 	sed -i 's/\# CONFIG_USB_EHCI_HCD is not set/CONFIG_USB_EHCI_HCD=m/g' $(LINUXDIR)/.config
 	echo "CONFIG_USB_EHCI_ROOT_HUB_TT=y" >> $(LINUXDIR)/.config
@@ -473,6 +524,10 @@ endif
 ifeq ($(CONFIG_OPENDPI),y)
 	-$(MAKE) -f Makefile.pb42 opendpi
 	-$(MAKE) -f Makefile.pb42 opendpi-install
+endif
+ifeq ($(CONFIG_SERVICEGATE),y)
+	-$(MAKE) -f Makefile.pb42 servicegate
+	-$(MAKE) -f Makefile.pb42 servicegate-install
 endif
 
 ifneq ($(CONFIG_SAMBA),y)
@@ -558,6 +613,14 @@ endif
 
 
 	$(ARCH)-linux-objcopy -O binary $(LINUXDIR)/vmlinux $(ARCH)-uclibc/vmlinus 
+
+
+validate: $(eval FILE_SIZE = $(shell stat -c %s $(EX_PATH)))
+	@if [ ${FILE_SIZE} -gt ${MAXIMUM_SIZE} ] ; then \
+		echo "Image is to large. Maximum size ${MAXIMUM_SIZE} current size  ${FILE_SIZE}." ; \
+		rm -f $(EX_PATH) ; \
+	fi
+
 
 install_headers:
 # important step, required for new kernels
@@ -651,6 +714,12 @@ endif
 ifeq ($(CONFIG_LIBRT),y)
 	-cp ${shell $(ARCH)-linux-gcc -print-file-name=librt.so.0} $(ARCH)-uclibc/target/lib/librt.so.0 
 endif
+ifeq ($(CONFIG_LIBATOMIC),y)
+	-cp ${shell $(ARCH)-linux-gcc -print-file-name=libatomic.so.1} $(ARCH)-uclibc/target/lib/libatomic.so.1 
+endif
+ifeq ($(CONFIG_SQUID),y)
+	-cp ${shell $(ARCH)-linux-gcc -print-file-name=libatomic.so.1} $(ARCH)-uclibc/target/lib/libatomic.so.1 
+endif
 ifeq ($(CONFIG_LIBNSL),y)
 	-cp ${shell $(ARCH)-linux-gcc -print-file-name=libnsl.so.0} $(ARCH)-uclibc/target/lib/libnsl.so.0 
 endif
@@ -679,7 +748,7 @@ ifneq ($(CONFIG_NOOPT),y)
 	rm -rf /tmp/$(ARCHITECTURE)/mklibs-out
 	rm -f /tmp/$(ARCHITECTURE)/mklibs-progs
 	-mkdir -p /tmp/$(ARCHITECTURE)/
-	find $(TARGETDIR) -type f -perm +100 -exec \
+	find $(TARGETDIR) -type f -perm /100 -exec \
 		file -r -N -F '' {} + | \
 		awk ' /executable.*dynamically/ { print $$1 }' > /tmp/$(ARCHITECTURE)/mklibs-progs
 
@@ -969,6 +1038,11 @@ endif
 ifeq ($(CONFIG_AP94),y)
 	dd if=$(ARCH)-uclibc/root.uimage of=$(ARCH)-uclibc/aligned.uimage bs=4096 conv=sync
 	cat $(ARCH)-uclibc/root.fs  >> $(ARCH)-uclibc/aligned.uimage
+ifeq ($(CONFIG_DIR825),y)
+ifneq ($(CONFIG_TEW673GRU),y)
+	-$(MAKE) -f Makefile.pb42 validate MAXIMUM_SIZE=6356992 EX_PATH=$(ARCH)-uclibc/aligned.uimage
+endif
+endif
 	./tools/trx_n  -m 40000000 -o $(ARCH)-uclibc/ap94-firmware.bin $(ARCH)-uclibc/aligned.uimage
 endif
 ifeq ($(CONFIG_ALFAAP94),y)
@@ -1336,6 +1410,14 @@ ifeq ($(CONFIG_DIR825),y)
 	cat tools/dir825tw.tag >> $(ARCH)-uclibc/dir825tw-uimage.bin
 	
 endif
+ifeq ($(CONFIG_DIR866),y)
+	cp $(ARCH)-uclibc/aligned.uimage $(ARCH)-uclibc/dir866-uimage.bin
+	cat tools/dir866a1.tag >> $(ARCH)-uclibc/dir866-uimage.bin
+endif
+ifeq ($(CONFIG_DIR862),y)
+	cp $(ARCH)-uclibc/aligned.uimage $(ARCH)-uclibc/dir862-uimage.bin
+	cat tools/dir862a1.tag >> $(ARCH)-uclibc/dir862-uimage.bin
+endif
 ifeq ($(CONFIG_DIR825C1),y)
 	cp $(ARCH)-uclibc/aligned.uimage $(ARCH)-uclibc/dir825c1-uimage.bin
 	cat tools/dir825c1.tag >> $(ARCH)-uclibc/dir825c1-uimage.bin	
@@ -1569,14 +1651,17 @@ ifeq ($(CONFIG_WRT160NL),y)
 	./tools/wrt160nl/addpattern -B E2100L -v v1.00.20 -i $(ARCH)-uclibc/e2100l-firmware.trx -o $(ARCH)-uclibc/e2100l-firmware.bin -g
 endif
 ifeq ($(CONFIG_TG2521),y)
-#	./tools/wrt160nl/pad $(ARCH)-uclibc/root.uimage $(ARCH)-uclibc/aligned.uimage
-#	cat $(ARCH)-uclibc/root.fs  >> $(ARCH)-uclibc/aligned.uimage
-#	./tools/wrt160nl/trx -m 30000000 -o $(ARCH)-uclibc/wrt160nl-firmware.trx -f $(ARCH)-uclibc/aligned.uimage
-#	./tools/wrt160nl/addpattern -B WRT160NL -v v1.00.20 -i $(ARCH)-uclibc/wrt160nl-firmware.trx -o $(ARCH)-uclibc/wrt160nl-firmware.bin -g
 	./tools/zcom/makefirmware $(ARCH)-uclibc/zcom-firmware.img $(ARCH)-uclibc/root.uimage $(ARCH)-uclibc/root.fs TG2521
 	dd if=$(ARCH)-uclibc/root.fs of=$(ARCH)-uclibc/root.zcom bs=6356992 conv=sync
 	cat $(ARCH)-uclibc/root.uimage >> $(ARCH)-uclibc/root.zcom
 	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/zcom-firmware.bin $(ARCH)-uclibc/root.zcom
+endif
+
+ifeq ($(CONFIG_TEW824),y)
+	dd if=$(ARCH)-uclibc/root.fs of=$(ARCH)-uclibc/root.tew824 bs=14876672 conv=sync
+	cat $(ARCH)-uclibc/root.uimage >> $(ARCH)-uclibc/root.tew824
+	cat tools/tew824.tag >> $(ARCH)-uclibc/root.tew824
+	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/tew824-firmware.bin $(ARCH)-uclibc/root.tew824
 endif
 
 ifeq ($(CONFIG_WR1043),y)
@@ -1615,17 +1700,29 @@ ifeq ($(CONFIG_WR741),y)
 	-./tools/tplink/mktplinkfw -B TL-WR741NDv4 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR741NDv4-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR741NDv4-firmware.bin mips-uclibc/tplink-WR741NDv4-firmware.bin
 
+	-./tools/tplink/mktplinkfw -B TL-WR743NDv2 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR743NDv2-firmware.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR743NDv2-firmware.bin mips-uclibc/tplink-WR743NDv2-firmware.bin
+
 	-./tools/tplink/mktplinkfw -B TL-WR740NDv1 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinus.gzip -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR740NDv1-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR740NDv1-firmware.bin mips-uclibc/tplink-WR740NDv1-firmware.bin
 
 	-./tools/tplink/mktplinkfw -B TL-WR740NDv4 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR740NDv4-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR740NDv4-firmware.bin mips-uclibc/tplink-WR740NDv4-firmware.bin
 
+	-./tools/tplink/mktplinkfw -B TL-WR740NDv5 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR740NDv5-firmware.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR740NDv5-firmware.bin mips-uclibc/tplink-WR740NDv5-firmware.bin
+
 	-./tools/tplink/mktplinkfw -B TL-WR842NDv1 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinus.gzip -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR842NDv1-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR842NDv1-firmware.bin mips-uclibc/tplink-WR842NDv1-firmware.bin
 
 	-./tools/tplink/mktplinkfw -B TL-WR703Nv1 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR703Nv1-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR703Nv1-firmware.bin mips-uclibc/tplink-WR703Nv1-firmware.bin
+
+	-./tools/tplink/mktplinkfw -B TL-WR710Nv1 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR710Nv1-firmware.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR710Nv1-firmware.bin mips-uclibc/tplink-WR710Nv1-firmware.bin
+
+	-./tools/tplink/mktplinkfw -B TL-WR710Nv2 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR710Nv2-firmware.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR710Nv2-firmware.bin mips-uclibc/tplink-WR710Nv2-firmware.bin
 
 	-./tools/tplink/mktplinkfw -B TL-MR3020 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-MR3020-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/MR3020-firmware.bin mips-uclibc/tplink-MR3020-firmware.bin
@@ -1678,6 +1775,9 @@ endif
 ifeq ($(CONFIG_WR841V8),y)
 	-./tools/tplink/mktplinkfw -B TL-WR841NDv8 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR841NDv8-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR841NDv8-firmware.bin mips-uclibc/tplink-WR841NDv8-firmware.bin
+
+	-./tools/tplink/mktplinkfw -B TL-WA901NDv3 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WA901NDv3-firmware.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WA901NDv3-firmware.bin mips-uclibc/tplink-WA901NDv3-firmware.bin
 endif
 ifeq ($(CONFIG_WR841V9),y)
 	-./tools/tplink/mktplinkfw -B TL-WR841NDv9 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR841NDv9-firmware.bin
@@ -1723,6 +1823,45 @@ ifeq ($(CONFIG_RB2011),y)
 	rm -f $(LINUXDIR)/vmlinux.o
 	make -f Makefile.pb42 kernel
 endif
+	make -C lzma-loader/relocate
+	cp $(ARCH)-uclibc/vmlinus lzma-loader/relocate/vmlinus.bin.new
+	rm -f lzma-loader/relocate/vmlinus.bin
+	make -C lzma-loader/relocate vmlinus.bin
+
+	lzma e -lc1 -lp2 -pb2 -d25 lzma-loader/relocate/vmlinus.bin $(ARCH)-uclibc/vmlinux.seama
+	
+	./tools/seama/packimgs -b 64 -o $(ARCH)-uclibc/raw-dir859.img -i $(ARCH)-uclibc/vmlinux.seama -i $(ARCH)-uclibc/root.fs  
+	./tools/seama/seama -i $(ARCH)-uclibc/raw-dir859.img -m dev=/dev/mtdblock/1 -m type=firmware 
+	./tools/seama/seama -s $(ARCH)-uclibc/web-dir859.img -i $(ARCH)-uclibc/raw-dir859.img.seama -m signature=wrgac37_dlink.2013gui_dir859
+	./tools/seama/seama -d $(ARCH)-uclibc/web-dir859.img
+	dd if=$(ARCH)-uclibc/web-dir859.img of=$(ARCH)-uclibc/webflash-dir859.img skip=52 iflag=skip_bytes 
+	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dir859.trx $(ARCH)-uclibc/webflash-dir859.img
+ifeq ($(CONFIG_DAP3662),y)
+	cd tools/alpha_pack && ./packimgs -v -o $(TOP)/$(ARCH)-uclibc/raw.img -i $(TOP)/$(ARCH)-uclibc/vmlinux.lzma -i $(TOP)/$(ARCH)-uclibc/root.fs
+	cd tools/alpha_pack && ./v2image -v -i $(TOP)/$(ARCH)-uclibc/raw.img -o $(TOP)/$(ARCH)-uclibc/web-dap3662.img -d /dev/mtdblock/1 -s wapac11_dkbs_dap3662 -c -b
+	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dap3662.trx $(ARCH)-uclibc/web-dap3662.img
+endif
+ifeq ($(CONFIG_DAP2660),y)
+	cd tools/alpha_pack && ./packimgs -v -o $(TOP)/$(ARCH)-uclibc/raw.img -i $(TOP)/$(ARCH)-uclibc/vmlinux.lzma -i $(TOP)/$(ARCH)-uclibc/root.fs
+	cd tools/alpha_pack && ./v2image -v -i $(TOP)/$(ARCH)-uclibc/raw.img -o $(TOP)/$(ARCH)-uclibc/web-dap2660.img -d /dev/mtdblock/1 -s wapac09_dkbs_dap2660 -c -b
+	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dap2660.trx $(ARCH)-uclibc/web-dap2660.img
+endif
+ifeq ($(CONFIG_DAP2230),y)
+	cd tools/alpha_pack && ./packimgs -v -o $(TOP)/$(ARCH)-uclibc/raw.img -i $(TOP)/$(ARCH)-uclibc/vmlinux.lzma -i $(TOP)/$(ARCH)-uclibc/root.fs
+	cd tools/alpha_pack && ./v2image -v -i $(TOP)/$(ARCH)-uclibc/raw.img -o $(TOP)/$(ARCH)-uclibc/web-dap2230.img -d /dev/mtdblock/1 -s wapn31_dkbs_dap2230 -c -b
+	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dap2230.trx $(ARCH)-uclibc/web-dap2230.img
+endif
+ifeq ($(CONFIG_DAP3320),y)
+	cd tools/alpha_pack && ./packimgs -v -o $(TOP)/$(ARCH)-uclibc/raw.img -i $(TOP)/$(ARCH)-uclibc/vmlinux.lzma -i $(TOP)/$(ARCH)-uclibc/root.fs
+	cd tools/alpha_pack && ./v2image -v -i $(TOP)/$(ARCH)-uclibc/raw.img -o $(TOP)/$(ARCH)-uclibc/web-dap3320.img -d /dev/mtdblock/1 -s wapn29_dkbs_dap3320 -c -b
+	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dap3320.trx $(ARCH)-uclibc/web-dap3320.img
+endif
+ifeq ($(CONFIG_DAP2330),y)
+	cd tools/alpha_pack && ./packimgs -v -o $(TOP)/$(ARCH)-uclibc/raw.img -i $(TOP)/$(ARCH)-uclibc/vmlinux.lzma -i $(TOP)/$(ARCH)-uclibc/root.fs
+	cd tools/alpha_pack && ./v2image -v -i $(TOP)/$(ARCH)-uclibc/raw.img -o $(TOP)/$(ARCH)-uclibc/web-dap2330.img -d /dev/mtdblock/1 -s wapn24_dkbs_dap2330 -c -b
+	./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/webflash-dap2330.trx $(ARCH)-uclibc/web-dap2330.img
+endif
+
 include rules/all.mk
 
 .PHONY: all clean distclean mrproper install package

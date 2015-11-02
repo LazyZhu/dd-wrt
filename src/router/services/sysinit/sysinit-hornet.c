@@ -142,43 +142,6 @@ void start_sysinit(void)
 	eval("ifconfig", "eth0", "up");
 	eval("ifconfig", "eth1", "up");
 
-#ifdef HAVE_WR741V4
-#ifdef HAVE_SWCONFIG
-	system("swconfig dev eth1 set reset 1");
-	system("swconfig dev eth1 set enable_vlan 1");
-	system("swconfig dev eth1 vlan 1 set ports \"0 1 2 3 4\"");
-	system("swconfig dev eth1 set apply");
-#endif
-#ifndef HAVE_WR703
-	setEthLED(13, "eth0");
-	setSwitchLED(14, 0x4);
-	setSwitchLED(15, 0x8);
-	setSwitchLED(16, 0x10);
-	setSwitchLED(17, 0x02);
-#endif
-#ifdef HAVE_MR3020
-	setEthLED(17, "eth1");
-#endif
-#endif
-#ifdef HAVE_CARAMBOLA
-	system("swconfig dev switch0 set reset 1");
-	system("swconfig dev switch0 set enable_vlan 1");
-	system("swconfig dev switch0 vlan 1 set ports \"0t 1\"");
-	system("swconfig dev switch0 vlan 2 set ports \"0t 2\"");
-	system("swconfig dev switch0 set apply");
-	eval("vconfig", "set_name_type", "VLAN_PLUS_VID_NO_PAD");
-	eval("vconfig", "add", "eth1", "1");
-	eval("vconfig", "add", "eth1", "2");
-#endif
-#ifdef HAVE_HORNET
-#ifdef HAVE_ONNET
-	setEthLED(13, "eth0");
-	setEthLED(17, "eth1");
-#else
-	setEthLED(17, "eth0");
-	setEthLED(13, "eth1");
-#endif
-#endif
 	struct ifreq ifr;
 	int s;
 
@@ -192,6 +155,64 @@ void start_sysinit(void)
 		close(s);
 	}
 
+#ifdef HAVE_WR741V4
+#ifdef HAVE_SWCONFIG
+#ifndef HAVE_WR710
+	eval("swconfig", "dev", "eth1", "set", "reset", "1");
+	eval("swconfig", "dev", "eth1", "set", "enable_vlan", "1");
+	eval("swconfig", "dev", "eth1", "vlan", "1", "set", "ports", "0 1 2 3 4");
+	eval("swconfig", "dev", "eth1", "set", "apply");
+#endif
+#endif
+#ifndef HAVE_WR703
+	setEthLED(13, "eth0");
+	setSwitchLED(14, 0x4);
+	setSwitchLED(15, 0x8);
+	setSwitchLED(16, 0x10);
+	setSwitchLED(17, 0x02);
+#endif
+#ifdef HAVE_MR3020
+	setEthLED(17, "eth1");
+#endif
+#endif
+#ifdef HAVE_ERC
+	eval("swconfig", "dev", "eth1", "set", "reset", "1");
+	eval("swconfig", "dev", "eth1", "set", "enable_vlan", "1");
+	eval("swconfig", "dev", "eth1", "vlan", "1", "set", "ports", "0 1 2 3 4");
+	eval("swconfig", "dev", "eth1", "set", "apply");
+
+	setSwitchLED(13, 0x02);
+	setSwitchLED(14, 0x04);
+	setSwitchLED(15, 0x08);
+	setSwitchLED(16, 0x10);
+	set_gpio(17, 1);
+	set_gpio(13, 1);
+	set_gpio(14, 1);
+	set_gpio(15, 1);
+	set_gpio(16, 1);
+	setEthLED(17, "eth0");
+#elif HAVE_CARAMBOLA
+	eval("swconfig", "dev", "switch0", "set", "reset", "1");
+	eval("swconfig", "dev", "switch0", "set", "enable_vlan", "1");
+	eval("swconfig", "dev", "switch0", "vlan", "1", "set", "ports", "0t 1");
+	eval("swconfig", "dev", "switch0", "vlan", "2", "set", "ports", "0t 2");
+	eval("swconfig", "dev", "switch0", "set", "apply");
+	eval("vconfig", "set_name_type", "VLAN_PLUS_VID_NO_PAD");
+	eval("vconfig", "add", "eth1", "1");
+	eval("vconfig", "add", "eth1", "2");
+#endif
+#ifndef HAVE_ERC
+#ifdef HAVE_HORNET
+#ifdef HAVE_ONNET
+	setEthLED(13, "eth0");
+	setEthLED(17, "eth1");
+#else
+	setEthLED(17, "eth0");
+	setEthLED(13, "eth1");
+#endif
+#endif
+#endif
+
 	detect_wireless_devices();
 
 	led_control(LED_POWER, LED_ON);
@@ -201,6 +222,7 @@ void start_sysinit(void)
 	led_control(LED_BRIDGE, LED_OFF);
 	led_control(LED_WLAN0, LED_OFF);
 	led_control(LED_WLAN1, LED_OFF);
+	led_control(LED_VPN, LED_OFF);
 	led_control(LED_CONNECTED, LED_OFF);
 	setWirelessLed(0, 0);
 

@@ -44,7 +44,7 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(am__include_HEADERS_DIST) \
 	$(am__ltdlinclude_HEADERS_DIST) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config-h.in \
-	$(top_srcdir)/configure   argz.c config/compile \
+	$(top_srcdir)/configure COPYING.LIB argz.c config/compile \
 	config/config.guess config/config.sub config/depcomp \
 	config/install-sh config/ltmain.sh  \
 	config/missing  lt__dirent.c lt__strl.c
@@ -316,7 +316,7 @@ noinst_LTLIBRARIES = $(LT_DLLOADERS) $(am__append_3)
 lib_LTLIBRARIES = $(am__append_2)
 EXTRA_LTLIBRARIES = dlopen.la dld_link.la dyld.la load_add_on.la \
 	loadlibrary.la shl_load.la
-EXTRA_DIST = lt__dirent.c lt__strl.c   configure.ac \
+EXTRA_DIST = lt__dirent.c lt__strl.c COPYING.LIB configure.ac \
 	Makefile.am aclocal.m4 Makefile.in configure config-h.in \
 	README argz_.h argz.c
 CLEANFILES = libltdl.la libltdlc.la libdlloader.la $(LIBOBJS) \

@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////////////////////
 //		Polish translation file - DD-WRT V24 SP2       11/Apr/2012										//
 //////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -103,12 +103,12 @@ share.manual="Ręcznie";
 share.port="Port";
 share.ssid="SSID";
 share.channel="Kanał";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="Sygnał";
 share.noise="Zakłócenia";
-share.beacon="beacon";
+share.beacon="Beacon";
 share.openn="Otwórz";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="Wskaźnik";
 share.rate="Wskaźnik";
 share.txrate="Wskaźnik TX";

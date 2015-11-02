@@ -1,11 +1,20 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef SQUID_ADAPTATION__SERVICE_GROUPS_H
 #define SQUID_ADAPTATION__SERVICE_GROUPS_H
 
-#include "SquidString.h"
-#include "Array.h"
-#include "RefCount.h"
 #include "adaptation/Elements.h"
 #include "adaptation/forward.h"
+#include "base/RefCount.h"
+#include "SquidString.h"
+
+#include <vector>
 
 namespace Adaptation
 {
@@ -17,9 +26,9 @@ class ServiceGroup: public RefCountable
 public:
     typedef RefCount<ServiceGroup> Pointer;
 
-    typedef Vector<String> Store;
+    typedef std::vector<String> Store;
     typedef String Id;
-    typedef unsigned int Pos; // Vector<>::poistion_type
+    typedef unsigned int Pos; // vector<>::position_type
     friend class ServicePlan;
 
 public:
@@ -72,7 +81,7 @@ public:
 
 protected:
     virtual bool replace(Pos &pos) const { return has(++pos); }
-    virtual bool advance(Pos &pos) const { return false; }
+    virtual bool advance(Pos &) const { return false; }
 };
 
 // corner case: a group consisting of one service
@@ -82,8 +91,8 @@ public:
     SingleService(const String &aServiceKey);
 
 protected:
-    virtual bool replace(Pos &pos) const { return false; }
-    virtual bool advance(Pos &pos) const { return false; }
+    virtual bool replace(Pos &) const { return false; }
+    virtual bool advance(Pos &) const { return false; }
 };
 
 /// a group of services that must be used one after another
@@ -93,7 +102,7 @@ public:
     ServiceChain();
 
 protected:
-    virtual bool replace(Pos &pos) const { return false; }
+    virtual bool replace(Pos &) const { return false; }
     virtual bool advance(Pos &pos) const { return has(++pos); }
 };
 
@@ -113,7 +122,7 @@ public:
 class ServicePlan
 {
 public:
-    typedef unsigned int Pos; // Vector<>::poistion_type
+    typedef unsigned int Pos; // vector<>::position_type
 
 public:
     ServicePlan();
@@ -141,7 +150,7 @@ std::ostream &operator <<(std::ostream &os, const ServicePlan &p)
     return p.print(os);
 }
 
-typedef Vector<ServiceGroupPointer> Groups;
+typedef std::vector<ServiceGroupPointer> Groups;
 Groups &AllGroups();
 ServiceGroupPointer FindGroup(const ServiceGroup::Id &id);
 

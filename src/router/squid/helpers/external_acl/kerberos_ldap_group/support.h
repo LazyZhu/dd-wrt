@@ -1,4 +1,12 @@
 /*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
+/*
  * -----------------------------------------------------------------------------
  *
  * Author: Markus Moeller (markus_moeller at compuserve.com)
@@ -22,10 +30,12 @@
  * -----------------------------------------------------------------------------
  */
 
-#define KERBEROS_LDAP_GROUP_VERSION "1.3.0sq"
+#define KERBEROS_LDAP_GROUP_VERSION "1.4.0sq"
 
-#if HAVE_STRING_H
-#include <string.h>
+#include <cstring>
+
+#if USE_APPLE_KRB5
+#define KERBEROS_APPLE_DEPRECATED(x)
 #endif
 
 #if HAVE_KRB5_H
@@ -49,21 +59,19 @@ extern "C" {
 
 #if HAVE_COM_ERR_H
 #include <com_err.h>
-#elif HAVE_HEIMDAL_KERBEROS
-#define error_message(code) krb5_get_err_text(kparam.context,code)
 #endif /* HAVE_COM_ERR_H */
 
 #define LDAP_DEPRECATED 1
-#ifdef HAVE_LDAP_REBIND_FUNCTION
+#if HAVE_LDAP_REBIND_FUNCTION
 #define LDAP_REFERRALS
 #endif
-#ifdef HAVE_LBER_H
+#if HAVE_LBER_H
 #include <lber.h>
 #endif
-#ifdef HAVE_LDAP_H
+#if HAVE_LDAP_H
 #include <ldap.h>
 #endif
-#ifdef HAVE_MOZLDAP_LDAP_H
+#if HAVE_MOZLDAP_LDAP_H
 #include <mozldap/ldap.h>
 #endif
 
@@ -97,6 +105,7 @@ struct main_args {
     int rc_allow;
     int AD;
     int mdepth;
+    int nokerberos;
     char *ddomain;
     struct gdstruct *groups;
     struct ndstruct *ndoms;
@@ -155,17 +164,26 @@ int create_gd(struct main_args *margs);
 int create_nd(struct main_args *margs);
 int create_ls(struct main_args *margs);
 
-#ifdef HAVE_KRB5
-int krb5_create_cache(struct main_args *margs, char *domain);
-void krb5_cleanup(void);
-#endif
+size_t get_ldap_hostname_list(struct main_args *margs, struct hstruct **hlist, size_t nhosts, char *domain);
+size_t get_hostname_list(struct hstruct **hlist, size_t nhosts, char *name);
+size_t free_hostname_list(struct hstruct **hlist, size_t nhosts);
 
-int get_ldap_hostname_list(struct main_args *margs, struct hstruct **hlist, int nhosts, char *domain);
-int get_hostname_list(struct main_args *margs, struct hstruct **hlist, int nhosts, char *name);
-int free_hostname_list(struct hstruct **hlist, int nhosts);
-
-#if defined(HAVE_SASL_H) || defined(HAVE_SASL_SASL_H) || defined(HAVE_SASL_DARWIN)
+#if HAVE_SASL_H || HAVE_SASL_SASL_H || HAVE_SASL_DARWIN
 int tool_sasl_bind(LDAP * ld, char *binddn, char *ssl);
 #endif
 
+#if HAVE_KRB5
+#define MAX_DOMAINS 16
+#define MAX_SKEW 300
+struct kstruct {
+    krb5_context context;
+    krb5_ccache cc[MAX_DOMAINS];
+    char* mem_ccache[MAX_DOMAINS];
+    int ncache;
+};
+int krb5_create_cache(char *domain);
+void krb5_cleanup(void);
+#endif
+
 #define PROGRAM "kerberos_ldap_group"
+

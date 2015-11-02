@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 // XXX: This file is made of large pieces of src/tools.cc
 // with only a few minor modifications. TODO: redesign or delete.
 
@@ -10,22 +18,6 @@ xassert(const char *msg, const char *file, int line)
 {
     std::cout << "Assertion failed: (" << msg << ") at " << file << ":" << line << std::endl;
     exit (1);
-}
-
-dlink_node *
-dlinkNodeNew()
-{
-    return new dlink_node;
-}
-
-/* the node needs to be unlinked FIRST */
-void
-dlinkNodeDelete(dlink_node * m)
-{
-    if (m == NULL)
-        return;
-
-    delete m;
 }
 
 void
@@ -94,3 +86,4 @@ dlinkDelete(dlink_node * m, dlink_list * list)
 
     m->next = m->prev = NULL;
 }
+

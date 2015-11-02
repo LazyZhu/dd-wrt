@@ -2139,6 +2139,14 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		os_free(bss->nas_identifier);
 		bss->nas_identifier = os_strdup(pos);
 #ifndef CONFIG_NO_RADIUS
+	} else if (os_strcmp(buf, "radius_client_addr") == 0) {
+		if (hostapd_parse_ip_addr(pos, &bss->radius->client_addr)) {
+			wpa_printf(MSG_ERROR,
+				   "Line %d: invalid IP address '%s'",
+				   line, pos);
+			return 1;
+		}
+		bss->radius->force_client_addr = 1;
 	} else if (os_strcmp(buf, "auth_server_addr") == 0) {
 		if (hostapd_config_read_radius_addr(
 			    &bss->radius->auth_servers,
@@ -2687,8 +2695,6 @@ static int hostapd_config_fill(struct hostapd_config *conf,
 		}
 	} else if (os_strcmp(buf, "dynamic_ht40") == 0) {
 		conf->dynamic_ht40 = atoi(pos);
-		if (conf->dynamic_ht40 == 1)
-			conf->dynamic_ht40 = 1500;
 	} else if (os_strcmp(buf, "require_ht") == 0) {
 		conf->require_ht = atoi(pos);
 	} else if (os_strcmp(buf, "obss_interval") == 0) {

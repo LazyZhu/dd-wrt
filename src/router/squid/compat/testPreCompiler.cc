@@ -1,11 +1,16 @@
-#define SQUID_UNIT_TEST 1
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #include "squid.h"
-
-#if HAVE_ASSERT_H
-#include <assert.h>
-#endif
-
 #include "testPreCompiler.h"
+#include "unitTestMain.h"
+
+#include <cassert>
 
 CPPUNIT_TEST_SUITE_REGISTRATION( testPreCompiler );
 
@@ -103,6 +108,19 @@ testPreCompiler::testIfDefAnd()
 #endif
     CPPUNIT_ASSERT(undefinedAndFalseB);
     CPPUNIT_ASSERT(!undefinedAndTrueB);
+
+#if UNDEFINED_FOO && UNDEFINED_FOO
+    bool undefinedAndUndefinedC = true;
+#else
+    bool undefinedAndUndefinedC = false;
+#endif
+#if !UNDEFINED_FOO && !UNDEFINED_FOO
+    bool notUndefinedAndNotUndefinedC = true;
+#else
+    bool notUndefinedAndNotUndefinedC = false;
+#endif
+    CPPUNIT_ASSERT(!undefinedAndUndefinedC);
+    CPPUNIT_ASSERT(notUndefinedAndNotUndefinedC);
 }
 
 /**
@@ -144,5 +162,17 @@ testPreCompiler::testIfDefOr()
     CPPUNIT_ASSERT(undefinedOrFalseB);
     CPPUNIT_ASSERT(!undefinedOrTrueB);
 
+#if UNDEFINED_FOO || UNDEFINED_FOO
+    bool undefinedOrUndefinedC = true;
+#else
+    bool undefinedOrUndefinedC = false;
+#endif
+#if !UNDEFINED_FOO || !UNDEFINED_FOO
+    bool notUndefinedOrNotUndefinedC = true;
+#else
+    bool notUndefinedOrNotUndefinedC = false;
+#endif
+    CPPUNIT_ASSERT(notUndefinedOrNotUndefinedC);
+    CPPUNIT_ASSERT(!undefinedOrUndefinedC);
 }
 

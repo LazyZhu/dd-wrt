@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////////
+﻿////////////////////////////////////////////////////////////////////////////////////
 // DD-WRT v24-sp2 / Croatian / updated from r19947 / by Silvio Peša / 2012-10-15 // 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -110,12 +110,12 @@ share.port="Vrata";
 share.ssid="SSID";
 share.channel="Kanal";
 share.frequency="Frekvencija";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="Signal";
 share.noise="Šum";
 share.beacon="Sinh. Okvir";
 share.openn="Otvorena";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="Omjeri";
 share.rate="Omjer";
 share.txrate="TX Omjer";

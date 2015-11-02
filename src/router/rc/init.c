@@ -591,7 +591,7 @@ int main(int argc, char **argv)
 #elif HAVE_TESTEM
 	fprintf(fp, "TESTEM %s (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE " (SVN revision: %s)\n", DIST, SVN_REVISION);
 #elif HAVE_HOBBIT
-	fprintf(fp, "Hobb-IT %s (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE " (SVN revision: %s)\n", DIST, SVN_REVISION);
+	fprintf(fp, "HQ-NDS %s (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE " (SVN revision: %s)\n", DIST, SVN_REVISION);
 #elif HAVE_ONNET
 #ifdef HAVE_ONNET_BLANK
 	fprintf(fp, "Enterprise AP %s (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE " (SVN revision: %s)\n", DIST, SVN_REVISION);
@@ -606,11 +606,11 @@ int main(int argc, char **argv)
 #else
 #ifdef DIST
 	if (strlen(DIST) > 0)
-		fprintf(fp, "DD-WRT v24-sp2 %s (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE " (SVN revision: %s)\n", DIST, SVN_REVISION);
+		fprintf(fp, "DD-WRT v3.0-r%s %s (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE "\n",  SVN_REVISION, DIST);
 	else
-		fprintf(fp, "DD-WRT v24-sp2 custom (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE " (SVN revision: %s)\n", SVN_REVISION);
+		fprintf(fp, "DD-WRT v3.0-r%s custom (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE "\n", SVN_REVISION);
 #else
-	fprintf(fp, "DD-WRT v24-sp2 custom (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE " (SVN revision: %s)\n", SVN_REVISION);
+	fprintf(fp, "DD-WRT v3.0-r%s custom (c) 2015 NewMedia-NET GmbH\nRelease: " BUILD_DATE "\n", SVN_REVISION);
 #endif
 #endif
 #endif
@@ -799,7 +799,6 @@ int main(int argc, char **argv)
 			cprintf("set led release wan control\n");
 			SET_LED(RELEASE_WAN_CONTROL);
 
-#ifndef HAVE_ERC
 #ifdef HAVE_RADIOOFF
 			if (nvram_match("radiooff_button", "1")
 			    && nvram_match("radiooff_boot_off", "1")) {
@@ -807,7 +806,6 @@ int main(int argc, char **argv)
 				led_control(LED_SEC0, LED_OFF);
 				led_control(LED_SEC1, LED_OFF);
 			} else
-#endif
 #endif
 			{
 				start_service_force("radio_off");

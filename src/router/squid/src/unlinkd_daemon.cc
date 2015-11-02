@@ -1,39 +1,19 @@
 /*
- * DEBUG: section --    Unlink Daemon
- * AUTHOR: Duane Wessels
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section --    Unlink Daemon */
 
 #define SQUID_HELPER 1
 
 #include "squid.h"
 
+#include <iostream>
+#include <cstdio>
 #if HAVE_PATHS_H
 #include <paths.h>
 #endif
@@ -69,27 +49,22 @@
  \retval OK  The file has been removed.
  */
 int
-main(int argc, char *argv[])
+main(int, char *[])
 {
-    char buf[UNLINK_BUF_LEN];
-    char *t;
-    int x;
-    setbuf(stdin, NULL);
-    setbuf(stdout, NULL);
+    std::string sbuf;
     close(2);
     if (open(_PATH_DEVNULL, O_RDWR) < 0) {
         ; // the irony of having to close(2) earlier is that we cannot report this failure.
     }
-
-    while (fgets(buf, sizeof(buf), stdin)) {
-        if ((t = strchr(buf, '\n')))
-            *t = '\0';
-        x = unlink(buf);
-        if (x < 0)
-            printf("ERR\n");
+    while (getline(std::cin, sbuf)) {
+        // tailing newline is removed by getline
+        const int rv = remove(sbuf.c_str());
+        if (rv < 0)
+            std::cout << "ERR" << std::endl; // endl flushes
         else
-            printf("OK\n");
+            std::cout << "OK" << std::endl;
     }
 
     return 0;
 }
+

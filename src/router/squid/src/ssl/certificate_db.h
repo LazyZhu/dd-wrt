@@ -1,13 +1,20 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef SQUID_SSL_CERTIFICATE_DB_H
 #define SQUID_SSL_CERTIFICATE_DB_H
 
 #include "ssl/gadgets.h"
-#if HAVE_STRING
-#include <string>
-#endif
+
 #if HAVE_OPENSSL_OPENSSLV_H
 #include <openssl/opensslv.h>
 #endif
+#include <string>
 
 namespace Ssl
 {
@@ -91,34 +98,36 @@ public:
 
     CertificateDb(std::string const & db_path, size_t aMax_db_size, size_t aFs_block_size);
     /// Find certificate and private key for host name
-    bool find(std::string const & host_name, Ssl::X509_Pointer & cert, Ssl::EVP_PKEY_Pointer & pkey);
+    bool find(std::string const & host_name, Security::CertPointer & cert, Ssl::EVP_PKEY_Pointer & pkey);
     /// Delete a certificate from database
     bool purgeCert(std::string const & key);
     /// Save certificate to disk.
-    bool addCertAndPrivateKey(Ssl::X509_Pointer & cert, Ssl::EVP_PKEY_Pointer & pkey, std::string const & useName);
+    bool addCertAndPrivateKey(Security::CertPointer & cert, Ssl::EVP_PKEY_Pointer & pkey, std::string const & useName);
     /// Create and initialize a database  under the  db_path
     static void create(std::string const & db_path);
     /// Check the database stored under the db_path.
-    static void check(std::string const & db_path, size_t max_db_size);
+    static void check(std::string const & db_path, size_t max_db_size, size_t fs_block_size);
     bool IsEnabledDiskStore() const; ///< Check enabled of dist store.
 private:
     void load(); ///< Load db from disk.
     void save(); ///< Save db to disk.
-    size_t size() const; ///< Get db size on disk in bytes.
+    size_t size(); ///< Get db size on disk in bytes.
     /// Increase db size by the given file size and update size_file
     void addSize(std::string const & filename);
     /// Decrease db size by the given file size and update size_file
     void subSize(std::string const & filename);
-    size_t readSize() const; ///< Read size from file size_file
+    size_t readSize(); ///< Read size from file size_file
     void writeSize(size_t db_size); ///< Write size to file size_file.
     size_t getFileSize(std::string const & filename); ///< get file size on disk.
+    size_t rebuildSize(); ///< Rebuild size_file
     /// Only find certificate in current db and return it.
-    bool pure_find(std::string const & host_name, Ssl::X509_Pointer & cert, Ssl::EVP_PKEY_Pointer & pkey);
+    bool pure_find(std::string const & host_name, Security::CertPointer & cert, Ssl::EVP_PKEY_Pointer & pkey);
 
     void deleteRow(const char **row, int rowIndex); ///< Delete a row from TXT_DB
     bool deleteInvalidCertificate(); ///< Delete invalid certificate.
     bool deleteOldestCertificate(); ///< Delete oldest certificate.
     bool deleteByHostname(std::string const & host); ///< Delete using host name.
+    bool hasRows() const; ///< Whether the TXT_DB has stored items.
 
     /// Removes the first matching row from TXT_DB. Ignores failures.
     static void sq_TXT_DB_delete(TXT_DB *db, const char **row);
@@ -177,3 +186,4 @@ private:
 
 } // namespace Ssl
 #endif // SQUID_SSL_CERTIFICATE_DB_H
+

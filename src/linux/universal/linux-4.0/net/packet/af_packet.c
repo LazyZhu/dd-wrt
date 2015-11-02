@@ -698,6 +698,10 @@ static void prb_retire_rx_blk_timer_expired(unsigned long data)
 
 	if (pkc->last_kactive_blk_num == pkc->kactive_blk_num) {
 		if (!frozen) {
+			if (!BLOCK_NUM_PKTS(pbd)) {
+				/* An empty block. Just refresh the timer. */
+				goto refresh_timer;
+			}
 			prb_retire_current_block(pkc, po, TP_STATUS_BLK_TMO);
 			if (!prb_dispatch_next_block(pkc, po))
 				goto refresh_timer;
@@ -798,7 +802,11 @@ static void prb_close_block(struct tpacket_kbdq_core *pkc1,
 		h1->ts_last_pkt.ts_sec = last_pkt->tp_sec;
 		h1->ts_last_pkt.ts_nsec	= last_pkt->tp_nsec;
 	} else {
-		/* Ok, we tmo'd - so get the current time */
+		/* Ok, we tmo'd - so get the current time.
+		 *
+		 * It shouldn't really happen as we don't close empty
+		 * blocks. See prb_retire_rx_blk_timer_expired().
+		 */
 		struct timespec ts;
 		getnstimeofday(&ts);
 		h1->ts_last_pkt.ts_sec = ts.tv_sec;
@@ -1258,16 +1266,6 @@ static void packet_sock_destruct(struct sock *sk)
 	sk_refcnt_debug_dec(sk);
 }
 
-static int fanout_rr_next(struct packet_fanout *f, unsigned int num)
-{
-	int x = atomic_read(&f->rr_cur) + 1;
-
-	if (x >= num)
-		x = 0;
-
-	return x;
-}
-
 static unsigned int fanout_demux_hash(struct packet_fanout *f,
 				      struct sk_buff *skb,
 				      unsigned int num)
@@ -1279,13 +1277,9 @@ static unsigned int fanout_demux_lb(struct packet_fanout *f,
 				    struct sk_buff *skb,
 				    unsigned int num)
 {
-	int cur, old;
+	unsigned int val = atomic_inc_return(&f->rr_cur);
 
-	cur = atomic_read(&f->rr_cur);
-	while ((old = atomic_cmpxchg(&f->rr_cur, cur,
-				     fanout_rr_next(f, num))) != cur)
-		cur = old;
-	return cur;
+	return val % num;
 }
 
 static unsigned int fanout_demux_cpu(struct packet_fanout *f,
@@ -1339,7 +1333,7 @@ static int packet_rcv_fanout(struct sk_buff *skb, struct net_device *dev,
 			     struct packet_type *pt, struct net_device *orig_dev)
 {
 	struct packet_fanout *f = pt->af_packet_priv;
-	unsigned int num = f->num_members;
+	unsigned int num = READ_ONCE(f->num_members);
 	struct packet_sock *po;
 	unsigned int idx;
 
@@ -1349,14 +1343,14 @@ static int packet_rcv_fanout(struct sk_buff *skb, struct net_device *dev,
 		return 0;
 	}
 
+	if (fanout_has_flag(f, PACKET_FANOUT_FLAG_DEFRAG)) {
+		skb = ip_check_defrag(skb, IP_DEFRAG_AF_PACKET);
+		if (!skb)
+			return 0;
+	}
 	switch (f->type) {
 	case PACKET_FANOUT_HASH:
 	default:
-		if (fanout_has_flag(f, PACKET_FANOUT_FLAG_DEFRAG)) {
-			skb = ip_check_defrag(skb, IP_DEFRAG_AF_PACKET);
-			if (!skb)
-				return 0;
-		}
 		idx = fanout_demux_hash(f, skb, num);
 		break;
 	case PACKET_FANOUT_LB:
@@ -3118,11 +3112,18 @@ static int packet_dev_mc(struct net_device *dev, struct packet_mclist *i,
 	return 0;
 }
 
-static void packet_dev_mclist(struct net_device *dev, struct packet_mclist *i, int what)
+static void packet_dev_mclist_delete(struct net_device *dev,
+				     struct packet_mclist **mlp)
 {
-	for ( ; i; i = i->next) {
-		if (i->ifindex == dev->ifindex)
-			packet_dev_mc(dev, i, what);
+	struct packet_mclist *ml;
+
+	while ((ml = *mlp) != NULL) {
+		if (ml->ifindex == dev->ifindex) {
+			packet_dev_mc(dev, ml, -1);
+			*mlp = ml->next;
+			kfree(ml);
+		} else
+			mlp = &ml->next;
 	}
 }
 
@@ -3199,12 +3200,11 @@ static int packet_mc_drop(struct sock *sk, struct packet_mreq_max *mreq)
 					packet_dev_mc(dev, ml, -1);
 				kfree(ml);
 			}
-			rtnl_unlock();
-			return 0;
+			break;
 		}
 	}
 	rtnl_unlock();
-	return -EADDRNOTAVAIL;
+	return 0;
 }
 
 static void packet_flush_mclist(struct sock *sk)
@@ -3574,7 +3574,7 @@ static int packet_notifier(struct notifier_block *this,
 		switch (msg) {
 		case NETDEV_UNREGISTER:
 			if (po->mclist)
-				packet_dev_mclist(dev, po->mclist, -1);
+				packet_dev_mclist_delete(dev, &po->mclist);
 			/* fallthrough */
 
 		case NETDEV_DOWN:

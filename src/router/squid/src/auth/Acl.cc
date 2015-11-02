@@ -1,10 +1,19 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #include "squid.h"
 #include "acl/Acl.h"
 #include "acl/FilledChecklist.h"
-#include "auth/UserRequest.h"
 #include "auth/Acl.h"
 #include "auth/AclProxyAuth.h"
+#include "auth/UserRequest.h"
 #include "client_side.h"
+#include "fatal.h"
 #include "HttpRequest.h"
 
 /**
@@ -19,34 +28,34 @@ AuthenticateAcl(ACLChecklist *ch)
 {
     ACLFilledChecklist *checklist = Filled(ch);
     HttpRequest *request = checklist->request;
-    http_hdr_type headertype;
+    Http::HdrType headertype;
 
     if (NULL == request) {
         fatal ("requiresRequest SHOULD have been true for this ACL!!");
         return ACCESS_DENIED;
     } else if (request->flags.sslBumped) {
         debugs(28, 5, "SslBumped request: It is an encapsulated request do not authenticate");
-        checklist->auth_user_request = checklist->conn() != NULL ? checklist->conn()->auth_user_request : request->auth_user_request;
+        checklist->auth_user_request = checklist->conn() != NULL ? checklist->conn()->getAuth() : request->auth_user_request;
         if (checklist->auth_user_request != NULL)
             return ACCESS_ALLOWED;
         else
             return ACCESS_DENIED;
     } else if (request->flags.accelerated) {
         /* WWW authorization on accelerated requests */
-        headertype = HDR_AUTHORIZATION;
-    } else if (request->flags.intercepted || request->flags.spoofClientIp) {
+        headertype = Http::HdrType::AUTHORIZATION;
+    } else if (request->flags.intercepted || request->flags.interceptTproxy) {
         debugs(28, DBG_IMPORTANT, "NOTICE: Authentication not applicable on intercepted requests.");
         return ACCESS_DENIED;
     } else {
         /* Proxy authorization on proxy requests */
-        headertype = HDR_PROXY_AUTHORIZATION;
+        headertype = Http::HdrType::PROXY_AUTHORIZATION;
     }
 
     /* get authed here */
     /* Note: this fills in auth_user_request when applicable */
     const AuthAclState result = Auth::UserRequest::tryToAuthenticateAndSetAuthUser(
                                     &checklist->auth_user_request, headertype, request,
-                                    checklist->conn(), checklist->src_addr);
+                                    checklist->conn(), checklist->src_addr, checklist->al);
     switch (result) {
 
     case AUTH_ACL_CANNOT_AUTHENTICATE:
@@ -58,8 +67,10 @@ AuthenticateAcl(ACLChecklist *ch)
         break;
 
     case AUTH_ACL_HELPER:
-        debugs(28, 4, HERE << "returning " << ACCESS_DUNNO << " sending credentials to helper.");
-        checklist->changeState(ProxyAuthLookup::Instance());
+        if (checklist->goAsync(ProxyAuthLookup::Instance()))
+            debugs(28, 4, "returning " << ACCESS_DUNNO << " sending credentials to helper.");
+        else
+            debugs(28, 2, "cannot go async; returning " << ACCESS_DUNNO);
         return ACCESS_DUNNO; // XXX: break this down into DUNNO, EXPIRED_OK, EXPIRED_BAD states
 
     case AUTH_ACL_CHALLENGE:
@@ -75,3 +86,4 @@ AuthenticateAcl(ACLChecklist *ch)
         return ACCESS_DENIED;
     }
 }
+

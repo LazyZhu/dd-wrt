@@ -18,37 +18,47 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with nDPI.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  */
 
-
-#include "ndpi_utils.h"
+#include "ndpi_api.h"
 
 #ifdef NDPI_PROTOCOL_DCERPC
 
 static void ndpi_int_dcerpc_add_connection(struct ndpi_detection_module_struct
-					     *ndpi_struct, struct ndpi_flow_struct *flow)
+					   *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  ndpi_int_add_connection(ndpi_struct, flow, NDPI_PROTOCOL_DCERPC, NDPI_REAL_PROTOCOL);
+	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_DCERPC, NDPI_PROTOCOL_UNKNOWN);
 }
 
 static void ndpi_search_dcerpc(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
-  
+	struct ndpi_packet_struct *packet = &flow->packet;
 
-  if((packet->tcp != NULL) 
-     && (packet->payload_packet_len > 64) 
-     && ((ntohs(packet->tcp->source) == 135) || (ntohs(packet->tcp->dest) == 135))
-     && (packet->payload[0] == 0x05) /* version 5 */
-     && (packet->payload[2] < 16) /* Packet type */
-     ) {	 
-    NDPI_LOG(NDPI_PROTOCOL_DCERPC, ndpi_struct, NDPI_LOG_DEBUG, "DCERPC match\n");	  
-    ndpi_int_dcerpc_add_connection(ndpi_struct, flow);
-    return;
-  }
+	u_int16_t len_packet = (packet->payload[9] << 8) | packet->payload[8];
 
-  NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_DCERPC);
+	if ((packet->tcp != NULL)
+	    && (packet->payload_packet_len >= 64)
+	    && (packet->payload[0] == 0x05)	/* version 5 */
+	    &&(packet->payload[2] < 16)	/* Packet type */
+	    &&(len_packet == packet->payload_packet_len)	/* Packet Length */
+	    ) {
+		NDPI_LOG(NDPI_PROTOCOL_DCERPC, ndpi_struct, NDPI_LOG_DEBUG, "DCERPC match\n");
+		ndpi_int_dcerpc_add_connection(ndpi_struct, flow);
+		return;
+	}
+
+	if (packet->payload_packet_len > 1) {
+		NDPI_ADD_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_DCERPC);
+	}
+}
+
+static void init_dcerpc_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK * detection_bitmask)
+{
+	ndpi_set_bitmask_protocol_detection("DCE_RPC", ndpi_struct, detection_bitmask, *id,
+					    NDPI_PROTOCOL_DCERPC,
+					    ndpi_search_dcerpc, NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION, SAVE_DETECTION_BITMASK_AS_UNKNOWN, ADD_TO_DETECTION_BITMASK);
+	*id += 1;
 }
 
 #endif

@@ -833,8 +833,7 @@ int kvm_apic_compare_prio(struct kvm_vcpu *vcpu1, struct kvm_vcpu *vcpu2)
 
 static void kvm_ioapic_send_eoi(struct kvm_lapic *apic, int vector)
 {
-	if (!(kvm_apic_get_reg(apic, APIC_SPIV) & APIC_SPIV_DIRECTED_EOI) &&
-	    kvm_ioapic_handles_vector(apic->vcpu->kvm, vector)) {
+	if (kvm_ioapic_handles_vector(apic->vcpu->kvm, vector)) {
 		int trigger_mode;
 		if (apic_test_vector(vector, apic->regs + APIC_TMR))
 			trigger_mode = IOAPIC_LEVEL_TRIG;
@@ -1065,6 +1064,17 @@ static void update_divide_count(struct kvm_lapic *apic)
 				   apic->divide_count);
 }
 
+static void apic_update_lvtt(struct kvm_lapic *apic)
+{
+	u32 timer_mode = kvm_apic_get_reg(apic, APIC_LVTT) &
+			apic->lapic_timer.timer_mode_mask;
+
+	if (apic->lapic_timer.timer_mode != timer_mode) {
+		apic->lapic_timer.timer_mode = timer_mode;
+		hrtimer_cancel(&apic->lapic_timer.timer);
+	}
+}
+
 static void apic_timer_expired(struct kvm_lapic *apic)
 {
 	struct kvm_vcpu *vcpu = apic->vcpu;
@@ -1214,10 +1224,10 @@ static void apic_manage_nmi_watchdog(struct kvm_lapic *apic, u32 lvt0_val)
 		if (!nmi_wd_enabled) {
 			apic_debug("Receive NMI setting on APIC_LVT0 "
 				   "for cpu %d\n", apic->vcpu->vcpu_id);
-			apic->vcpu->kvm->arch.vapics_in_nmi_mode++;
+			atomic_inc(&apic->vcpu->kvm->arch.vapics_in_nmi_mode);
 		}
 	} else if (nmi_wd_enabled)
-		apic->vcpu->kvm->arch.vapics_in_nmi_mode--;
+		atomic_dec(&apic->vcpu->kvm->arch.vapics_in_nmi_mode);
 }
 
 static int apic_reg_write(struct kvm_lapic *apic, u32 reg, u32 val)
@@ -1273,6 +1283,7 @@ static int apic_reg_write(struct kvm_lapic *apic, u32 reg, u32 val)
 				apic_set_reg(apic, APIC_LVTT + 0x10 * i,
 					     lvt_val | APIC_LVT_MASKED);
 			}
+			apic_update_lvtt(apic);
 			atomic_set(&apic->lapic_timer.pending, 0);
 
 		}
@@ -1305,20 +1316,13 @@ static int apic_reg_write(struct kvm_lapic *apic, u32 reg, u32 val)
 
 		break;
 
-	case APIC_LVTT: {
-		u32 timer_mode = val & apic->lapic_timer.timer_mode_mask;
-
-		if (apic->lapic_timer.timer_mode != timer_mode) {
-			apic->lapic_timer.timer_mode = timer_mode;
-			hrtimer_cancel(&apic->lapic_timer.timer);
-		}
-
+	case APIC_LVTT:
 		if (!kvm_apic_sw_enabled(apic))
 			val |= APIC_LVT_MASKED;
 		val &= (apic_lvt_mask[0] | apic->lapic_timer.timer_mode_mask);
 		apic_set_reg(apic, APIC_LVTT, val);
+		apic_update_lvtt(apic);
 		break;
-	}
 
 	case APIC_TMICT:
 		if (apic_lvtt_tscdeadline(apic))
@@ -1553,7 +1557,7 @@ void kvm_lapic_reset(struct kvm_vcpu *vcpu)
 
 	for (i = 0; i < APIC_LVT_NUM; i++)
 		apic_set_reg(apic, APIC_LVTT + 0x10 * i, APIC_LVT_MASKED);
-	apic->lapic_timer.timer_mode = 0;
+	apic_update_lvtt(apic);
 	apic_set_reg(apic, APIC_LVT0,
 		     SET_APIC_DELIVERY_MODE(0, APIC_MODE_EXTINT));
 
@@ -1572,7 +1576,7 @@ void kvm_lapic_reset(struct kvm_vcpu *vcpu)
 		apic_set_reg(apic, APIC_TMR + 0x10 * i, 0);
 	}
 	apic->irr_pending = kvm_apic_vid_enabled(vcpu->kvm);
-	apic->isr_count = kvm_apic_vid_enabled(vcpu->kvm);
+	apic->isr_count = kvm_x86_ops->hwapic_isr_update ? 1 : 0;
 	apic->highest_isr_cache = -1;
 	update_divide_count(apic);
 	atomic_set(&apic->lapic_timer.pending, 0);
@@ -1779,10 +1783,12 @@ void kvm_apic_post_state_restore(struct kvm_vcpu *vcpu,
 
 	apic_update_ppr(apic);
 	hrtimer_cancel(&apic->lapic_timer.timer);
+	apic_update_lvtt(apic);
+	apic_manage_nmi_watchdog(apic, kvm_apic_get_reg(apic, APIC_LVT0));
 	update_divide_count(apic);
 	start_apic_timer(apic);
 	apic->irr_pending = true;
-	apic->isr_count = kvm_apic_vid_enabled(vcpu->kvm) ?
+	apic->isr_count = kvm_x86_ops->hwapic_isr_update ?
 				1 : count_vectors(apic->regs + APIC_ISR);
 	apic->highest_isr_cache = -1;
 	if (kvm_x86_ops->hwapic_irr_update)

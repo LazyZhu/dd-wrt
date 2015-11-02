@@ -1,9 +1,18 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef SQUID_ADAPTATION__SERVICE_CONFIG_H
 #define SQUID_ADAPTATION__SERVICE_CONFIG_H
 
-#include "SquidString.h"
-#include "RefCount.h"
 #include "adaptation/Elements.h"
+#include "base/RefCount.h"
+#include "security/PeerOptions.h"
+#include "SquidString.h"
 
 namespace Adaptation
 {
@@ -39,6 +48,9 @@ public:
     bool routing; ///< whether this service may determine the next service(s)
     bool ipv6;    ///< whether this service uses IPv6 transport (default IPv4)
 
+    // security settings for adaptation service
+    Security::PeerOptions secure;
+
 protected:
     Method parseMethod(const char *buf) const;
     VectPoint parseVectPoint(const char *buf) const;
@@ -56,3 +68,4 @@ protected:
 } // namespace Adaptation
 
 #endif /* SQUID_ADAPTATION__SERVICE_CONFIG_H */
+

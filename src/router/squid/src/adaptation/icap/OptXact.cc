@@ -1,6 +1,12 @@
 /*
- * DEBUG: section 93    ICAP (RFC 3507) Client
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
+
+/* DEBUG: section 93    ICAP (RFC 3507) Client */
 
 #include "squid.h"
 #include "adaptation/Answer.h"
@@ -18,9 +24,9 @@ CBDATA_NAMESPACED_CLASS_INIT(Adaptation::Icap, OptXact);
 CBDATA_NAMESPACED_CLASS_INIT(Adaptation::Icap, OptXactLauncher);
 
 Adaptation::Icap::OptXact::OptXact(Adaptation::Icap::ServiceRep::Pointer &aService):
-        AsyncJob("Adaptation::Icap::OptXact"),
-        Adaptation::Icap::Xaction("Adaptation::Icap::OptXact", aService),
-        readAll(false)
+    AsyncJob("Adaptation::Icap::OptXact"),
+    Adaptation::Icap::Xaction("Adaptation::Icap::OptXact", aService),
+    readAll(false)
 {
 }
 
@@ -48,20 +54,21 @@ void Adaptation::Icap::OptXact::makeRequest(MemBuf &buf)
 {
     const Adaptation::Service &s = service();
     const String uri = s.cfg().uri;
-    buf.Printf("OPTIONS " SQUIDSTRINGPH " ICAP/1.0\r\n", SQUIDSTRINGPRINT(uri));
+    buf.appendf("OPTIONS " SQUIDSTRINGPH " ICAP/1.0\r\n", SQUIDSTRINGPRINT(uri));
     const String host = s.cfg().host;
-    buf.Printf("Host: " SQUIDSTRINGPH ":%d\r\n", SQUIDSTRINGPRINT(host), s.cfg().port);
+    buf.appendf("Host: " SQUIDSTRINGPH ":%d\r\n", SQUIDSTRINGPRINT(host), s.cfg().port);
 
     if (!TheConfig.reuse_connections)
-        buf.Printf("Connection: close\r\n");
+        buf.append("Connection: close\r\n", 19);
 
     if (TheConfig.allow206_enable)
-        buf.Printf("Allow: 206\r\n");
+        buf.append("Allow: 206\r\n", 12);
     buf.append(ICAP::crlf, 2);
 
     // XXX: HttpRequest cannot fully parse ICAP Request-Line
-    http_status reqStatus;
-    Must(icapRequest->parse(&buf, true, &reqStatus) > 0);
+    Http::StatusCode reqStatus;
+    buf.terminate(); // HttpMsg::parse requires terminated buffer
+    Must(icapRequest->parse(buf.content(), buf.contentSize(), true, &reqStatus) > 0);
 }
 
 void Adaptation::Icap::OptXact::handleCommWrote(size_t size)
@@ -83,7 +90,7 @@ void Adaptation::Icap::OptXact::handleCommRead(size_t)
         debugs(93, 7, HERE << "readAll=" << readAll);
         icap_tio_finish = current_time;
         setOutcome(xoOpt);
-        sendAnswer(Answer::Forward(icapReply));
+        sendAnswer(Answer::Forward(icapReply.getRaw()));
         Must(done()); // there should be nothing else to do
         return;
     }
@@ -93,14 +100,13 @@ void Adaptation::Icap::OptXact::handleCommRead(size_t)
 
 bool Adaptation::Icap::OptXact::parseResponse()
 {
-    debugs(93, 5, HERE << "have " << readBuf.contentSize() << " bytes to parse" <<
-           status());
-    debugs(93, 5, HERE << "\n" << readBuf.content());
+    debugs(93, 5, "have " << readBuf.length() << " bytes to parse" << status());
+    debugs(93, DBG_DATA, "\n" << readBuf);
 
     HttpReply::Pointer r(new HttpReply);
     r->protoPrefix = "ICAP/"; // TODO: make an IcapReply class?
 
-    if (!parseHttpMsg(r)) // throws on errors
+    if (!parseHttpMsg(r.getRaw())) // throws on errors
         return false;
 
     if (httpHeaderHasConnDir(&r->header, "close"))
@@ -120,7 +126,7 @@ void Adaptation::Icap::OptXact::finalizeLogInfo()
     //    al.cache.caddr = 0;
     al.icap.reqMethod = Adaptation::methodOptions;
 
-    if (icapReply && al.icap.bytesRead > icapReply->hdr_sz)
+    if (icapReply != NULL && al.icap.bytesRead > icapReply->hdr_sz)
         al.icap.bodyBytesRead = al.icap.bytesRead - icapReply->hdr_sz;
 
     Adaptation::Icap::Xaction::finalizeLogInfo();
@@ -129,8 +135,8 @@ void Adaptation::Icap::OptXact::finalizeLogInfo()
 /* Adaptation::Icap::OptXactLauncher */
 
 Adaptation::Icap::OptXactLauncher::OptXactLauncher(Adaptation::ServicePointer aService):
-        AsyncJob("Adaptation::Icap::OptXactLauncher"),
-        Adaptation::Icap::Launcher("Adaptation::Icap::OptXactLauncher", aService)
+    AsyncJob("Adaptation::Icap::OptXactLauncher"),
+    Adaptation::Icap::Launcher("Adaptation::Icap::OptXactLauncher", aService)
 {
 }
 
@@ -141,3 +147,4 @@ Adaptation::Icap::Xaction *Adaptation::Icap::OptXactLauncher::createXaction()
     Must(s != NULL);
     return new Adaptation::Icap::OptXact(s);
 }
+

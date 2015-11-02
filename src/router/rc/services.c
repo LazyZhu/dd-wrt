@@ -47,7 +47,7 @@
  */
 void start_tmp_ppp(int num);
 
-void del_routes(char *route)
+static void del_routes(char *route)
 {
 	char word[80], *tmp;
 	char *ipaddr, *netmask, *gateway, *metric, *ifname;
@@ -78,7 +78,7 @@ void del_routes(char *route)
 	}
 }
 
-int start_services_main(int argc, char **argv)
+static int start_services_main(int argc, char **argv)
 {
 	update_timezone();
 
@@ -129,6 +129,9 @@ int start_services_main(int argc, char **argv)
 	start_service_f("udhcpd");
 #ifdef HAVE_DNSMASQ
 	start_service_f("dnsmasq");
+#endif
+#ifdef HAVE_UNBOUND
+	start_service_f("unbound");
 #endif
 #if defined(HAVE_BIRD) || defined(HAVE_QUAGGA)
 	start_service_f("zebra");
@@ -222,7 +225,7 @@ int start_services_main(int argc, char **argv)
 	return 0;
 }
 
-int stop_services_main(int argc, char **argv)
+static int stop_services_main(int argc, char **argv)
 {
 #ifdef HAVE_P910ND
 	stop_service_f("printer");
@@ -253,6 +256,9 @@ int stop_services_main(int argc, char **argv)
 
 #ifdef HAVE_UPNP
 	stop_service_f("upnp");
+#endif
+#ifdef HAVE_UNBOUND
+	stop_service_f("unbound");
 #endif
 #ifdef HAVE_DNSMASQ
 	stop_service_f("dnsmasq");
@@ -422,6 +428,9 @@ static void handle_index(void)
 #ifdef HAVE_DNSMASQ
 	startstop_f("dnsmasq");
 #endif
+#ifdef HAVE_UNBOUND
+	startstop_f("unbound");
+#endif
 #if defined(HAVE_BIRD) || defined(HAVE_QUAGGA)
 	startstop_f("zebra");
 #endif
@@ -551,6 +560,9 @@ static void handle_hotspot(void)
 #ifdef HAVE_DNSMASQ
 	startstop_f("dnsmasq");
 #endif
+#ifdef HAVE_UNBOUND
+	startstop_f("unbound");
+#endif
 #if defined(HAVE_BIRD) || defined(HAVE_QUAGGA)
 	start_service("zebra");
 #endif
@@ -595,6 +607,9 @@ static void handle_services(void)
 #endif
 #ifdef HAVE_DNSMASQ
 	startstop_f("dnsmasq");
+#endif
+#ifdef HAVE_UNBOUND
+	startstop_f("unbound");
 #endif
 	startstop_f("udhcpd");
 #ifdef HAVE_CPUTEMP
@@ -1067,6 +1082,9 @@ static void handle_wireless(void)
 #ifdef HAVE_DNSMASQ
 	startstop_f("dnsmasq");
 #endif
+#ifdef HAVE_UNBOUND
+	startstop_f("unbound");
+#endif
 	if (getSTA() || getWET() || wanchanged
 #ifdef HAVE_MADWIFI
 	    || getWDSSTA()
@@ -1082,6 +1100,9 @@ static void handle_wireless(void)
 	}
 #if defined(HAVE_BIRD) || defined(HAVE_QUAGGA)
 	start_service("zebra");
+#endif
+#ifdef HAVE_IPV6
+	startstop_f("dhcp6c");
 #endif
 	//since start/stop is faster now we need to sleep, otherwise httpd is stopped/started while response is sent to client
 #ifdef HAVE_80211AC
@@ -1193,6 +1214,9 @@ static void handle_wireless_2(void)
 #if defined(HAVE_BIRD) || defined(HAVE_QUAGGA)
 	start_service_f("zebra");
 #endif
+#ifdef HAVE_IPV6
+	startstop_f("dhcp6c");
+#endif
 
 }
 
@@ -1288,7 +1312,7 @@ static struct SERVICES services_def[] = {
 	{NULL, NULL}
 };
 
-int start_single_service_main(int argc, char **argv)
+static int start_single_service_main(int argc, char **argv)
 {
 	start_service_force("overclocking");
 	char *next;
@@ -1318,7 +1342,7 @@ int start_single_service_main(int argc, char **argv)
 	return 0;
 }
 
-int is_running(char *process_name)
+static int is_running(char *process_name)
 {
 	DIR *dir;
 	struct dirent *next;

@@ -1,12 +1,21 @@
+/*
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
+ *
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
+ */
+
 #ifndef SQUID_ADAPTATION__ACCESS_CHECK_H
 #define SQUID_ADAPTATION__ACCESS_CHECK_H
 
+#include "AccessLogEntry.h"
 #include "acl/Acl.h"
-#include "base/AsyncJob.h"
 #include "adaptation/Elements.h"
 #include "adaptation/forward.h"
 #include "adaptation/Initiator.h"
 #include "adaptation/ServiceFilter.h"
+#include "base/AsyncJob.h"
 
 class HttpRequest;
 class HttpReply;
@@ -20,12 +29,14 @@ class AccessRule;
 // checks adaptation_access rules to find a matching adaptation service
 class AccessCheck: public virtual AsyncJob
 {
+    CBDATA_CLASS(AccessCheck);
+
 public:
     typedef void AccessCheckCallback(ServiceGroupPointer group, void *data);
 
     // use this to start async ACL checks; returns true if started
     static bool Start(Method method, VectPoint vp, HttpRequest *req,
-                      HttpReply *rep, Adaptation::Initiator *initiator);
+                      HttpReply *rep, AccessLogEntry::Pointer &al, Adaptation::Initiator *initiator);
 
 protected:
     // use Start to start adaptation checks
@@ -38,7 +49,7 @@ private:
     ACLFilledChecklist *acl_checklist;
 
     typedef int Candidate;
-    typedef Vector<Candidate> Candidates;
+    typedef std::vector<Candidate> Candidates;
     Candidates candidates;
     Candidate topCandidate() const { return *candidates.begin(); }
     ServiceGroupPointer topGroup() const; // may return nil
@@ -58,11 +69,9 @@ protected:
 
     bool usedDynamicRules();
     void check();
-
-private:
-    CBDATA_CLASS2(AccessCheck);
 };
 
 } // namespace Adaptation
 
 #endif /* SQUID_ADAPTATION__ACCESS_CHECK_H */
+

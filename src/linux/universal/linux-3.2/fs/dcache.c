@@ -1016,13 +1016,13 @@ ascend:
 		/* might go back up the wrong parent if we have had a rename */
 		if (!locked && read_seqretry(&rename_lock, seq))
 			goto rename_retry;
-		next = child->d_child.next;
-		while (unlikely(child->d_flags & DCACHE_DENTRY_KILLED)) {
+		/* go into the first sibling still alive */
+		do {
+			next = child->d_child.next;
 			if (next == &this_parent->d_subdirs)
 				goto ascend;
 			child = list_entry(next, struct dentry, d_child);
-			next = next->next;
-		}
+		} while (unlikely(child->d_flags & DCACHE_DENTRY_KILLED));
 		rcu_read_unlock();
 		goto resume;
 	}
@@ -1142,13 +1142,13 @@ ascend:
 		/* might go back up the wrong parent if we have had a rename */
 		if (!locked && read_seqretry(&rename_lock, seq))
 			goto rename_retry;
-		next = child->d_child.next;
-		while (unlikely(child->d_flags & DCACHE_DENTRY_KILLED)) {
+		/* go into the first sibling still alive */
+		do {
+			next = child->d_child.next;
 			if (next == &this_parent->d_subdirs)
 				goto ascend;
 			child = list_entry(next, struct dentry, d_child);
-			next = next->next;
-		}
+		} while (unlikely(child->d_flags & DCACHE_DENTRY_KILLED));
 		rcu_read_unlock();
 		goto resume;
 	}
@@ -2452,6 +2452,8 @@ static int prepend_path(const struct path *path,
 {
 	struct dentry *dentry = path->dentry;
 	struct vfsmount *vfsmnt = path->mnt;
+	char *orig_buffer = *buffer;
+	int orig_len = *buflen;
 	bool slash = false;
 	int error = 0;
 
@@ -2459,6 +2461,14 @@ static int prepend_path(const struct path *path,
 		struct dentry * parent;
 
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
+			/* Escaped? */
+			if (dentry != vfsmnt->mnt_root) {
+				*buffer = orig_buffer;
+				*buflen = orig_len;
+				slash = false;
+				error = 3;
+				goto global_root;
+			}
 			/* Global root? */
 			if (vfsmnt->mnt_parent == vfsmnt) {
 				goto global_root;
@@ -2938,13 +2948,13 @@ ascend:
 		/* might go back up the wrong parent if we have had a rename */
 		if (!locked && read_seqretry(&rename_lock, seq))
 			goto rename_retry;
-		next = child->d_child.next;
-		while (unlikely(child->d_flags & DCACHE_DENTRY_KILLED)) {
+		/* go into the first sibling still alive */
+		do {
+			next = child->d_child.next;
 			if (next == &this_parent->d_subdirs)
 				goto ascend;
 			child = list_entry(next, struct dentry, d_child);
-			next = next->next;
-		}
+		} while (unlikely(child->d_flags & DCACHE_DENTRY_KILLED));
 		rcu_read_unlock();
 		goto resume;
 	}

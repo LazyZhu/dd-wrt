@@ -45,7 +45,7 @@ int bcm_gettxpower(char *wlname);
 extern double HTTxRate20_800(unsigned int index);
 extern double HTTxRate20_400(unsigned int index);
 extern double HTTxRate40_800(unsigned int index);
-extern double HTTxRate40_400(unsigned int index); 
+extern double HTTxRate40_400(unsigned int index);
 
 /*
  * Pass a wlioctl request to the specified interface.
@@ -56,6 +56,9 @@ extern double HTTxRate40_400(unsigned int index);
  * @return      >= 0 if successful or < 0 otherwise
  */
 extern int wl_ioctl(char *name, int cmd, void *buf, int len);
+#ifdef HAVE_DHDAP
+extern int dhd_ioctl(char *name, int cmd, void *buf, int len);
+#endif
 
 /*
  * Get the MAC (hardware) address of the specified interface.
@@ -71,7 +74,9 @@ extern int wl_hwaddr(char *name, unsigned char *hwaddr);
  * @return      >= 0 if a Broadcom wireless device or < 0 otherwise
  */
 extern int wl_probe(char *name);
-
+#ifdef HAVE_DHDAP
+extern int dhd_probe(char *name);
+#endif
 /*
  * Returns the list of associated stations in the pre-existing buffer list 
  */
@@ -112,12 +117,15 @@ extern int has_beamforming(char *prefix);
 
 #define SITE_SURVEY_DB  "/tmp/site_survey"
 #define SITE_SURVEY_NUM 256
+#define SCAN_HT20 1
+#define SCAN_HT40 2
+#define SCAN_VHT80 4
 
 struct site_survey_list {
 	char SSID[33];
 	unsigned char BSSID[18];
 	uint16 channel;		/* Channel no. */
-	uint16 frequency;		/* Frequency i.e. for superchannel */
+	uint16 frequency;	/* Frequency i.e. for superchannel */
 	int16 RSSI;		/* receive signal strength (in dBm) */
 	int16 phy_noise;	/* noise (in dBm) */
 	uint16 beacon_period;	/* units are Kusec */
@@ -127,25 +135,41 @@ struct site_survey_list {
 	uint8 dtim_period;	/* DTIM period */
 };
 
+struct wifi_interface {
+	int freq;
+	int width;
+	int center1;
+	int center2;
+};
 
 #if defined(HAVE_MADWIFI) || defined(HAVE_MADWIFI_MIMO) || defined(HAVE_ATH9K)
 #include <stdint.h>
 
 extern struct wifi_channels *list_channels_11n(char *devnr);
-extern struct wifi_channels *list_channels_ath9k(char *devnr, char *country,int max_bandwidth_khz, unsigned char band);
+extern struct wifi_channels *list_channels_ath9k(char *devnr, char *country, int max_bandwidth_khz, unsigned char band);
 extern int getdevicecount(void);
+
+
 extern int mac80211_get_coverageclass(char *interface);
-extern struct mac80211_info *mac80211_assoclist(char *interface); 
-extern char *mac80211_get_caps(char *interface);
-#ifdef HAVE_ATH10K 
-extern char *mac80211_get_vhtcaps(char *interface); 
+extern struct mac80211_info *mac80211_assoclist(char *interface);
+extern char *mac80211_get_caps(char *interface,int shortgi);
+extern int has_shortgi(char *interface);
+#ifdef HAVE_ATH10K
+extern char *mac80211_get_vhtcaps(char *interface, int shortgi);
+extern unsigned int get_ath10kreg(char *ifname, unsigned int reg);
+extern void set_ath10kreg(char *ifname, unsigned int reg,unsigned int value);
+extern void set_ath10kdistance(char *ifname, unsigned int distance);
+extern unsigned int get_ath10kack(char *ifname);
+extern unsigned int get_ath10kdistance(char *ifname);
 #endif
-extern int mac80211_check_band(char *interface,int checkband);
-struct wifi_channels *mac80211_get_channels(char *interface,char *country,int max_bandwidth_khz, unsigned char checkband);
+extern int mac80211_check_band(char *interface, int checkband);
+struct wifi_channels *mac80211_get_channels(char *interface, char *country, int max_bandwidth_khz, unsigned char checkband);
 extern struct mac80211_ac *mac80211autochannel(char *interface, char *freq_range, int scans, int ammount, int enable_passive);
-extern void mac80211_set_antennas(int phy,uint32_t tx_ant,uint32_t rx_ant );
+extern void mac80211_set_antennas(int phy, uint32_t tx_ant, uint32_t rx_ant);
 extern int mac80211_get_avail_tx_antenna(int phy);
 extern int mac80211_get_avail_rx_antenna(int phy);
+
+extern struct wifi_interface *mac80211_get_interface(char *dev);
 extern int mac80211_get_configured_tx_antenna(int phy);
 extern int mac80211_get_configured_rx_antenna(int phy);
 extern int mac80211_check_valid_frequency(char *interface, char *country, int freq);
@@ -155,12 +179,12 @@ struct wifi_channels {
 	int channel;
 	int freq;
 	int noise;
-	unsigned char ht40minus; 
-	unsigned char ht40plus; 
-	unsigned char dfs; 
+	unsigned char ht40minus;
+	unsigned char ht40plus;
+	unsigned char dfs;
 	int max_eirp;
-	unsigned char no_outdoor; 
-	unsigned char no_indoor; 
+	unsigned char no_outdoor;
+	unsigned char no_indoor;
 	unsigned char no_ofdm;
 	unsigned char no_cck;
 	unsigned char ptp_only;
@@ -177,47 +201,48 @@ struct mac80211_info {
 	uint64_t channel_receive_time;
 	uint64_t channel_transmit_time;
 	uint64_t extension_channel_busy_time;
-    uint32_t frequency;
+	uint32_t frequency;
 };
 
 struct wifi_client_info {
-    char ifname[20];
-    char is_wds;
-    char mac[18];
-    uint32_t uptime;
-    uint16_t txrate;
-    uint32_t rxrate;
-    int8_t signal;
-    uint32_t noise;
-    uint32_t snr;
-    int8_t mcs;
-    int8_t rx_mcs;
-    char is_40mhz;
-    char is_80mhz;
-    char is_160mhz;
-    char is_ht;
-    char is_vht;
-    char is_short_gi;
-    char rx_is_40mhz;
-    char rx_is_80mhz;
-    char rx_is_160mhz;
-    char rx_is_ht;
-    char rx_is_vht;
-    char rx_is_short_gi;
-    uint32_t inactive_time;
-    uint32_t rx_packets;
-    uint32_t tx_packets;
-    uint32_t rx_bytes;
-    uint32_t tx_bytes;
-    struct wifi_client_info *next;
+	char ifname[20];
+	char is_wds;
+	char mac[18];
+	uint32_t uptime;
+	uint16_t txrate;
+	uint32_t rxrate;
+	int8_t signal;
+	uint32_t noise;
+	uint32_t snr;
+	int8_t mcs;
+	int8_t rx_mcs;
+	char is_40mhz;
+	char is_80mhz;
+	char is_160mhz;
+	char is_ht;
+	char is_vht;
+	char is_short_gi;
+	char rx_is_40mhz;
+	char rx_is_80mhz;
+	char rx_is_160mhz;
+	char rx_is_ht;
+	char rx_is_vht;
+	char rx_is_short_gi;
+	char ht40intol;
+	uint32_t inactive_time;
+	uint32_t rx_packets;
+	uint32_t tx_packets;
+	uint32_t rx_bytes;
+	uint32_t tx_bytes;
+	struct wifi_client_info *next;
 };
 
 struct mac80211_ac {
-    int freq;
+	int freq;
 	int8_t noise;
 	int quality;
 	int clear;
-    struct mac80211_ac *next;
+	struct mac80211_ac *next;
 };
 
 extern void free_wifi_clients(struct wifi_client_info *wci);
@@ -238,7 +263,7 @@ u_int ieee80211_mhz2ieee(u_int freq);
 #endif
 #if defined(HAVE_RT2880) || defined(HAVE_RT61) || defined(HAVE_MADWIFI)
 int wifi_getchannel(char *ifname);
-int wifi_getfreq(char *ifname);
+struct wifi_interface *wifi_getfreq(char *ifname);
 u_int ieee80211_mhz2ieee(u_int freq);
 int get_radiostate(char *ifname);
 
@@ -277,26 +302,18 @@ extern int wl_get_dev_type(char *name, void *buf, int len);
  * @param       val             val or val pointer for int routines
  * @return      success == 0, failure != 0
  */
-extern int wl_iovar_setbuf(char *ifname, char *iovar, void *param,
-			   int paramlen, void *bufptr, int buflen);
-extern int wl_iovar_getbuf(char *ifname, char *iovar, void *param,
-			   int paramlen, void *bufptr, int buflen);
+extern int wl_iovar_setbuf(char *ifname, char *iovar, void *param, int paramlen, void *bufptr, int buflen);
+extern int wl_iovar_getbuf(char *ifname, char *iovar, void *param, int paramlen, void *bufptr, int buflen);
 extern int wl_iovar_set(char *ifname, char *iovar, void *param, int paramlen);
 extern int wl_iovar_get(char *ifname, char *iovar, void *bufptr, int buflen);
 extern int wl_iovar_setint(char *ifname, char *iovar, int val);
 
 extern int wl_iovar_getint(char *ifname, char *iovar, int *val);
 
-extern int wl_bssiovar_setbuf(char *ifname, char *iovar, int bssidx,
-			      void *param, int paramlen, void *bufptr,
-			      int buflen);
-extern int wl_bssiovar_getbuf(char *ifname, char *iovar, int bssidx,
-			      void *param, int paramlen, void *bufptr,
-			      int buflen);
-extern int wl_bssiovar_get(char *ifname, char *iovar, int bssidx,
-			   void *outbuf, int len);
-extern int wl_bssiovar_set(char *ifname, char *iovar, int bssidx,
-			   void *param, int paramlen);
+extern int wl_bssiovar_setbuf(char *ifname, char *iovar, int bssidx, void *param, int paramlen, void *bufptr, int buflen);
+extern int wl_bssiovar_getbuf(char *ifname, char *iovar, int bssidx, void *param, int paramlen, void *bufptr, int buflen);
+extern int wl_bssiovar_get(char *ifname, char *iovar, int bssidx, void *outbuf, int len);
+extern int wl_bssiovar_set(char *ifname, char *iovar, int bssidx, void *param, int paramlen);
 extern int wl_bssiovar_setint(char *ifname, char *iovar, int bssidx, int val);
 
 int wl_getbssid(char *wl, char *mac);

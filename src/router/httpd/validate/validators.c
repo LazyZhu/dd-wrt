@@ -52,6 +52,8 @@ char *(*websGetVar) (webs_t wp, char *var, char *d);
 int (*websWrite) (webs_t wp, char *fmt, ...);
 struct wl_client_mac *wl_client_macs;
 void (*validate_cgi) (webs_t fp) = NULL;
+char *copytonv(webs_t wp, const char *fmt, ...);
+char *copymergetonv(webs_t wp, const char *fmt, ...);
 
 void initWeb(struct Webenvironment *env)
 {
@@ -742,43 +744,14 @@ void validate_portsetup(webs_t wp, char *value, struct variable *v)
 
 	getIfLists(eths, 256);
 	foreach(var, eths, next) {
+		copytonv(wp, "%s_label", var);
+		char *bridged = copytonv(wp, "%s_bridged", var);
+		copytonv(wp, "%s_multicast", var);
+		copytonv(wp, "%s_nat", var);
+		copytonv(wp, "%s_isolation", var);
+		copytonv(wp, "%s_dns_redirect", var);
+		copymergetonv(wp, "%s_dns_ipaddr", var);
 		char val[64];
-
-		sprintf(val, "%s_bridged", var);
-		char *bridged = websGetVar(wp, val, NULL);
-
-		if (bridged)
-			nvram_set(val, bridged);
-
-		sprintf(val, "%s_multicast", var);
-		char *multicast = websGetVar(wp, val, NULL);
-
-		if (multicast)
-			nvram_set(val, multicast);
-
-		sprintf(val, "%s_nat", var);
-		char *masquerade = websGetVar(wp, val, NULL);
-
-		if (masquerade)
-			nvram_set(val, masquerade);
-
-		sprintf(val, "%s_isolation", var);
-		char *isolation = websGetVar(wp, val, NULL);
-
-		if (isolation)
-			nvram_set(val, isolation);
-
-		sprintf(val, "%s_dns_redirect", var);
-		char *redirect = websGetVar(wp, val, NULL);
-
-		if (redirect)
-			nvram_set(val, redirect);
-
-		sprintf(val, "%s_dns_ipaddr", var);
-
-		char redirect_ip[64];
-		if (get_merge_ipaddr(wp, val, redirect_ip))
-			nvram_set(val, redirect_ip);
 
 		sprintf(val, "%s_mtu", var);
 		char *mtu = websGetVar(wp, val, NULL);
@@ -795,36 +768,18 @@ void validate_portsetup(webs_t wp, char *value, struct variable *v)
 			nvram_set(val, "1000");
 
 		if (bridged && strcmp(bridged, "0") == 0) {
-			sprintf(val, "%s_ipaddr", var);
-			char ipaddr[64];
-
-			if (get_merge_ipaddr(wp, val, ipaddr))
-				nvram_set(val, ipaddr);
-			sprintf(val, "%s_netmask", var);
-			char netmask[64];
-
-			if (get_merge_ipaddr(wp, val, netmask))
-				nvram_set(val, netmask);
+			copymergetonv(wp, "%s_ipaddr", var);
+			copymergetonv(wp, "%s_netmask", var);
 #if defined(HAVE_BKM) || defined(HAVE_TMK)
 			if (1) {
-				sprintf(val, "nld_%s_enable", var);
-				char *nld_enable = websGetVar(wp, val, "0");
-				nvram_set(val, nld_enable);
-
-				sprintf(val, "nld_%s_bridge", var);
-				char *nld_bridge = websGetVar(wp, val, "");
-				nvram_set(val, nld_bridge);
+				copytonv(wp, "nld_%s_enable", var);
+				copytonv(wp, "nld_%s_bridge", var);
 			}
 #endif
 #if defined(HAVE_BATMANADV)
 			if (1) {
-				sprintf(val, "bat_%s_enable", var);
-				char *bat_enable = websGetVar(wp, val, "0");
-				nvram_set(val, bat_enable);
-
-				sprintf(val, "bat_%s_bridge", var);
-				char *bat_bridge = websGetVar(wp, val, "");
-				nvram_set(val, bat_bridge);
+				copytonv(wp, "bat_%s_enable", var);
+				copytonv(wp, "bat_%s_bridge", var);
 			}
 #endif
 		}

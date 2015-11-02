@@ -1,4 +1,4 @@
-/*
+/*7
  * defaults.c
  *
  * Copyright (C) 2007 Sebastian Gottschall <gottschall@dd-wrt.com>
@@ -131,7 +131,9 @@ struct nvram_param srouter_defaults[] = {
 #elif HAVE_AXTEL
 	{"time_zone", "America/Mexico City"},
 #elif HAVE_HOBBIT
-	{"time_zone", "Europe/Bruessel"},
+	{"time_zone", "Europe/Brussels"},
+#elif HAVE_ONNET
+	{"time_zone", "Asia/Dubai"},
 #else
 	{"time_zone", "Europe/Berlin"},
 #endif
@@ -187,6 +189,7 @@ struct nvram_param srouter_defaults[] = {
 	{"lan_ifnames", ""},	/* Enslaved LAN interfaces */
 	{"lan_hwnames", ""},	/* LAN driver names (e.g. et0) */
 	{"lan_hwaddr", ""},	/* LAN interface MAC address */
+//KONG needs to be modified for marvel
 #if defined(HAVE_MADWIFI) || defined(HAVE_ATH9K)
 	{"wl0_ifname", "ath0"},	/* LAN interface MAC address */
 #else
@@ -218,6 +221,8 @@ struct nvram_param srouter_defaults[] = {
 	{"lan_ipaddr", "192.168.1.1"},	/* LAN IP address */
 #elif HAVE_IDEXX
 	{"lan_ipaddr", "192.168.222.1"},	/* LAN ip address */
+	{"ath0_regdomain", "UNITED_STATES"},
+	{"ath1_regdomain", "UNITED_STATES"},
 #elif HAVE_BUFFALO
 #ifdef BUFFALO_EU
 	{"ath0_regdomain", "GERMANY"},	/* LAN IP address */
@@ -348,7 +353,15 @@ struct nvram_param srouter_defaults[] = {
 #endif
 #elif HAVE_WZRG450
 	{"wan_proto", "dhcp"},	/* [static|dhcp|pppoe|disabled] */
+#elif HAVE_WR710
+	{"wan_proto", "dhcp"},	/* [static|dhcp|pppoe|disabled] */
 #elif HAVE_DIR632
+	{"wan_proto", "dhcp"},	/* [static|dhcp|pppoe|disabled] */
+#elif HAVE_DAP3662
+	{"wan_proto", "disabled"},	/* [static|dhcp|pppoe|disabled] */
+#elif HAVE_DAP2230
+	{"wan_proto", "disabled"},	/* [static|dhcp|pppoe|disabled] */
+#elif HAVE_DIR862
 	{"wan_proto", "dhcp"},	/* [static|dhcp|pppoe|disabled] */
 #elif HAVE_MMS344
 	{"wan_proto", "disabled"},	/* [static|dhcp|pppoe|disabled] */
@@ -692,8 +705,6 @@ struct nvram_param srouter_defaults[] = {
 #else
 	{"http_passwd", "bJxJZz5DYRGxI"},	/* Password */
 #endif
-#elif HAVE_IDEXX
-	{"http_passwd", "$1$C.gzWpjy$x0Ic8.AnJFjjTSd6Bc.7a0"},
 #elif defined(HAVE_IAS) || defined(HAVE_AXTEL)
 	{"http_passwd", "$1$LJZEFe0/$yHSTW.W0nkBqSkWfcUnww."},
 #elif HAVE_CORENET
@@ -1019,12 +1030,22 @@ struct nvram_param srouter_defaults[] = {
 	{"ath2_ssid", "hdwifi3"},
 	{"ath3_ssid", "hdwifi4"},
 #elif defined(HAVE_ONNET_BLANK)
+#ifdef HAVE_MMS344
+	{"ath0_ssid", "OTAi2.4"},
+	{"ath1_ssid", "OTAi5.8"},
+#else
 	{"ath0_ssid", "Enterprise WIFI"},
 	{"ath1_ssid", "Enterprise WIFI_1"},
 	{"ath2_ssid", "Enterprise WIFI_2"},
+#endif
 #elif defined(HAVE_ONNET)
+#ifdef HAVE_MMS344
+	{"ath0_ssid", "OTAi2.4"},
+	{"ath1_ssid", "OTAi5.8"},
+#else
 	{"ath0_ssid", "OTAi"},
 	{"ath1_ssid", "OTAi_1"},
+#endif
 #elif defined(HAVE_GGEW) && defined(HAVE_NS5)
 	{"ath0_ssid", "GGEWnet-WLAN"},	/* Service set ID (network name) */
 #elif defined(HAVE_GGEW) && defined(HAVE_EOC5610)
@@ -1129,7 +1150,7 @@ struct nvram_param srouter_defaults[] = {
 #else
 #if defined(HAVE_MADWIFI) || defined(HAVE_ATH9K)
 #ifdef HAVE_IDEXX
-	{"ath1_closed", "1"},	/* Closed (hidden) network */
+	{"ath1_closed", "0"},	/* Closed (hidden) network */
 #else
 	{"ath0_radio", "1"},	/* Enable (1) or disable (0) radio */
 	{"ath0_closed", "0"},	/* Closed (hidden) network */
@@ -1436,7 +1457,9 @@ struct nvram_param srouter_defaults[] = {
 #ifndef HAVE_BUFFALO
 	{"wl0_akm", "disabled"},
 	{"wl0_wpa_psk", ""},	/* WPA pre-shared key */
-#elif HAVE_IDEXX
+#endif
+
+#ifdef HAVE_IDEXX
 	{"wl0_akm", "psk psk2"},
 	{"wl0_wpa_psk", "IDEXXwlan1234"},	/* WPA pre-shared key */
 #endif
@@ -1491,15 +1514,16 @@ struct nvram_param srouter_defaults[] = {
 #ifdef HAVE_CARLSONWIRELESS
 	{"ath0_akm", "psk2"},
 	{"ath0_wpa_psk", "7078227000"},	/* ath0 encryption key */
-#elif HAVE_IDEXX
-	{"ath0_akm", "psk psk2"},
-	{"ath0_wpa_psk", "IDEXXwlan1234"},	/* ath0 encryption key */
-	{"ath0.1_akm", "psk psk2"},
-	{"ath0.1_wpa_psk", "IDEXXguest1234"},	/* ath0 encryption key */
 #else
 	{"ath0_akm", "disabled"},
 	{"ath0_wpa_psk", ""},	/* WPA pre-shared key */
 #endif
+#endif
+#ifdef HAVE_IDEXX
+	{"ath0_akm", "psk psk2"},
+	{"ath0_wpa_psk", "IDEXXwlan1234"},	/* ath0 encryption key */
+	{"ath0.1_akm", "psk psk2"},
+	{"ath0.1_wpa_psk", "IDEXXguest1234"},	/* ath0 encryption key */
 #endif
 	{"ath0_wpa_gtk_rekey", "3600"},	/* WPA GTK rekey interval *//* Modify */
 	{"ath0_radius_port", "1812"},	/* RADIUS server UDP port */
@@ -1511,13 +1535,12 @@ struct nvram_param srouter_defaults[] = {
 	{"ath1_auth_mode", "disabled"},	/* WPA mode (disabled|radius|wpa|psk) 
 					 */
 #ifndef HAVE_BUFFALO
-#ifdef HAVE_IDEXX
-	{"ath1_akm", "psk psk2"},
-	{"ath1_wpa_psk", "IDEXXwlan1234"},	/* WPA pre-shared key */
-#else
 	{"ath1_akm", "disabled"},
 	{"ath1_wpa_psk", ""},	/* WPA pre-shared key */
 #endif
+#ifdef HAVE_IDEXX
+	{"ath1_akm", "psk psk2"},
+	{"ath1_wpa_psk", "IDEXXwlan1234"},	/* WPA pre-shared key */
 #endif
 	{"ath1_radius_ipaddr", ""},	/* RADIUS server IP address */
 	{"ath1_radius_key", ""},	/* RADIUS shared secret */
@@ -1650,6 +1673,9 @@ struct nvram_param srouter_defaults[] = {
 #elif  HAVE_ERC
 	{"router_name", "RemoteEngineer"},
 	{"ree_resetme", "1"},
+#ifdef HAVE_CARAMBOLA
+	{"erc_reset", "1"},
+#endif
 #elif  HAVE_CARLSONWIRELESS
 	{"router_name", "CWT"},	/* Router name) */
 #elif HAVE_IPR
@@ -1976,9 +2002,10 @@ struct nvram_param srouter_defaults[] = {
 	{"l2tp_server_ip", ""},	/* L2TP auth server (IP Address) */
 	{"l2tp_server_name", ""},	/* L2TP auth server (IP Address) */
 	{"l2tp_get_ip", ""},	/* IP Address assigned by L2TP server */
-	{"l2tp_req_chap", "yes"},	/* L2TP require chap */
-	{"l2tp_ref_pap", "yes"},	/* L2TP refuse pap */
-	{"l2tp_req_auth", "yes"},	/* L2TP require authentication */
+	{"l2tp_req_chap", "1"},	/* L2TP require chap */
+	{"l2tp_ref_pap", "1"},	/* L2TP refuse pap */
+	{"l2tp_req_auth", "1"},	/* L2TP require authentication */
+	{"l2tp_encrypt", "0"},
 	{"wan_gateway_buf", "0.0.0.0"},	/* save the default gateway for DHCP */
 
 	{"hb_server_ip", ""},	/* heartbeat auth server (IP Address) */
@@ -2229,6 +2256,8 @@ struct nvram_param srouter_defaults[] = {
 	{"sshd_enable", "1"},
 #elif HAVE_UNFY
 	{"sshd_enable", "1"},
+#elif HAVE_IDEXX
+	{"sshd_enable", "1"},
 #else
 	{"sshd_enable", "0"},
 #endif
@@ -2269,6 +2298,9 @@ struct nvram_param srouter_defaults[] = {
 	{"telnet_wanport", "23"},	/* WAN port to listen on */
 	{"syslogd_enable", "0"},
 	{"syslogd_rem_ip", ""},
+#ifdef HAVE_ONNET
+	{"tcp_congestion_control", "vegas"},
+#endif
 #if !defined(HAVE_MADWIFI) && !defined(HAVE_ATH9K)
 	{"wl0_wds1_enable", "0"},
 	{"wl0_wds2_enable", "0"},
@@ -2548,7 +2580,7 @@ struct nvram_param srouter_defaults[] = {
 #elif defined(HAVE_KORENRON)
 	{"snmpd_sysname", "KORENRON"},
 #elif defined(HAVE_HOBBIT)
-	{"snmpd_sysname", "Hobb-IT"},
+	{"snmpd_sysname", "HQ-NDS"},
 #else
 	{"snmpd_sysname", "dd-wrt"},
 #endif
@@ -2665,6 +2697,8 @@ struct nvram_param srouter_defaults[] = {
 	{"ip_conntrack_max", "16384"},
 #elif HAVE_NORTHSTAR
 	{"ip_conntrack_max", "32768"},
+#elif HAVE_MVEBU
+	{"ip_conntrack_max", "32768"},
 #elif HAVE_LAGUNA
 	{"ip_conntrack_max", "32768"},
 #elif HAVE_RB600
@@ -2698,11 +2732,7 @@ struct nvram_param srouter_defaults[] = {
 	{"wl0_country_rev", "0"},
 	{"wl1_country_rev", "0"},
 #elif HAVE_HOBBIT
-	{"wl_regdomain", "GERMANY"},
-	{"wl0_country_code", "DE"},
-	{"wl1_country_code", "DE"},
-	{"wl0_country_rev", "0"},
-	{"wl1_country_rev", "0"},
+	{"wl_regdomain", "EUROPE"},
 #endif
 #endif
 #ifdef HAVE_MICRO
@@ -2869,7 +2899,7 @@ struct nvram_param srouter_defaults[] = {
 	// #elif HAVE_ADM5120
 	// {"dhcp_dnsmasq", "0"},
 #elif HAVE_IDEXX
-	{"dhcp_dnsmasq", "1"},
+	{"dhcp_dnsmasq", "0"},
 	{"dns_dnsmasq", "0"},
 #else
 	{"dhcp_dnsmasq", "1"},
@@ -3002,7 +3032,8 @@ struct nvram_param srouter_defaults[] = {
 	{"newhttp_passwd", "hdslklas9a"},
 #endif
 #ifdef HAVE_ERC
-	{"newhttp_passwd", "$1$.V44ffYt$6ttOdlItuYV6uvi..vvoO/"},
+	{"newhttp_passwd", "$1$2XwGZVRQ$H35EZ6yHCEZiG42sY1QSJ1"},
+//      {"newhttp_passwd", "$1$.V44ffYt$6ttOdlItuYV6uvi..vvoO/"},
 #endif
 #ifdef HAVE_CARLSONWIRELESS
 	{"newhttp_username", "$1$y5qEiLaV$/2cQErs8qxs./J3pl2l2F."},	/* HTTP username) */
@@ -3011,12 +3042,11 @@ struct nvram_param srouter_defaults[] = {
 #ifdef HAVE_IPR
 	{"newhttp_passwd", "$1$hFOmcfz/$eYEVGPdzfrkGcA6MbUukF."},
 #endif
-#ifdef HAVE_MADWIFI
-	/*
-	 * {"ath0_regdomain", "96"}, {"ath1_regdomain", "96"},
-	 * {"ath2_regdomain", "96"}, {"ath3_regdomain", "96"},
-	 * {"ath4_regdomain", "96"}, {"ath5_regdomain", "96"}, 
-	 */
+#ifdef HAVE_MVEBU
+	{"ath0_regdomain", "UNITED_STATES"},
+	{"ath1_regdomain", "UNITED_STATES"},
+	{"ath0_txpwrdbm", "30"},
+	{"ath1_txpwrdbm", "30"},
 #endif
 #ifdef HAVE_SPUTNIK_APD
 
@@ -3085,7 +3115,7 @@ struct nvram_param srouter_defaults[] = {
 	{"pptpd_client_mtu", "1436"},
 	{"pptpd_client_mru", "1436"},
 #ifdef HAVE_RADIOOFF
-#ifdef HAVE_AOSS
+#if defined(HAVE_AOSS) || defined(HAVE_WPS)
 	{"radiooff_button", "2"},
 	{"radiooff_boot_off", "0"},
 #else
@@ -3100,8 +3130,13 @@ struct nvram_param srouter_defaults[] = {
 	{"radio2_on_time", "111111111111111111111111"},	/* Radio timer,always on */
 	{"radio2_timer_enable", "0"},
 #ifdef HAVE_CPUTEMP
+#ifdef HAVE_MVEBU
+	{"hwmon_temp_max", "65"},
+	{"hwmon_temp_hyst", "60"},
+#else
 	{"hwmon_temp_max", "60"},
 	{"hwmon_temp_hyst", "50"},
+#endif
 #endif
 #ifdef HAVE_RSTATS
 	{"rstats_enable", "0"},
@@ -3440,8 +3475,13 @@ struct nvram_param srouter_defaults[] = {
 	{"aoss_wep", "0"},
 #endif
 #ifdef HAVE_WPS
+	{"aoss_enable", "0"},
 	{"wps_enabled", "1"},
+#ifdef HAVE_IDEXX
+	{"wps_registrar", "0"},
+#else
 	{"wps_registrar", "1"},
+#endif
 #endif
 
 #ifdef HAVE_LLTD
@@ -3523,6 +3563,9 @@ struct nvram_param srouter_defaults[] = {
 #endif
 #ifdef HAVE_MACTELNET
 	{"mactelnetd_enable", "0"},
+#endif
+#ifdef HAVE_ROUTERSTYLE
+	{"router_style_dark", "0"},
 #endif
 	{"ptoken", "0"},
 	{0, 0}

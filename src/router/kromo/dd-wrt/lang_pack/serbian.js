@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
+﻿////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Serbian(Cyrillic) translation file - DD-WRT V24 SP2, 11/JAN/2015, by Хранислав Миленковић (Mile-Lile) //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -110,12 +110,12 @@ share.port="Порт";
 share.ssid="SSID";
 share.channel="Канал";
 share.frequency="Фрекфенција";
-share.rssi="Rssi";
+share.rssi="RSSI";
 share.signal="Сигнал";
 share.noise="Шум";
-share.beacon="beacon";
+share.beacon="Beacon";
 share.openn="Отворено";
-share.dtim="dtim";
+share.dtim="DTIM";
 share.rates="Rate";
 share.rate="Rate";
 share.txrate="TX Rate";

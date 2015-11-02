@@ -1,45 +1,21 @@
 /*
- * DEBUG: section 28    Access Control
- * AUTHOR: Amos Jeffries
+ * Copyright (C) 1996-2015 The Squid Software Foundation and contributors
  *
- * SQUID Web Proxy Cache          http://www.squid-cache.org/
- * ----------------------------------------------------------
- *
- *  Squid is the result of efforts by numerous individuals from
- *  the Internet community; see the CONTRIBUTORS file for full
- *  details.   Many organizations have provided support for Squid's
- *  development; see the SPONSORS file for full details.  Squid is
- *  Copyrighted (C) 2001 by the Regents of the University of
- *  California; see the COPYRIGHT file for full details.  Squid
- *  incorporates software developed and/or copyrighted by other
- *  sources; see the CREDITS file for full details.
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *
- *
- * Copyright (c) 2003, Robert Collins <robertc@squid-cache.org>
+ * Squid software is distributed under GPLv2+ license and includes
+ * contributions from numerous individuals and organizations.
+ * Please see the COPYING and CONTRIBUTORS files for details.
  */
 
-#include "squid.h"
+/* DEBUG: section 28    Access Control */
 
+#include "squid.h"
 #include "acl/FilledChecklist.h"
 #include "acl/Random.h"
-#include "cache_cf.h"
 #include "Debug.h"
 #include "Parsing.h"
 #include "wordlist.h"
+
+#include <random>
 
 ACL *
 ACLRandom::clone() const
@@ -84,10 +60,9 @@ ACLRandom::valid() const
 void
 ACLRandom::parse()
 {
-    char *t;
     char bufa[256], bufb[256];
 
-    t = strtokFile();
+    char *t = ConfigParser::strtokFile();
     if (!t) {
         debugs(28, DBG_PARSE_NOTE(DBG_IMPORTANT), "ACL random missing pattern");
         return;
@@ -109,7 +84,7 @@ ACLRandom::parse()
     } else if (sscanf(t, "%[0-9]/%[0-9]", bufa, bufb) == 2) {
         int a = xatoi(bufa);
         int b = xatoi(bufb);
-        if (a <= 0 || b <= 0) {
+        if (a <= 0 || b <= 0 || a > b) {
             debugs(28, DBG_CRITICAL, "ERROR: ACL random with bad pattern: '" << t << "'");
             return;
         } else
@@ -126,19 +101,26 @@ ACLRandom::parse()
 }
 
 int
-ACLRandom::match(ACLChecklist *cl)
+ACLRandom::match(ACLChecklist *)
 {
-    // make up the random value
-    double random = ((double)rand() / (double)RAND_MAX);
+    // make up the random value.
+    // The fixed-value default seed is fine because we are
+    // actually matching whether the random value is above
+    // or below the configured threshold ratio.
+    static std::mt19937 mt;
+    static xuniform_real_distribution<> dist(0, 1);
+
+    const double random = dist(mt);
 
     debugs(28, 3, "ACL Random: " << name << " " << pattern << " test: " << data << " > " << random << " = " << ((data > random)?"MATCH":"NO MATCH") );
     return (data > random)?1:0;
 }
 
-wordlist *
+SBufList
 ACLRandom::dump() const
 {
-    wordlist *w = NULL;
-    wordlistAdd(&w, pattern);
-    return w;
+    SBufList sl;
+    sl.push_back(SBuf(pattern));
+    return sl;
 }
+
