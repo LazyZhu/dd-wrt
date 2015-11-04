@@ -12,7 +12,7 @@ endif
 glib20-configure:
 ### jump for fast debug
 #ifeq (1,0)
-	echo .
+	echo 
 	echo ############################################################
 	echo # CONFIGURE LIBFFI                                         #
 	echo ############################################################
