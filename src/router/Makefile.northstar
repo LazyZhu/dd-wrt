@@ -446,13 +446,12 @@ else
 		--ldlib /lib/ld-musl-arm.so.1 \
 		--target $(ARCH)-linux-uclibc \
 		`cat /tmp/$(ARCHITECTURE)/mklibs-progs` 2>&1
-
 endif
 	cp /tmp/$(ARCHITECTURE)/mklibs-out/* $(TARGETDIR)/lib
 endif
 
 
-validate: $(eval FILE_SIZE = $(shell stat -c %s $(EX_PATH)))
+validate: $(eval FILE_SIZE = $(shell stat -c %s $(EX_PATH) 2>/dev/null))
 	@if [ ${FILE_SIZE} -gt ${MAXIMUM_SIZE} ] ; then \
 		echo "Image is to large. Maximum size ${MAXIMUM_SIZE} current size  ${FILE_SIZE}." ; \
 		rm -f $(EX_PATH) ; \
