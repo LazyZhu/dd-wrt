@@ -24,7 +24,7 @@ create_app (gpointer data)
   return G_SOURCE_REMOVE;
 }
 
-static gboolean
+static void
 delete_app (gpointer data)
 {
   const gchar *path = data;
@@ -35,8 +35,6 @@ delete_app (gpointer data)
   g_remove (file);
 
   g_free (file);
-
-  return G_SOURCE_REMOVE;
 }
 
 static gboolean changed_fired;
@@ -53,7 +51,8 @@ quit_loop (gpointer data)
 {
   GMainLoop *loop = data;
 
-  g_main_loop_quit (loop);
+  if (g_main_loop_is_running (loop))
+    g_main_loop_quit (loop);
 
   return G_SOURCE_REMOVE;
 }
@@ -86,15 +85,18 @@ test_app_monitor (void)
   /* FIXME: this shouldn't be required */
   g_list_free_full (g_app_info_get_all (), g_object_unref);
 
-  g_idle_add (delete_app, path);
   g_timeout_add_seconds (3, quit_loop, loop);
 
+  delete_app (path);
+
   g_main_loop_run (loop);
+
   g_assert (changed_fired);
 
   g_main_loop_unref (loop);
 
   g_object_unref (monitor);
+
   g_free (path);
 }
 

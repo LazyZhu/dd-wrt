@@ -8,7 +8,7 @@
 <link rel="up" href="glib-core.html" title="GLib Core Application Support">
 <link rel="prev" href="glib-IO-Channels.html" title="IO Channels">
 <link rel="next" href="glib-Warnings-and-Assertions.html" title="Message Output and Debugging Functions">
-<meta name="generator" content="GTK-Doc V1.23 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.24.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -161,10 +161,12 @@
 <p>GLib provides a standard method of reporting errors from a called
 function to the calling code. (This is the same problem solved by
 exceptions in other languages.) It's important to understand that
-this method is both a data type (the <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> struct) and a set of
-rules. If you use <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> incorrectly, then your code will not
+this method is both a data type (the <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> struct) and a <a class="link" href="glib-Error-Reporting.html#gerror-rules" title="Rules for use of GError">set of
+rules</a>. If you use <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> incorrectly, then your code will not
 properly interoperate with other code that uses <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a>, and users
-of your API will probably get confused.</p>
+of your API will probably get confused. In most cases, <a class="link" href="glib-Error-Reporting.html#gerror-comparison" title="Comparison of GError and traditional error handling">using <span class="type">GError</span> is
+preferred over numeric error codes</a>, but there are
+situations where numeric error codes are useful for performance.</p>
 <p>First and foremost: <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> should only be used to report recoverable
 runtime errors, never to report programming errors. If the programmer
 has screwed up, then you should use <a class="link" href="glib-Message-Logging.html#g-warning" title="g_warning()"><code class="function">g_warning()</code></a>, <a class="link" href="glib-Warnings-and-Assertions.html#g-return-if-fail" title="g_return_if_fail()"><code class="function">g_return_if_fail()</code></a>,
@@ -598,6 +600,28 @@ generally not handle this error code explicitly, but should
 instead treat any unrecognized error code as equivalent to
 FAILED.</p></li>
 </ul></div>
+<div class="refsect3">
+<a name="gerror-comparison"></a><h4>Comparison of <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> and traditional error handling</h4>
+<p><a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> has several advantages over traditional numeric error codes:
+importantly, tools like
+<a class="ulink" href="https://developer.gnome.org/gi/stable/" target="_top">gobject-introspection</a> understand
+<a href="glib-Error-Reporting.html#GError"><span class="type">GErrors</span></a> and convert them to exceptions in bindings; the message includes
+more information than just a code; and use of a domain helps prevent
+misinterpretation of error codes.</p>
+<p><a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> has disadvantages though: it requires a memory allocation, and
+formatting the error message string has a performance overhead. This makes it
+unsuitable for use in retry loops where errors are a common case, rather than
+being unusual. For example, using <a href="../gio-GIOError.html#G-IO-ERROR-WOULD-BLOCK:CAPS"><code class="literal">G_IO_ERROR_WOULD_BLOCK</code></a> means hitting these
+overheads in the normal control flow. String formatting overhead can be
+eliminated by using <a class="link" href="glib-Error-Reporting.html#g-set-error-literal" title="g_set_error_literal ()"><code class="function">g_set_error_literal()</code></a> in some cases.</p>
+<p>These performance issues can be compounded if a function wraps the <a href="glib-Error-Reporting.html#GError"><span class="type">GErrors</span></a>
+returned by the functions it calls: this multiplies the number of allocations
+and string formatting operations. This can be partially mitigated by using
+<a class="link" href="glib-Error-Reporting.html#g-prefix-error" title="g_prefix_error ()"><code class="function">g_prefix_error()</code></a>.</p>
+</div>
+<div class="refsect3">
+<a name="gerror-rules"></a><h4>Rules for use of <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a>
+</h4>
 <p>Summary of rules for use of <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a>:</p>
 <div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; ">
 <li class="listitem"><p>Do not report programming errors via <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a>.</p></li>
@@ -653,6 +677,7 @@ to add a check at the top of your function that the error return
 location is either <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a> or contains a <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a> error (e.g.
 <code class="literal">g_return_if_fail (error == NULL || *error == NULL);</code>).</p></li>
 </ul></div>
+</div>
 </div>
 <div class="refsect1">
 <a name="glib-Error-Reporting.functions_details"></a><h2>Functions</h2>
@@ -868,7 +893,7 @@ be returned.</p>
  contains a <code class="literal">FAILED</code> (or otherwise generic) error code,
 you should generally not check for it explicitly, but should
 instead treat any not-explicitly-recognized error code as being
-equilalent to the <code class="literal">FAILED</code> code. This way, if the domain is
+equivalent to the <code class="literal">FAILED</code> code. This way, if the domain is
 extended in the future to provide a more specific error code for
 a certain case, your code will still work.</p>
 <div class="refsect3">
@@ -1026,12 +1051,14 @@ g_propagate_error (<em class="parameter"><code><a class="link" href="glib-Error-
 .
 The error variable <em class="parameter"><code>dest</code></em>
  points to must be <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>.</p>
+<p><em class="parameter"><code>src</code></em>
+ must be non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>.</p>
 <p>Note that <em class="parameter"><code>src</code></em>
  is no longer valid after this call. If you want
 to keep using the same GError*, you need to set it to <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>
 after calling this function on it.</p>
 <div class="refsect3">
-<a name="id-1.4.10.7.10.6"></a><h4>Parameters</h4>
+<a name="id-1.4.10.7.10.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1041,13 +1068,13 @@ after calling this function on it.</p>
 <tbody>
 <tr>
 <td class="parameter_name"><p>dest</p></td>
-<td class="parameter_description"><p>error return location</p></td>
-<td class="parameter_annotations"> </td>
+<td class="parameter_description"><p> error return location. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Out parameter, where caller must allocate storage."><span class="acronym">out callee-allocates</span></acronym>][<acronym title="NULL may be passed instead of a pointer to a location."><span class="acronym">optional</span></acronym>][<acronym title="NULL may be passed as the value in, out, in-out; or as a return value."><span class="acronym">nullable</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>src</p></td>
-<td class="parameter_description"><p>error to move into the return location</p></td>
-<td class="parameter_annotations"> </td>
+<td class="parameter_description"><p> error to move into the return location. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span></td>
 </tr>
 </tbody>
 </table></div>
@@ -1221,6 +1248,6 @@ an error that has occurred.</p>
 </div>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.23</div>
+<hr>Generated by GTK-Doc V1.24.1</div>
 </body>
 </html>

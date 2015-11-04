@@ -118,6 +118,7 @@
     <chapter id="networking">
       <title>Low-level network support</title>
       <xi:include href="xml/gsocket.xml"/>
+      <xi:include href="xml/gdatagrambased.xml"/>
       <xi:include href="xml/ginetaddress.xml"/>
       <xi:include href="xml/ginetaddressmask.xml"/>
       <xi:include href="xml/gsocketaddress.xml"/>
@@ -212,6 +213,10 @@
         <title>Data Models</title>
         <xi:include href="xml/glistmodel.xml"/>
         <xi:include href="xml/gliststore.xml"/>
+    </chapter>
+    <chapter id='registry'>
+        <title>Win32 registry support</title>
+        <xi:include href="xml/gwin32registrykey.xml"/>
     </chapter>
     <chapter id="application">
         <title>Application support</title>
@@ -331,6 +336,14 @@
   <index id="api-index-2-44" role="2.44">
     <title>Index of new symbols in 2.44</title>
     <xi:include href="xml/api-index-2.44.xml"><xi:fallback /></xi:include>
+  </index>
+  <index id="api-index-2-46" role="2.46">
+    <title>Index of new symbols in 2.46</title>
+    <xi:include href="xml/api-index-2.46.xml"><xi:fallback /></xi:include>
+  </index>
+  <index id="api-index-2-48" role="2.48">
+    <title>Index of new symbols in 2.48</title>
+    <xi:include href="xml/api-index-2.48.xml"><xi:fallback /></xi:include>
   </index>
 
   <xi:include href="xml/annotation-glossary.xml"><xi:fallback /></xi:include>

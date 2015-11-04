@@ -8,7 +8,7 @@
 <link rel="up" href="glib-data-types.html" title="GLib Data Types">
 <link rel="prev" href="glib-Pointer-Arrays.html" title="Pointer Arrays">
 <link rel="next" href="glib-Balanced-Binary-Trees.html" title="Balanced Binary Trees">
-<meta name="generator" content="GTK-Doc V1.23 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.24.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -899,7 +899,7 @@ g_bytes_new (<em class="parameter"><code><a class="link" href="glib-Basic-Types.
 <tr>
 <td class="parameter_name"><p>data</p></td>
 <td class="parameter_description"><p>       the data to be used for the bytes. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL may be passed as the value in, out, in-out; or as a return value."><span class="acronym">nullable</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>size</p></td>
@@ -950,7 +950,7 @@ functions that wrap these calls (such as <a class="link" href="glib-Memory-Alloc
 <tr>
 <td class="parameter_name"><p>data</p></td>
 <td class="parameter_description"><p>          the data to be used for the bytes. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL may be passed as the value in, out, in-out; or as a return value."><span class="acronym">nullable</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>size</p></td>
@@ -992,7 +992,7 @@ is 0.</p>
 <tr>
 <td class="parameter_name"><p>data</p></td>
 <td class="parameter_description"><p>          the data to be used for the bytes. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL may be passed as the value in, out, in-out; or as a return value."><span class="acronym">nullable</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>size</p></td>
@@ -1031,8 +1031,9 @@ been called to indicate that the bytes is no longer in use.</p>
 <p><em class="parameter"><code>data</code></em>
  may be <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a> if <em class="parameter"><code>size</code></em>
  is 0.</p>
+<p><span class="annotation">[<acronym title="Exposed in C code, not necessarily available in other languages."><span class="acronym">skip</span></acronym>]</span></p>
 <div class="refsect3">
-<a name="id-1.6.12.7.20.8"></a><h4>Parameters</h4>
+<a name="id-1.6.12.7.20.9"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1042,8 +1043,8 @@ been called to indicate that the bytes is no longer in use.</p>
 <tbody>
 <tr>
 <td class="parameter_name"><p>data</p></td>
-<td class="parameter_description"><p> the data to be used for the bytes. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
+<td class="parameter_description"><p>          the data to be used for the bytes. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL may be passed as the value in, out, in-out; or as a return value."><span class="acronym">nullable</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>size</p></td>
@@ -1066,7 +1067,7 @@ been called to indicate that the bytes is no longer in use.</p>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.6.12.7.20.9"></a><h4>Returns</h4>
+<a name="id-1.6.12.7.20.10"></a><h4>Returns</h4>
 <p> a new <a class="link" href="glib-Byte-Arrays.html#GBytes" title="GBytes"><span class="type">GBytes</span></a>. </p>
 <p><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span></p>
 </div>
@@ -1153,16 +1154,15 @@ not be returned if <em class="parameter"><code>size</code></em>
 <tr>
 <td class="parameter_name"><p>size</p></td>
 <td class="parameter_description"><p> location to return size of byte data. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>][<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>][<acronym title="NULL may be passed instead of a pointer to a location."><span class="acronym">optional</span></acronym>]</span></td>
 </tr>
 </tbody>
 </table></div>
 </div>
 <div class="refsect3">
 <a name="id-1.6.12.7.22.8"></a><h4>Returns</h4>
-<p> a pointer to the
-byte data, or <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>. </p>
-<p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Override the parsed C type with given type."><span class="acronym">type</span></acronym> guint8][<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></p>
+<p>         a pointer to the byte data, or <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>. </p>
+<p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8][<acronym title="NULL may be passed as the value in, out, in-out; or as a return value."><span class="acronym">nullable</span></acronym>]</span></p>
 </div>
 <p class="since">Since: <a class="link" href="api-index-2-32.html#api-index-2.32">2.32</a></p>
 </div>
@@ -1349,7 +1349,7 @@ freed.</p>
 <tbody><tr>
 <td class="parameter_name"><p>bytes</p></td>
 <td class="parameter_description"><p> a <a class="link" href="glib-Byte-Arrays.html#GBytes" title="GBytes"><span class="type">GBytes</span></a>. </p></td>
-<td class="parameter_annotations"><span class="annotation">[<acronym title="NULL is OK, both for passing and for returning."><span class="acronym">allow-none</span></acronym>]</span></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="NULL may be passed as the value in, out, in-out; or as a return value."><span class="acronym">nullable</span></acronym>]</span></td>
 </tr></tbody>
 </table></div>
 </div>
@@ -1383,17 +1383,16 @@ data is copied.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>size</p></td>
-<td class="parameter_description"><p>location to place the length of the returned data</p></td>
-<td class="parameter_annotations"> </td>
+<td class="parameter_description"><p> location to place the length of the returned data. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>]</span></td>
 </tr>
 </tbody>
 </table></div>
 </div>
 <div class="refsect3">
 <a name="id-1.6.12.7.29.7"></a><h4>Returns</h4>
-<p> a pointer to the same byte data, which should
-be freed with <a class="link" href="glib-Memory-Allocation.html#g-free" title="g_free ()"><code class="function">g_free()</code></a>. </p>
-<p><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span></p>
+<p>         a pointer to the same byte data, which should be freed with <a class="link" href="glib-Memory-Allocation.html#g-free" title="g_free ()"><code class="function">g_free()</code></a>. </p>
+<p><span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>][<acronym title="Parameter points to an array of items."><span class="acronym">array</span></acronym> length=size][<acronym title="Generics and defining elements of containers and arrays."><span class="acronym">element-type</span></acronym> guint8]</span></p>
 </div>
 <p class="since">Since: <a class="link" href="api-index-2-32.html#api-index-2.32">2.32</a></p>
 </div>
@@ -1494,6 +1493,6 @@ a mutable <a class="link" href="glib-Byte-Arrays.html#GByteArray" title="struct 
 </div>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.23</div>
+<hr>Generated by GTK-Doc V1.24.1</div>
 </body>
 </html>

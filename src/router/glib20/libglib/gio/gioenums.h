@@ -495,6 +495,7 @@ typedef enum {
  *     returned %G_IO_ERROR_FAILED. Now they should all return the same
  *     value, which has this more logical name. Since 2.44.
  * @G_IO_ERROR_NOT_CONNECTED: Transport endpoint is not connected. Since 2.44
+ * @G_IO_ERROR_MESSAGE_TOO_LARGE: Message too large. Since 2.48.
  *
  * Error codes returned by GIO functions.
  *
@@ -559,7 +560,8 @@ typedef enum {
   G_IO_ERROR_PROXY_NOT_ALLOWED,
   G_IO_ERROR_BROKEN_PIPE,
   G_IO_ERROR_CONNECTION_CLOSED = G_IO_ERROR_BROKEN_PIPE,
-  G_IO_ERROR_NOT_CONNECTED
+  G_IO_ERROR_NOT_CONNECTED,
+  G_IO_ERROR_MESSAGE_TOO_LARGE,
 } GIOErrorEnum;
 
 
@@ -984,14 +986,14 @@ typedef enum
  * @G_DBUS_PROXY_FLAGS_NONE: No flags set.
  * @G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES: Don't load properties.
  * @G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS: Don't connect to signals on the remote object.
- * @G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START: If not set and the proxy if for a well-known name,
- * then request the bus to launch an owner for the name if no-one owns the name. This flag can
- * only be used in proxies for well-known names.
+ * @G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START: If the proxy is for a well-known name,
+ * do not ask the bus to launch an owner during proxy initialization or a method call.
+ * This flag is only meaningful in proxies for well-known names.
  * @G_DBUS_PROXY_FLAGS_GET_INVALIDATED_PROPERTIES: If set, the property value for any <emphasis>invalidated property</emphasis> will be (asynchronously) retrieved upon receiving the <ulink url="http://dbus.freedesktop.org/doc/dbus-specification.html#standard-interfaces-properties">PropertiesChanged</ulink> D-Bus signal and the property will not cause emission of the #GDBusProxy::g-properties-changed signal. When the value is received the #GDBusProxy::g-properties-changed signal is emitted for the property along with the retrieved value. Since 2.32.
  * @G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START_AT_CONSTRUCTION: If the proxy is for a well-known name,
  * do not ask the bus to launch an owner during proxy initialization, but allow it to be
  * autostarted by a method call. This flag is only meaningful in proxies for well-known names,
- * and only if %G_DBUS_PROXY_FLAGS_DO_NOT_AUTOSTART is not also specified.
+ * and only if %G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START is not also specified.
  *
  * Flags used when constructing an instance of a #GDBusProxy derived class.
  *
@@ -1212,6 +1214,8 @@ typedef enum {
  * @G_DBUS_CALL_FLAGS_NO_AUTO_START: The bus must not launch
  * an owner for the destination name in response to this method
  * invocation.
+ * @G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION: the caller is prepared to
+ * wait for interactive authorization. Since 2.46.
  *
  * Flags used in g_dbus_connection_call() and similar APIs.
  *
@@ -1219,7 +1223,8 @@ typedef enum {
  */
 typedef enum {
   G_DBUS_CALL_FLAGS_NONE = 0,
-  G_DBUS_CALL_FLAGS_NO_AUTO_START = (1<<0)
+  G_DBUS_CALL_FLAGS_NO_AUTO_START = (1<<0),
+  G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION = (1<<1)
 } GDBusCallFlags;
 /* (1<<31) is reserved for internal use by GDBusConnection, do not use it. */
 
@@ -1249,6 +1254,9 @@ typedef enum {
  * @G_DBUS_MESSAGE_FLAGS_NO_REPLY_EXPECTED: A reply is not expected.
  * @G_DBUS_MESSAGE_FLAGS_NO_AUTO_START: The bus must not launch an
  * owner for the destination name in response to this message.
+ * @G_DBUS_MESSAGE_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION: If set on a method
+ * call, this flag means that the caller is prepared to wait for interactive
+ * authorization. Since 2.46.
  *
  * Message flags used in #GDBusMessage.
  *
@@ -1257,7 +1265,8 @@ typedef enum {
 typedef enum {
   G_DBUS_MESSAGE_FLAGS_NONE = 0,
   G_DBUS_MESSAGE_FLAGS_NO_REPLY_EXPECTED = (1<<0),
-  G_DBUS_MESSAGE_FLAGS_NO_AUTO_START = (1<<1)
+  G_DBUS_MESSAGE_FLAGS_NO_AUTO_START = (1<<1),
+  G_DBUS_MESSAGE_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION = (1<<2)
 } GDBusMessageFlags;
 
 /**

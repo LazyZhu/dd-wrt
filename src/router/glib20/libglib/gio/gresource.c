@@ -157,7 +157,7 @@ G_DEFINE_QUARK (g-resource-error-quark, g_resource_error)
  * g_resource_ref:
  * @resource: A #GResource
  *
- * Atomically increments the reference count of @array by one. This
+ * Atomically increments the reference count of @resource by one. This
  * function is MT-safe and may be called from any thread.
  *
  * Returns: The passed in #GResource
@@ -176,7 +176,7 @@ g_resource_ref (GResource *resource)
  * @resource: A #GResource
  *
  * Atomically decrements the reference count of @resource by one. If the
- * reference count drops to 0, all memory allocated by the array is
+ * reference count drops to 0, all memory allocated by the resource is
  * released. This function is MT-safe and may be called from any
  * thread.
  *
@@ -529,6 +529,9 @@ g_resource_get_info (GResource             *resource,
  * Returns all the names of children at the specified @path in the resource.
  * The return result is a %NULL terminated list of strings which should
  * be released with g_strfreev().
+ *
+ * If @path is invalid or does not exist in the #GResource,
+ * %G_RESOURCE_ERROR_NOT_FOUND will be returned.
  *
  * @lookup_flags controls the behaviour of the lookup.
  *

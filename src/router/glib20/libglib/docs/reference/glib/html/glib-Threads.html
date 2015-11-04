@@ -8,7 +8,7 @@
 <link rel="up" href="glib-core.html" title="GLib Core Application Support">
 <link rel="prev" href="glib-The-Main-Event-Loop.html" title="The Main Event Loop">
 <link rel="next" href="glib-Thread-Pools.html" title="Thread Pools">
-<meta name="generator" content="GTK-Doc V1.23 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.24.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -607,7 +607,19 @@ you must coordinate accesses to the same <a class="link" href="glib-Hash-Tables.
 threads. The two notable exceptions from this rule are <a class="link" href="glib-The-Main-Event-Loop.html#GMainLoop" title="GMainLoop"><span class="type">GMainLoop</span></a>
 and <a class="link" href="glib-Asynchronous-Queues.html#GAsyncQueue" title="GAsyncQueue"><span class="type">GAsyncQueue</span></a>, which are thread-safe and need no further
 application-level locking to be accessed from multiple threads.
-Most refcounting functions such as <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#g-object-ref"><code class="function">g_object_ref()</code></a> are also thread-safe.</p>
+Most refcounting functions such as <a href="../gobject-The-Base-Object-Type.html#g-object-ref"><code class="function">g_object_ref()</code></a> are also thread-safe.</p>
+<p>A common use for <a href="glib-Threads.html#GThread"><span class="type">GThreads</span></a> is to move a long-running blocking operation out
+of the main thread and into a worker thread. For GLib functions, such as
+single GIO operations, this is not necessary, and complicates the code.
+Instead, the <code class="literal">…<code class="function">_async()</code></code> version of the function should be used from the main
+thread, eliminating the need for locking and synchronisation between multiple
+threads. If an operation does need to be moved to a worker thread, consider
+using <a href="../GTask.html#g-task-run-in-thread"><code class="function">g_task_run_in_thread()</code></a>, or a <a class="link" href="glib-Thread-Pools.html#GThreadPool" title="struct GThreadPool"><span class="type">GThreadPool</span></a>. <a class="link" href="glib-Thread-Pools.html#GThreadPool" title="struct GThreadPool"><span class="type">GThreadPool</span></a> is often a
+better choice than <a class="link" href="glib-Threads.html#GThread" title="GThread"><span class="type">GThread</span></a>, as it handles thread reuse and task queueing;
+<a href="../GTask.html#GTask-struct"><span class="type">GTask</span></a> uses this internally.</p>
+<p>However, if multiple blocking operations need to be performed in sequence,
+and it is not possible to use <a href="../GTask.html#GTask-struct"><span class="type">GTask</span></a> for them, moving them to a worker thread
+can clarify the code.</p>
 </div>
 <div class="refsect1">
 <a name="glib-Threads.functions_details"></a><h2>Functions</h2>
@@ -660,10 +672,13 @@ Some systems restrict the length of <em class="parameter"><code>name</code></em>
  to 16 bytes.</p>
 <p>If the thread can not be created the program aborts. See
 <a class="link" href="glib-Threads.html#g-thread-try-new" title="g_thread_try_new ()"><code class="function">g_thread_try_new()</code></a> if you want to attempt to deal with failures.</p>
+<p>If you are using threads to offload (potentially many) short-lived tasks,
+<a class="link" href="glib-Thread-Pools.html#GThreadPool" title="struct GThreadPool"><span class="type">GThreadPool</span></a> may be more appropriate than manually spawning and tracking
+multiple <a href="glib-Threads.html#GThread"><span class="type">GThreads</span></a>.</p>
 <p>To free the struct returned by this function, use <a class="link" href="glib-Threads.html#g-thread-unref" title="g_thread_unref ()"><code class="function">g_thread_unref()</code></a>.
 Note that <a class="link" href="glib-Threads.html#g-thread-join" title="g_thread_join ()"><code class="function">g_thread_join()</code></a> implicitly unrefs the <a class="link" href="glib-Threads.html#GThread" title="GThread"><span class="type">GThread</span></a> as well.</p>
 <div class="refsect3">
-<a name="id-1.4.3.7.3.8"></a><h4>Parameters</h4>
+<a name="id-1.4.3.7.3.9"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -690,7 +705,7 @@ Note that <a class="link" href="glib-Threads.html#g-thread-join" title="g_thread
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.4.3.7.3.9"></a><h4>Returns</h4>
+<a name="id-1.4.3.7.3.10"></a><h4>Returns</h4>
 <p> the new <a class="link" href="glib-Threads.html#GThread" title="GThread"><span class="type">GThread</span></a></p>
 </div>
 <p class="since">Since: <a class="link" href="api-index-2-32.html#api-index-2.32">2.32</a></p>
@@ -3301,6 +3316,6 @@ controlled by a <a class="link" href="glib-Threads.html#GOnce" title="struct GOn
 </div>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.23</div>
+<hr>Generated by GTK-Doc V1.24.1</div>
 </body>
 </html>

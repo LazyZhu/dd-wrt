@@ -8,7 +8,7 @@
 <link rel="up" href="glib-data-types.html" title="GLib Data Types">
 <link rel="prev" href="glib-GVariantType.html" title="GVariantType">
 <link rel="next" href="gvariant-format-strings.html" title="GVariant Format Strings">
-<meta name="generator" content="GTK-Doc V1.23 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.24.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -1055,7 +1055,7 @@ Serialised <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><
 <p><a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> is largely compatible with D-Bus.  Almost all types of
 <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> instances can be sent over D-Bus.  See <a class="link" href="glib-GVariantType.html#GVariantType" title="GVariantType"><span class="type">GVariantType</span></a> for
 exceptions.  (However, <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a>'s serialisation format is not the same
-as the serialisation format of a D-Bus message body: use <a href="https://developer.gnome.org/gio/unstable/GDBusMessage.html"><span class="type">GDBusMessage</span></a>,
+as the serialisation format of a D-Bus message body: use <a href="../GDBusMessage.html#GDBusMessage-struct"><span class="type">GDBusMessage</span></a>,
 in the gio library, for those.)</p>
 <p>For space-efficiency, the <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> serialisation format does not
 automatically include the variant's length, type or endianness,
@@ -1648,7 +1648,7 @@ the data inside of the soon-to-be-freed <a class="link" href="glib-GVariant.html
 check fails then a <a class="link" href="glib-Message-Logging.html#g-critical" title="g_critical()"><code class="function">g_critical()</code></a> is printed and <a class="link" href="glib-Standard-Macros.html#FALSE:CAPS" title="FALSE"><code class="literal">FALSE</code></a> is returned.</p>
 <p>This function is meant to be used by functions that wish to provide
 varargs accessors to <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> values of uncertain values (eg:
-<a class="link" href="glib-GVariant.html#g-variant-lookup" title="g_variant_lookup ()"><code class="function">g_variant_lookup()</code></a> or <a href="https://developer.gnome.org/gio/unstable/GMenuModel.html#g-menu-model-get-item-attribute"><code class="function">g_menu_model_get_item_attribute()</code></a>).</p>
+<a class="link" href="glib-GVariant.html#g-variant-lookup" title="g_variant_lookup ()"><code class="function">g_variant_lookup()</code></a> or <a href="../GMenuModel.html#g-menu-model-get-item-attribute"><code class="function">g_menu_model_get_item_attribute()</code></a>).</p>
 <div class="refsect3">
 <a name="id-1.6.19.7.13.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
@@ -1699,14 +1699,14 @@ determined by <em class="parameter"><code>format_string</code></em>
 permissible types of <em class="parameter"><code>value</code></em>
 .  It is an error to give a value with
 an incompatible type.  See the section on
-<a href="gvariant-format-strings.html">GVariant format strings</a>.
+GVariant format strings.
 Please note that the syntax of the format string is very likely to be
 extended in the future.</p>
 <p><em class="parameter"><code>format_string</code></em>
  determines the C types that are used for unpacking
 the values and also determines if the values are copied or borrowed,
 see the section on
-<a href="gvariant-format-strings.html#gvariant-format-strings-pointers">GVariant format strings</a>.</p>
+GVariant format strings.</p>
 <p><span class="annotation">[<acronym title="Exposed in C code, not necessarily available in other languages."><span class="acronym">skip</span></acronym>]</span></p>
 <div class="refsect3">
 <a name="id-1.6.19.7.14.9"></a><h4>Parameters</h4>
@@ -1770,7 +1770,7 @@ varargs call by the user.</p>
  determines the C types that are used for unpacking
 the values and also determines if the values are copied or borrowed,
 see the section on
-<a href="gvariant-format-strings.html#gvariant-format-strings-pointers">GVariant format strings</a>.</p>
+GVariant format strings.</p>
 <p><span class="annotation">[<acronym title="Exposed in C code, not necessarily available in other languages."><span class="acronym">skip</span></acronym>]</span></p>
 <div class="refsect3">
 <a name="id-1.6.19.7.15.11"></a><h4>Parameters</h4>
@@ -1818,7 +1818,7 @@ g_variant_new (<em class="parameter"><code>const <a class="link" href="glib-Basi
 <p>The type of the created instance and the arguments that are expected
 by this function are determined by <em class="parameter"><code>format_string</code></em>
 . See the section on
-<a href="gvariant-format-strings.html">GVariant format strings</a>. Please note that
+GVariant format strings. Please note that
 the syntax of the format string is very likely to be extended in the
 future.</p>
 <p>The first character of the format string must not be '*' '?' '@' or
@@ -1827,7 +1827,7 @@ function (and not merely passed through it unmodified).</p>
 <p>Note that the arguments must be of the correct width for their types
 specified in <em class="parameter"><code>format_string</code></em>
 . This can be achieved by casting them. See
-the <a href="gvariant-format-strings.html#gvariant-varargs">GVariant varargs documentation</a>.</p>
+the GVariant varargs documentation.</p>
 <div class="informalexample">
   <table class="listing_frame" border="0" cellpadding="0" cellspacing="0">
     <tbody>
@@ -2253,7 +2253,9 @@ g_variant_new_string (<em class="parameter"><code>const <a class="link" href="gl
 <p>Creates a string <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> with the contents of <em class="parameter"><code>string</code></em>
 .</p>
 <p><em class="parameter"><code>string</code></em>
- must be valid UTF-8.</p>
+ must be valid UTF-8, and must not be <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>. To encode
+potentially-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a> strings, use <a class="link" href="glib-GVariant.html#g-variant-new" title="g_variant_new ()"><code class="function">g_variant_new()</code></a> with <code class="literal">ms</code> as the
+format string.</p>
 <div class="refsect3">
 <a name="id-1.6.19.7.28.6"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
@@ -2284,7 +2286,8 @@ g_variant_new_take_string (<em class="parameter"><code><a class="link" href="gli
 <p>Creates a string <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> with the contents of <em class="parameter"><code>string</code></em>
 .</p>
 <p><em class="parameter"><code>string</code></em>
- must be valid UTF-8.</p>
+ must be valid UTF-8, and must not be <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>. To encode
+potentially-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a> strings, use this with <a class="link" href="glib-GVariant.html#g-variant-new-maybe" title="g_variant_new_maybe ()"><code class="function">g_variant_new_maybe()</code></a>.</p>
 <p>This function consumes <em class="parameter"><code>string</code></em>
 .  <a class="link" href="glib-Memory-Allocation.html#g-free" title="g_free ()"><code class="function">g_free()</code></a> will be called on <em class="parameter"><code>string</code></em>
 
@@ -3006,7 +3009,7 @@ g_variant_get_string (<em class="parameter"><code><a class="link" href="glib-GVa
 <p>Returns the string value of a <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> instance with a string
 type.  This includes the types <a class="link" href="glib-GVariantType.html#G-VARIANT-TYPE-STRING:CAPS" title="G_VARIANT_TYPE_STRING"><code class="literal">G_VARIANT_TYPE_STRING</code></a>,
 <a class="link" href="glib-GVariantType.html#G-VARIANT-TYPE-OBJECT-PATH:CAPS" title="G_VARIANT_TYPE_OBJECT_PATH"><code class="literal">G_VARIANT_TYPE_OBJECT_PATH</code></a> and <a class="link" href="glib-GVariantType.html#G-VARIANT-TYPE-SIGNATURE:CAPS" title="G_VARIANT_TYPE_SIGNATURE"><code class="literal">G_VARIANT_TYPE_SIGNATURE</code></a>.</p>
-<p>The string will always be UTF-8 encoded.</p>
+<p>The string will always be UTF-8 encoded, and will never be <a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>.</p>
 <p>If <em class="parameter"><code>length</code></em>
  is non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a> then the length of the string (in bytes) is
 returned there.  For trusted values, this information is already
@@ -3861,7 +3864,7 @@ essentially a combination of <a class="link" href="glib-GVariant.html#g-variant-
  determines the C types that are used for unpacking
 the values and also determines if the values are copied or borrowed,
 see the section on
-<a href="gvariant-format-strings.html#gvariant-format-strings-pointers">GVariant format strings</a>.</p>
+GVariant format strings.</p>
 <p><span class="annotation">[<acronym title="Exposed in C code, not necessarily available in other languages."><span class="acronym">skip</span></acronym>]</span></p>
 <div class="refsect3">
 <a name="id-1.6.19.7.69.7"></a><h4>Parameters</h4>
@@ -3979,7 +3982,7 @@ value and returns <a class="link" href="glib-Standard-Macros.html#TRUE:CAPS" tit
  determines the C types that are used for unpacking
 the values and also determines if the values are copied or borrowed,
 see the section on
-<a href="gvariant-format-strings.html#gvariant-format-strings-pointers">GVariant format strings</a>.</p>
+GVariant format strings.</p>
 <p>This function is currently implemented with a linear scan.  If you
 plan to do many lookups then <a class="link" href="glib-GVariant.html#GVariantDict" title="struct GVariantDict"><span class="type">GVariantDict</span></a> may be more efficient.</p>
 <p><span class="annotation">[<acronym title="Exposed in C code, not necessarily available in other languages."><span class="acronym">skip</span></acronym>]</span></p>
@@ -4609,7 +4612,7 @@ g_variant_print (<em class="parameter"><code><a class="link" href="glib-GVariant
                  <em class="parameter"><code><a class="link" href="glib-Basic-Types.html#gboolean" title="gboolean"><span class="type">gboolean</span></a> type_annotate</code></em>);</pre>
 <p>Pretty-prints <em class="parameter"><code>value</code></em>
  in the format understood by <a class="link" href="glib-GVariant.html#g-variant-parse" title="g_variant_parse ()"><code class="function">g_variant_parse()</code></a>.</p>
-<p>The format is described <a href="gvariant-text.html">here</a>.</p>
+<p>The format is described here.</p>
 <p>If <em class="parameter"><code>type_annotate</code></em>
  is <a class="link" href="glib-Standard-Macros.html#TRUE:CAPS" title="TRUE"><code class="literal">TRUE</code></a>, then type information is included in
 the output.</p>
@@ -5007,7 +5010,7 @@ when dealing with loops, see <a class="link" href="glib-GVariant.html#g-variant-
  determines the C types that are used for unpacking
 the values and also determines if the values are copied or borrowed.</p>
 <p>See the section on
-<a href="gvariant-format-strings.html#gvariant-format-strings-pointers">GVariant format strings</a>.</p>
+GVariant format strings.</p>
 <p><span class="annotation">[<acronym title="Exposed in C code, not necessarily available in other languages."><span class="acronym">skip</span></acronym>]</span></p>
 <div class="refsect3">
 <a name="id-1.6.19.7.92.14"></a><h4>Parameters</h4>
@@ -5128,7 +5131,7 @@ thereby avoiding the need to free anything as well).</p>
  determines the C types that are used for unpacking
 the values and also determines if the values are copied or borrowed.</p>
 <p>See the section on
-<a href="gvariant-format-strings.html#gvariant-format-strings-pointers">GVariant format strings</a>.</p>
+GVariant format strings.</p>
 <p><span class="annotation">[<acronym title="Exposed in C code, not necessarily available in other languages."><span class="acronym">skip</span></acronym>]</span></p>
 <div class="refsect3">
 <a name="id-1.6.19.7.93.18"></a><h4>Parameters</h4>
@@ -5406,7 +5409,7 @@ calling <a class="link" href="glib-GVariant.html#g-variant-new" title="g_variant
 <p>Note that the arguments must be of the correct width for their types
 specified in <em class="parameter"><code>format_string</code></em>
 . This can be achieved by casting them. See
-the <a href="gvariant-format-strings.html#gvariant-varargs">GVariant varargs documentation</a>.</p>
+the GVariant varargs documentation.</p>
 <p>This function might be used as follows:</p>
 <div class="informalexample">
   <table class="listing_frame" border="0" cellpadding="0" cellspacing="0">
@@ -5497,7 +5500,7 @@ calling <a class="link" href="glib-GVariant.html#g-variant-new-parsed" title="g_
 <p>Note that the arguments must be of the correct width for their types
 specified in <em class="parameter"><code>format_string</code></em>
 . This can be achieved by casting them. See
-the <a href="gvariant-format-strings.html#gvariant-varargs">GVariant varargs documentation</a>.</p>
+the GVariant varargs documentation.</p>
 <p>This function might be used as follows:</p>
 <div class="informalexample">
   <table class="listing_frame" border="0" cellpadding="0" cellspacing="0">
@@ -5899,7 +5902,7 @@ value and returns <a class="link" href="glib-Standard-Macros.html#TRUE:CAPS" tit
 <p><em class="parameter"><code>format_string</code></em>
  determines the C types that are used for unpacking the
 values and also determines if the values are copied or borrowed, see the
-section on <a href="gvariant-format-strings.html#gvariant-format-strings-pointers">GVariant format strings</a>.</p>
+section on GVariant format strings.</p>
 <div class="refsect3">
 <a name="id-1.6.19.7.111.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
@@ -6168,7 +6171,7 @@ g_variant_parse (<em class="parameter"><code>const <a class="link" href="glib-GV
 <p>Parses a <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> from a text representation.</p>
 <p>A single <a class="link" href="glib-GVariant.html#GVariant" title="GVariant"><span class="type">GVariant</span></a> is parsed from the content of <em class="parameter"><code>text</code></em>
 .</p>
-<p>The format is described <a href="gvariant-text.html">here</a>.</p>
+<p>The format is described here.</p>
 <p>The memory at <em class="parameter"><code>limit</code></em>
  will never be accessed and the parser behaves as
 if the character at <em class="parameter"><code>limit</code></em>
@@ -6262,7 +6265,7 @@ additional references.</p>
  must be of the correct width for their types
 specified in <em class="parameter"><code>format</code></em>
  when collected into the <span class="type">va_list</span>. See
-the <a href="gvariant-format-strings.html#gvariant-varargs">GVariant varargs documentation</a>.</p>
+the GVariant varargs documentation.</p>
 <p>In order to behave correctly in all cases it is necessary for the
 calling function to <a class="link" href="glib-GVariant.html#g-variant-ref-sink" title="g_variant_ref_sink ()"><code class="function">g_variant_ref_sink()</code></a> the return result before
 returning control to the user that originally provided the pointer.
@@ -6313,7 +6316,7 @@ that case, the same arguments are collected from the argument list as
 <p>Note that the arguments must be of the correct width for their types
 specified in <em class="parameter"><code>format</code></em>
 . This can be achieved by casting them. See
-the <a href="gvariant-format-strings.html#gvariant-varargs">GVariant varargs documentation</a>.</p>
+the GVariant varargs documentation.</p>
 <p>Consider this simple example:</p>
 <div class="informalexample">
   <table class="listing_frame" border="0" cellpadding="0" cellspacing="0">
@@ -6938,6 +6941,6 @@ key is not found.  Each returns the new dictionary as a floating
 </div>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.23</div>
+<hr>Generated by GTK-Doc V1.24.1</div>
 </body>
 </html>

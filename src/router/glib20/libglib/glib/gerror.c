@@ -30,10 +30,12 @@
  * GLib provides a standard method of reporting errors from a called
  * function to the calling code. (This is the same problem solved by
  * exceptions in other languages.) It's important to understand that
- * this method is both a data type (the #GError struct) and a set of
- * rules. If you use #GError incorrectly, then your code will not
+ * this method is both a data type (the #GError struct) and a [set of
+ * rules][gerror-rules]. If you use #GError incorrectly, then your code will not
  * properly interoperate with other code that uses #GError, and users
- * of your API will probably get confused.
+ * of your API will probably get confused. In most cases, [using #GError is
+ * preferred over numeric error codes][gerror-comparison], but there are
+ * situations where numeric error codes are useful for performance.
  *
  * First and foremost: #GError should only be used to report recoverable
  * runtime errors, never to report programming errors. If the programmer
@@ -279,6 +281,29 @@
  *   instead treat any unrecognized error code as equivalent to
  *   FAILED.
  *
+ * ## Comparison of #GError and traditional error handling # {#gerror-comparison}
+ *
+ * #GError has several advantages over traditional numeric error codes:
+ * importantly, tools like
+ * [gobject-introspection](https://developer.gnome.org/gi/stable/) understand
+ * #GErrors and convert them to exceptions in bindings; the message includes
+ * more information than just a code; and use of a domain helps prevent
+ * misinterpretation of error codes.
+ *
+ * #GError has disadvantages though: it requires a memory allocation, and
+ * formatting the error message string has a performance overhead. This makes it
+ * unsuitable for use in retry loops where errors are a common case, rather than
+ * being unusual. For example, using %G_IO_ERROR_WOULD_BLOCK means hitting these
+ * overheads in the normal control flow. String formatting overhead can be
+ * eliminated by using g_set_error_literal() in some cases.
+ *
+ * These performance issues can be compounded if a function wraps the #GErrors
+ * returned by the functions it calls: this multiplies the number of allocations
+ * and string formatting operations. This can be partially mitigated by using
+ * g_prefix_error().
+ *
+ * ## Rules for use of #GError # {#gerror-rules}
+ *
  * Summary of rules for use of #GError:
  *
  * - Do not report programming errors via #GError.
@@ -511,7 +536,7 @@ g_error_copy (const GError *error)
  * If @domain contains a `FAILED` (or otherwise generic) error code,
  * you should generally not check for it explicitly, but should
  * instead treat any not-explicitly-recognized error code as being
- * equilalent to the `FAILED` code. This way, if the domain is
+ * equivalent to the `FAILED` code. This way, if the domain is
  * extended in the future to provide a more specific error code for
  * a certain case, your code will still work.
  *
@@ -601,11 +626,13 @@ g_set_error_literal (GError      **err,
 
 /**
  * g_propagate_error:
- * @dest: error return location
- * @src: error to move into the return location
+ * @dest: (out callee-allocates) (optional) (nullable): error return location
+ * @src: (transfer full): error to move into the return location
  *
  * If @dest is %NULL, free @src; otherwise, moves @src into *@dest.
  * The error variable @dest points to must be %NULL.
+ *
+ * @src must be non-%NULL.
  *
  * Note that @src is no longer valid after this call. If you want
  * to keep using the same GError*, you need to set it to %NULL

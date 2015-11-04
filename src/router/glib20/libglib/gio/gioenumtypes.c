@@ -506,6 +506,7 @@ g_io_error_enum_get_type (void)
         { G_IO_ERROR_BROKEN_PIPE, "G_IO_ERROR_BROKEN_PIPE", "broken-pipe" },
         { G_IO_ERROR_CONNECTION_CLOSED, "G_IO_ERROR_CONNECTION_CLOSED", "connection-closed" },
         { G_IO_ERROR_NOT_CONNECTED, "G_IO_ERROR_NOT_CONNECTED", "not-connected" },
+        { G_IO_ERROR_MESSAGE_TOO_LARGE, "G_IO_ERROR_MESSAGE_TOO_LARGE", "message-too-large" },
         { 0, NULL, NULL }
       };
       GType g_define_type_id =
@@ -1086,6 +1087,7 @@ g_dbus_call_flags_get_type (void)
       static const GFlagsValue values[] = {
         { G_DBUS_CALL_FLAGS_NONE, "G_DBUS_CALL_FLAGS_NONE", "none" },
         { G_DBUS_CALL_FLAGS_NO_AUTO_START, "G_DBUS_CALL_FLAGS_NO_AUTO_START", "no-auto-start" },
+        { G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, "G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION", "allow-interactive-authorization" },
         { 0, NULL, NULL }
       };
       GType g_define_type_id =
@@ -1130,6 +1132,7 @@ g_dbus_message_flags_get_type (void)
         { G_DBUS_MESSAGE_FLAGS_NONE, "G_DBUS_MESSAGE_FLAGS_NONE", "none" },
         { G_DBUS_MESSAGE_FLAGS_NO_REPLY_EXPECTED, "G_DBUS_MESSAGE_FLAGS_NO_REPLY_EXPECTED", "no-reply-expected" },
         { G_DBUS_MESSAGE_FLAGS_NO_AUTO_START, "G_DBUS_MESSAGE_FLAGS_NO_AUTO_START", "no-auto-start" },
+        { G_DBUS_MESSAGE_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION, "G_DBUS_MESSAGE_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION", "allow-interactive-authorization" },
         { 0, NULL, NULL }
       };
       GType g_define_type_id =

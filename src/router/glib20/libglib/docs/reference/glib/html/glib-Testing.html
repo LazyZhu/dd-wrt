@@ -8,7 +8,7 @@
 <link rel="up" href="glib-utilities.html" title="GLib Utilities">
 <link rel="prev" href="glib-Bookmark-file-parser.html" title="Bookmark file parser">
 <link rel="next" href="glib-UNIX-specific-utilities-and-integration.html" title="UNIX-specific utilities and integration">
-<meta name="generator" content="GTK-Doc V1.23 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.24.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -452,6 +452,12 @@
 <tr>
 <td class="define_keyword">#define</td>
 <td class="function_name">
+<a class="link" href="glib-Testing.html#g-assert-cmpmem" title="g_assert_cmpmem()">g_assert_cmpmem</a><span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="define_keyword">#define</td>
+<td class="function_name">
 <a class="link" href="glib-Testing.html#g-assert-no-error" title="g_assert_no_error()">g_assert_no_error</a><span class="c_punctuation">()</span>
 </td>
 </tr>
@@ -623,13 +629,13 @@ and test cases implicitly. A simple call like</p>
 creates a test suite called "misc" with a single test case named
 "assertions", which consists of running the test_assertions function.</p>
 <p>In addition to the traditional <a class="link" href="glib-Testing.html#g-assert" title="g_assert()"><code class="function">g_assert()</code></a>, the test framework provides
-an extended set of assertions for string and numerical comparisons:
-<a class="link" href="glib-Testing.html#g-assert-cmpfloat" title="g_assert_cmpfloat()"><code class="function">g_assert_cmpfloat()</code></a>, <a class="link" href="glib-Testing.html#g-assert-cmpint" title="g_assert_cmpint()"><code class="function">g_assert_cmpint()</code></a>, <a class="link" href="glib-Testing.html#g-assert-cmpuint" title="g_assert_cmpuint()"><code class="function">g_assert_cmpuint()</code></a>,
-<a class="link" href="glib-Testing.html#g-assert-cmphex" title="g_assert_cmphex()"><code class="function">g_assert_cmphex()</code></a>, <a class="link" href="glib-Testing.html#g-assert-cmpstr" title="g_assert_cmpstr()"><code class="function">g_assert_cmpstr()</code></a>. The advantage of these variants
-over plain <a class="link" href="glib-Testing.html#g-assert" title="g_assert()"><code class="function">g_assert()</code></a> is that the assertion messages can be more
-elaborate, and include the values of the compared entities.</p>
-<p>GLib ships with two utilities called <a href="gtester.html">gtester</a> and
-<a href="gtester-report.html">gtester-report</a> to facilitate running tests and producing
+an extended set of assertions for comparisons: <a class="link" href="glib-Testing.html#g-assert-cmpfloat" title="g_assert_cmpfloat()"><code class="function">g_assert_cmpfloat()</code></a>,
+<a class="link" href="glib-Testing.html#g-assert-cmpint" title="g_assert_cmpint()"><code class="function">g_assert_cmpint()</code></a>, <a class="link" href="glib-Testing.html#g-assert-cmpuint" title="g_assert_cmpuint()"><code class="function">g_assert_cmpuint()</code></a>, <a class="link" href="glib-Testing.html#g-assert-cmphex" title="g_assert_cmphex()"><code class="function">g_assert_cmphex()</code></a>,
+<a class="link" href="glib-Testing.html#g-assert-cmpstr" title="g_assert_cmpstr()"><code class="function">g_assert_cmpstr()</code></a>, and <a class="link" href="glib-Testing.html#g-assert-cmpmem" title="g_assert_cmpmem()"><code class="function">g_assert_cmpmem()</code></a>. The advantage of these
+variants over plain <a class="link" href="glib-Testing.html#g-assert" title="g_assert()"><code class="function">g_assert()</code></a> is that the assertion messages can be
+more elaborate, and include the values of the compared entities.</p>
+<p>GLib ships with two utilities called gtester and
+gtester-report to facilitate running tests and producing
 nicely formatted test reports.</p>
 <p>A full example of creating a test suite with two tests using fixtures:</p>
 <div class="informalexample">
@@ -719,8 +725,8 @@ nicely formatted test reports.</p>
 <span class="function">my_object_fixture_tear_down</span><span class="normal"> </span><span class="symbol">(</span><span class="usertype">MyObjectFixture</span><span class="normal"> </span><span class="symbol">*</span><span class="normal">fixture</span><span class="symbol">,</span>
 <span class="normal">                             </span><span class="usertype">gconstpointer</span><span class="normal"> user_data</span><span class="symbol">)</span>
 <span class="cbracket">{</span>
-<span class="normal">  </span><span class="function"><a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#g-clear-object">g_clear_object</a></span><span class="normal"> </span><span class="symbol">(&amp;</span><span class="normal">fixture</span><span class="symbol">-&gt;</span><span class="normal">helper</span><span class="symbol">);</span>
-<span class="normal">  </span><span class="function"><a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#g-clear-object">g_clear_object</a></span><span class="normal"> </span><span class="symbol">(&amp;</span><span class="normal">fixture</span><span class="symbol">-&gt;</span><span class="normal">obj</span><span class="symbol">);</span>
+<span class="normal">  </span><span class="function"><a href="../gobject-The-Base-Object-Type.html#g-clear-object">g_clear_object</a></span><span class="normal"> </span><span class="symbol">(&amp;</span><span class="normal">fixture</span><span class="symbol">-&gt;</span><span class="normal">helper</span><span class="symbol">);</span>
+<span class="normal">  </span><span class="function"><a href="../gobject-The-Base-Object-Type.html#g-clear-object">g_clear_object</a></span><span class="normal"> </span><span class="symbol">(&amp;</span><span class="normal">fixture</span><span class="symbol">-&gt;</span><span class="normal">obj</span><span class="symbol">);</span>
 <span class="cbracket">}</span>
 
 <span class="keyword">static</span><span class="normal"> </span><span class="type">void</span>
@@ -741,7 +747,7 @@ nicely formatted test reports.</p>
 <span class="type">int</span>
 <span class="function">main</span><span class="normal"> </span><span class="symbol">(</span><span class="type">int</span><span class="normal"> argc</span><span class="symbol">,</span><span class="normal"> </span><span class="type">char</span><span class="normal"> </span><span class="symbol">*</span><span class="normal">argv</span><span class="symbol">[])</span>
 <span class="cbracket">{</span>
-<span class="normal">  </span><span class="function"><a href="glib-running.html#setlocale">setlocale</a></span><span class="normal"> </span><span class="symbol">(</span><span class="normal">LC_ALL</span><span class="symbol">,</span><span class="normal"> </span><span class="string">""</span><span class="symbol">);</span>
+<span class="normal">  </span><span class="function">setlocale</span><span class="normal"> </span><span class="symbol">(</span><span class="normal">LC_ALL</span><span class="symbol">,</span><span class="normal"> </span><span class="string">""</span><span class="symbol">);</span>
 
 <span class="normal">  </span><span class="function"><a href="glib-Testing.html#g-test-init">g_test_init</a></span><span class="normal"> </span><span class="symbol">(&amp;</span><span class="normal">argc</span><span class="symbol">,</span><span class="normal"> </span><span class="symbol">&amp;</span><span class="normal">argv</span><span class="symbol">,</span><span class="normal"> <a href="glib-Standard-Macros.html#NULL:CAPS">NULL</a></span><span class="symbol">);</span>
 <span class="normal">  </span><span class="function"><a href="glib-Testing.html#g-test-bug-base">g_test_bug_base</a></span><span class="normal"> </span><span class="symbol">(</span><span class="string">"http://bugzilla.gnome.org/show_bug.cgi?id="</span><span class="symbol">);</span>
@@ -1793,9 +1799,9 @@ callback A before callback B will cause <code class="function">B()</code> to be 
 <div class="refsect2">
 <a name="g-test-queue-unref"></a><h3>g_test_queue_unref()</h3>
 <pre class="programlisting">#define             g_test_queue_unref(gobject)</pre>
-<p>Enqueue an object to be released with <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a> during
+<p>Enqueue an object to be released with <a href="../gobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a> during
 the next teardown phase. This is equivalent to calling
-<a class="link" href="glib-Testing.html#g-test-queue-destroy" title="g_test_queue_destroy ()"><code class="function">g_test_queue_destroy()</code></a> with a destroy callback of <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a>.</p>
+<a class="link" href="glib-Testing.html#g-test-queue-destroy" title="g_test_queue_destroy ()"><code class="function">g_test_queue_destroy()</code></a> with a destroy callback of <a href="../gobject-The-Base-Object-Type.html#g-object-unref"><code class="function">g_object_unref()</code></a>.</p>
 <div class="refsect3">
 <a name="id-1.5.29.7.38.5"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
@@ -2628,6 +2634,67 @@ One of ==, !=, &lt;, &gt;, &lt;=, &gt;=.</p></td>
 </div>
 <hr>
 <div class="refsect2">
+<a name="g-assert-cmpmem"></a><h3>g_assert_cmpmem()</h3>
+<pre class="programlisting">#define             g_assert_cmpmem(m1, l1, m2, l2)</pre>
+<p>Debugging macro to compare memory regions. If the comparison fails,
+an error message is logged and the application is either terminated
+or the testcase marked as failed.</p>
+<p>The effect of <code class="literal">g_assert_cmpmem (m1, l1, m2, l2)</code> is
+the same as <code class="literal">g_assert_true (l1 == l2 &amp;&amp; memcmp (m1, m2, l1) == 0)</code>.
+The advantage of this macro is that it can produce a message that
+includes the actual values of <em class="parameter"><code>l1</code></em>
+ and <em class="parameter"><code>l2</code></em>
+.</p>
+<div class="informalexample">
+  <table class="listing_frame" border="0" cellpadding="0" cellspacing="0">
+    <tbody>
+      <tr>
+        <td class="listing_lines" align="right"><pre>1</pre></td>
+        <td class="listing_code"><pre class="programlisting"><span class="function"><a href="glib-Testing.html#g-assert-cmpmem">g_assert_cmpmem</a></span><span class="normal"> </span><span class="symbol">(</span><span class="normal">buf</span><span class="symbol">-&gt;</span><span class="normal">data</span><span class="symbol">,</span><span class="normal"> buf</span><span class="symbol">-&gt;</span><span class="normal">len</span><span class="symbol">,</span><span class="normal"> expected</span><span class="symbol">,</span><span class="normal"> </span><span class="keyword">sizeof</span><span class="normal"> </span><span class="symbol">(</span><span class="normal">expected</span><span class="symbol">));</span></pre></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<p></p>
+<div class="refsect3">
+<a name="id-1.5.29.7.63.8"></a><h4>Parameters</h4>
+<div class="informaltable"><table width="100%" border="0">
+<colgroup>
+<col width="150px" class="parameters_name">
+<col class="parameters_description">
+<col width="200px" class="parameters_annotations">
+</colgroup>
+<tbody>
+<tr>
+<td class="parameter_name"><p>m1</p></td>
+<td class="parameter_description"><p>pointer to a buffer</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>l1</p></td>
+<td class="parameter_description"><p>length of <em class="parameter"><code>m1</code></em>
+</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>m2</p></td>
+<td class="parameter_description"><p>pointer to another buffer</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+<tr>
+<td class="parameter_name"><p>l2</p></td>
+<td class="parameter_description"><p>length of <em class="parameter"><code>m2</code></em>
+</p></td>
+<td class="parameter_annotations"> </td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<p class="since">Since: <a class="link" href="api-index-2-46.html#api-index-2.46">2.46</a></p>
+</div>
+<hr>
+<div class="refsect2">
 <a name="g-assert-no-error"></a><h3>g_assert_no_error()</h3>
 <pre class="programlisting">#define             g_assert_no_error(err)</pre>
 <p>Debugging macro to check that a <a class="link" href="glib-Error-Reporting.html#GError" title="struct GError"><span class="type">GError</span></a> is not set.</p>
@@ -2636,7 +2703,7 @@ the same as <code class="literal">g_assert_true (err == NULL)</code>. The advant
 of this macro is that it can produce a message that includes
 the error message and code.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.63.6"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.64.6"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2668,7 +2735,7 @@ test that <em class="parameter"><code>err</code></em>
  is set, but don't care what it's set to, just use
 <code class="literal">g_assert (err != NULL)</code></p>
 <div class="refsect3">
-<a name="id-1.5.29.7.64.7"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.65.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2706,7 +2773,7 @@ an error message is logged and the application is either
 terminated or the testcase marked as failed.</p>
 <p>See <a class="link" href="glib-Testing.html#g-test-set-nonfatal-assertions" title="g_test_set_nonfatal_assertions ()"><code class="function">g_test_set_nonfatal_assertions()</code></a>.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.65.7"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.66.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2732,7 +2799,7 @@ an error message is logged and the application is either
 terminated or the testcase marked as failed.</p>
 <p>See <a class="link" href="glib-Testing.html#g-test-set-nonfatal-assertions" title="g_test_set_nonfatal_assertions ()"><code class="function">g_test_set_nonfatal_assertions()</code></a>.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.66.7"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.67.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2758,7 +2825,7 @@ an error message is logged and the application is either
 terminated or the testcase marked as failed.</p>
 <p>See <a class="link" href="glib-Testing.html#g-test-set-nonfatal-assertions" title="g_test_set_nonfatal_assertions ()"><code class="function">g_test_set_nonfatal_assertions()</code></a>.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.67.7"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.68.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2784,7 +2851,7 @@ an error message is logged and the application is either
 terminated or the testcase marked as failed.</p>
 <p>See <a class="link" href="glib-Testing.html#g-test-set-nonfatal-assertions" title="g_test_set_nonfatal_assertions ()"><code class="function">g_test_set_nonfatal_assertions()</code></a>.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.68.7"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.69.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2837,7 +2904,7 @@ zero then <em class="parameter"><code>fixture</code></em>
  will be equal to <em class="parameter"><code>user_data</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.70.7"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.71.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2891,7 +2958,7 @@ called with the same fixture, but varying <em class="parameter"><code>test_name<
 <em class="parameter"><code>data_test</code></em>
  arguments.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.71.6"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.72.6"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2933,7 +3000,7 @@ called with the same fixture, but varying <em class="parameter"><code>test_name<
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.29.7.71.7"></a><h4>Returns</h4>
+<a name="id-1.5.29.7.72.7"></a><h4>Returns</h4>
 <p> a newly allocated <a class="link" href="glib-Testing.html#GTestCase" title="GTestCase"><span class="type">GTestCase</span></a>.</p>
 </div>
 <p class="since">Since: <a class="link" href="api-index-2-16.html#api-index-2.16">2.16</a></p>
@@ -2946,7 +3013,7 @@ g_test_create_suite (<em class="parameter"><code>const <span class="type">char</
 <p>Create a new test suite with the name <em class="parameter"><code>suite_name</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.72.5"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.73.5"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -2961,7 +3028,7 @@ g_test_create_suite (<em class="parameter"><code>const <span class="type">char</
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.29.7.72.6"></a><h4>Returns</h4>
+<a name="id-1.5.29.7.73.6"></a><h4>Returns</h4>
 <p> A newly allocated <a class="link" href="glib-Testing.html#GTestSuite" title="GTestSuite"><span class="type">GTestSuite</span></a> instance.</p>
 </div>
 <p class="since">Since: <a class="link" href="api-index-2-16.html#api-index-2.16">2.16</a></p>
@@ -2973,7 +3040,7 @@ g_test_create_suite (<em class="parameter"><code>const <span class="type">char</
 g_test_get_root (<em class="parameter"><code><span class="type">void</span></code></em>);</pre>
 <p>Get the toplevel test suite for the test path API.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.73.5"></a><h4>Returns</h4>
+<a name="id-1.5.29.7.74.5"></a><h4>Returns</h4>
 <p> the toplevel <a class="link" href="glib-Testing.html#GTestSuite" title="GTestSuite"><span class="type">GTestSuite</span></a></p>
 </div>
 <p class="since">Since: <a class="link" href="api-index-2-16.html#api-index-2.16">2.16</a></p>
@@ -2988,7 +3055,7 @@ g_test_suite_add (<em class="parameter"><code><a class="link" href="glib-Testing
  to <em class="parameter"><code>suite</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.74.5"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.75.5"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -3021,7 +3088,7 @@ g_test_suite_add_suite (<em class="parameter"><code><a class="link" href="glib-T
  to <em class="parameter"><code>suite</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.75.5"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.76.5"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -3058,7 +3125,7 @@ order that tests are run in.</p>
 <p>g_test_run_suite() or <a class="link" href="glib-Testing.html#g-test-run" title="g_test_run ()"><code class="function">g_test_run()</code></a> may only be called once
 in a program.</p>
 <div class="refsect3">
-<a name="id-1.5.29.7.76.6"></a><h4>Parameters</h4>
+<a name="id-1.5.29.7.77.6"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -3073,7 +3140,7 @@ in a program.</p>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.29.7.76.7"></a><h4>Returns</h4>
+<a name="id-1.5.29.7.77.7"></a><h4>Returns</h4>
 <p> 0 on success</p>
 </div>
 <p class="since">Since: <a class="link" href="api-index-2-16.html#api-index-2.16">2.16</a></p>
@@ -3243,10 +3310,10 @@ not show stdout and stderr.</p>
 </div>
 <div class="refsect1">
 <a name="glib-Testing.see-also"></a><h2>See Also</h2>
-<p><a href="gtester.html">gtester</a>, <a href="gtester-report.html">gtester-report</a></p>
+<p>gtester, gtester-report</p>
 </div>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.23</div>
+<hr>Generated by GTK-Doc V1.24.1</div>
 </body>
 </html>

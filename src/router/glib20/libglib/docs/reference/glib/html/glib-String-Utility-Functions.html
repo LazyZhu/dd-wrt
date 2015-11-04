@@ -8,7 +8,7 @@
 <link rel="up" href="glib-utilities.html" title="GLib Utilities">
 <link rel="prev" href="glib-utilities.html" title="GLib Utilities">
 <link rel="next" href="glib-Character-Set-Conversion.html" title="Character Set Conversion">
-<meta name="generator" content="GTK-Doc V1.23 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.24.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -673,10 +673,16 @@
 <col width="150px" class="name">
 <col class="description">
 </colgroup>
-<tbody><tr>
+<tbody>
+<tr>
 <td class="define_keyword">#define</td>
 <td class="function_name"><a class="link" href="glib-String-Utility-Functions.html#G-STR-DELIMITERS:CAPS" title="G_STR_DELIMITERS">G_STR_DELIMITERS</a></td>
-</tr></tbody>
+</tr>
+<tr>
+<td class="typedef_keyword">typedef</td>
+<td class="function_name"><a class="link" href="glib-String-Utility-Functions.html#GStrv" title="GStrv">GStrv</a></td>
+</tr>
+</tbody>
 </table></div>
 </div>
 <div class="refsect1">
@@ -709,6 +715,12 @@ using %Ns. If your intention is to format strings for a
 certain number of columns, then %Ns is not a correct solution
 anyway, since it fails to take wide characters (see <a class="link" href="glib-Unicode-Manipulation.html#g-unichar-iswide" title="g_unichar_iswide ()"><code class="function">g_unichar_iswide()</code></a>)
 into account.</p>
+<p>Note also that there are various <code class="function">printf()</code> parameters which are platform
+dependent. GLib provides platform independent macros for these parameters
+which should be used instead. A common example is <a class="link" href="glib-Basic-Types.html#G-GUINT64-FORMAT:CAPS" title="G_GUINT64_FORMAT"><code class="literal">G_GUINT64_FORMAT</code></a>, which
+should be used instead of <code class="literal">%llu</code> or similar parameters for formatting
+64-bit integers. These macros are all named <code class="literal">G_*_FORMAT</code>; see
+<a class="link" href="glib-Basic-Types.html" title="Basic Types">Basic Types</a>.</p>
 </div>
 </div>
 <div class="refsect1">
@@ -3012,9 +3024,9 @@ string conversion fails, zero is returned, and <em class="parameter"><code>endpt
 </tr>
 <tr>
 <td class="parameter_name"><p>endptr</p></td>
-<td class="parameter_description"><p>if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the character after
-the last character used in the conversion.</p></td>
-<td class="parameter_annotations"> </td>
+<td class="parameter_description"><p> if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the
+character after the last character used in the conversion. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>][<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="NULL may be passed instead of a pointer to a location."><span class="acronym">optional</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>base</p></td>
@@ -3071,9 +3083,9 @@ If the string conversion fails, zero is returned, and <em class="parameter"><cod
 </tr>
 <tr>
 <td class="parameter_name"><p>endptr</p></td>
-<td class="parameter_description"><p>if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the character after
-the last character used in the conversion.</p></td>
-<td class="parameter_annotations"> </td>
+<td class="parameter_description"><p> if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the
+character after the last character used in the conversion. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>][<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="NULL may be passed instead of a pointer to a location."><span class="acronym">optional</span></acronym>]</span></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>base</p></td>
@@ -3155,9 +3167,9 @@ you can reliably detect overflow and underflow.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>endptr</p></td>
-<td class="parameter_description"><p>if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the character after
-the last character used in the conversion.</p></td>
-<td class="parameter_annotations"> </td>
+<td class="parameter_description"><p> if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the
+character after the last character used in the conversion. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>][<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="NULL may be passed instead of a pointer to a location."><span class="acronym">optional</span></acronym>]</span></td>
 </tr>
 </tbody>
 </table></div>
@@ -3300,9 +3312,9 @@ point in some locales, causing unexpected results.</p>
 </tr>
 <tr>
 <td class="parameter_name"><p>endptr</p></td>
-<td class="parameter_description"><p>if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the character after
-the last character used in the conversion.</p></td>
-<td class="parameter_annotations"> </td>
+<td class="parameter_description"><p> if non-<a class="link" href="glib-Standard-Macros.html#NULL:CAPS" title="NULL"><code class="literal">NULL</code></a>, it returns the
+character after the last character used in the conversion. </p></td>
+<td class="parameter_annotations"><span class="annotation">[<acronym title="Parameter for returning results. Default is transfer full."><span class="acronym">out</span></acronym>][<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>][<acronym title="NULL may be passed instead of a pointer to a location."><span class="acronym">optional</span></acronym>]</span></td>
 </tr>
 </tbody>
 </table></div>
@@ -3955,12 +3967,14 @@ is an element of <em class="parameter"><code>strv</code></em>
 <a name="g-strerror"></a><h3>g_strerror ()</h3>
 <pre class="programlisting">const <a class="link" href="glib-Basic-Types.html#gchar" title="gchar"><span class="returnvalue">gchar</span></a> *
 g_strerror (<em class="parameter"><code><a class="link" href="glib-Basic-Types.html#gint" title="gint"><span class="type">gint</span></a> errnum</code></em>);</pre>
-<p>Returns a string corresponding to the given error code, e.g.
-"no such process". You should use this function in preference to
-<code class="function">strerror()</code>, because it returns a string in UTF-8 encoding, and since
-not all platforms support the <code class="function">strerror()</code> function.</p>
+<p>Returns a string corresponding to the given error code, e.g. "no
+such process". Unlike <code class="function">strerror()</code>, this always returns a string in
+UTF-8 encoding, and the pointer is guaranteed to remain valid for
+the lifetime of the process.</p>
+<p>Note that the string may be translated according to the current locale.</p>
+<p>The value of <code class="literal">errno</code> will not be changed by this function.</p>
 <div class="refsect3">
-<a name="id-1.5.2.7.79.5"></a><h4>Parameters</h4>
+<a name="id-1.5.2.7.79.7"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -3976,9 +3990,9 @@ documentation</p></td>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.5.2.7.79.6"></a><h4>Returns</h4>
+<a name="id-1.5.2.7.79.8"></a><h4>Returns</h4>
 <p> a UTF-8 string describing the error code. If the error code
-is unknown, it returns "unknown error (&lt;code&gt;)".</p>
+is unknown, it returns a string like "unknown error (&lt;code&gt;)".</p>
 </div>
 </div>
 <hr>
@@ -4020,9 +4034,17 @@ it returns "unknown signal (&lt;signum&gt;)".</p>
 </pre>
 <p>The standard delimiters, used in <a class="link" href="glib-String-Utility-Functions.html#g-strdelimit" title="g_strdelimit ()"><code class="function">g_strdelimit()</code></a>.</p>
 </div>
+<hr>
+<div class="refsect2">
+<a name="GStrv"></a><h3>GStrv</h3>
+<pre class="programlisting">typedef gchar** GStrv;
+</pre>
+<p>A typedef alias for gchar**. This is mostly useful when used together with
+<a class="link" href="glib-Miscellaneous-Macros.html#g-auto" title="g_auto()"><code class="function">g_auto()</code></a>.</p>
+</div>
 </div>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.23</div>
+<hr>Generated by GTK-Doc V1.24.1</div>
 </body>
 </html>

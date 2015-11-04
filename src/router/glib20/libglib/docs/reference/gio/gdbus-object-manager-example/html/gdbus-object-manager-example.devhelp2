@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<book xmlns="" title="" link="index.html" author="" name="gdbus-object-manager-example" version="2" language="c">
+<book xmlns="http://www.devhelp.net/book" title="" link="index.html" author="" name="gdbus-object-manager-example" version="2" language="c">
   <chapters>
     <sub name="foo" link="pt01.html">
       <sub name="bar" link="ch01.html">
@@ -85,5 +85,13 @@
     <keyword type="function" name="example_object_manager_client_new_for_bus_sync ()" link="ExampleObjectManagerClient.html#example-object-manager-client-new-for-bus-sync"/>
     <keyword type="struct" name="struct ExampleObjectManagerClient" link="ExampleObjectManagerClient.html#ExampleObjectManagerClient-struct"/>
     <keyword type="struct" name="struct ExampleObjectManagerClientClass" link="ExampleObjectManagerClient.html#ExampleObjectManagerClientClass"/>
+    <keyword type="member" name="ExampleAnimalIface.parent-iface" link="ExampleAnimal.html#ExampleAnimalIface.parent-iface"/>
+    <keyword type="member" name="ExampleAnimalIface.handle-poke" link="ExampleAnimal.html#ExampleAnimalIface.handle-poke"/>
+    <keyword type="member" name="ExampleAnimalIface.get-foo" link="ExampleAnimal.html#ExampleAnimalIface.get-foo"/>
+    <keyword type="member" name="ExampleAnimalIface.get-mood" link="ExampleAnimal.html#ExampleAnimalIface.get-mood"/>
+    <keyword type="member" name="ExampleAnimalIface.jumped" link="ExampleAnimal.html#ExampleAnimalIface.jumped"/>
+    <keyword type="member" name="ExampleAnimalIface.get-bar" link="ExampleAnimal.html#ExampleAnimalIface.get-bar"/>
+    <keyword type="member" name="ExampleCatIface.parent-iface" link="ExampleCat.html#ExampleCatIface.parent-iface"/>
+    <keyword type="member" name="ExampleObjectIface.parent-iface" link="ExampleObject.html#ExampleObjectIface.parent-iface"/>
   </functions>
 </book>

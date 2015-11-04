@@ -8,7 +8,7 @@
 <link rel="up" href="conversion.html" title="Data conversion">
 <link rel="prev" href="conversion.html" title="Data conversion">
 <link rel="next" href="GCharsetConverter.html" title="GCharsetConverter">
-<meta name="generator" content="GTK-Doc V1.23 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.24.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -98,7 +98,7 @@
 <a name="GConverter.prerequisites"></a><h2>Prerequisites</h2>
 <p>
 GConverter requires
- <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>.</p>
+ <a href="../gobject-The-Base-Object-Type.html#GObject-struct">GObject</a>.</p>
 </div>
 <div class="refsect1">
 <a name="GConverter.implementations"></a><h2>Known Implementations</h2>
@@ -127,13 +127,13 @@ replace.</p>
 <pre class="programlisting"><a class="link" href="GConverter.html#GConverterResult" title="enum GConverterResult"><span class="returnvalue">GConverterResult</span></a>
 g_converter_convert (<em class="parameter"><code><a class="link" href="GConverter.html" title="GConverter"><span class="type">GConverter</span></a> *converter</code></em>,
                      <em class="parameter"><code>const <span class="type">void</span> *inbuf</code></em>,
-                     <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> inbuf_size</code></em>,
+                     <em class="parameter"><code><a href="../glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> inbuf_size</code></em>,
                      <em class="parameter"><code><span class="type">void</span> *outbuf</code></em>,
-                     <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> outbuf_size</code></em>,
+                     <em class="parameter"><code><a href="../glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> outbuf_size</code></em>,
                      <em class="parameter"><code><a class="link" href="GConverter.html#GConverterFlags" title="enum GConverterFlags"><span class="type">GConverterFlags</span></a> flags</code></em>,
-                     <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> *bytes_read</code></em>,
-                     <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> *bytes_written</code></em>,
-                     <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+                     <em class="parameter"><code><a href="../glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> *bytes_read</code></em>,
+                     <em class="parameter"><code><a href="../glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> *bytes_written</code></em>,
+                     <em class="parameter"><code><a href="../glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
 <p>This is the main operation used when converting data. It is to be called
 multiple times in a loop, and each time it will do some work, i.e.
 producing some output (in <em class="parameter"><code>outbuf</code></em>
@@ -270,7 +270,7 @@ on success. </p></td>
 </tr>
 <tr>
 <td class="parameter_name"><p>error</p></td>
-<td class="parameter_description"><p>location to store the error occurring, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> to ignore</p></td>
+<td class="parameter_description"><p>location to store the error occurring, or <a href="../glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> to ignore</p></td>
 <td class="parameter_annotations"> </td>
 </tr>
 </tbody>
@@ -348,11 +348,6 @@ and may fail at any place.</p>
 <col width="200px" class="struct_members_annotations">
 </colgroup>
 <tbody>
-<tr>
-<td class="struct_member_name"><p><a href="https://developer.gnome.org/gobject/unstable/gobject-Type-Information.html#GTypeInterface"><span class="type">GTypeInterface</span></a> <em class="structfield"><code><a name="GConverterIface.g-iface"></a>g_iface</code></em>;</p></td>
-<td class="struct_member_description"><p>The parent interface.</p></td>
-<td class="struct_member_annotations"> </td>
-</tr>
 <tr>
 <td class="struct_member_name"><p><em class="structfield"><code><a name="GConverterIface.convert"></a>convert</code></em> ()</p></td>
 <td class="struct_member_description"><p>Converts data.</p></td>
@@ -460,6 +455,6 @@ and may fail at any place.</p>
 </div>
 </div>
 <div class="footer">
-<hr>Generated by GTK-Doc V1.23</div>
+<hr>Generated by GTK-Doc V1.24.1</div>
 </body>
 </html>

@@ -1705,13 +1705,17 @@ static char *
 find_topdir_for (const char *file)
 {
   char *dir;
+  char *mountpoint = NULL;
   dev_t dir_dev;
 
   dir = get_parent (file, &dir_dev);
   if (dir == NULL)
     return NULL;
 
-  return find_mountpoint_for (dir, dir_dev);
+  mountpoint = find_mountpoint_for (dir, dir_dev);
+  g_free (dir);
+
+  return mountpoint;
 }
 
 static char *
@@ -2099,6 +2103,34 @@ g_local_file_trash (GFile         *file,
 
   (void) g_close (fd, NULL);
 
+  /* Write the full content of the info file before trashing to make
+   * sure someone doesn't read an empty file.  See #749314
+   */
+
+  /* Use absolute names for homedir */
+  if (is_homedir_trash)
+    original_name = g_strdup (local->filename);
+  else
+    original_name = try_make_relative (local->filename, topdir);
+  original_name_escaped = g_uri_escape_string (original_name, "/", FALSE);
+  
+  g_free (original_name);
+  g_free (topdir);
+  
+  {
+    time_t t;
+    struct tm now;
+    t = time (NULL);
+    localtime_r (&t, &now);
+    delete_time[0] = 0;
+    strftime(delete_time, sizeof (delete_time), "%Y-%m-%dT%H:%M:%S", &now);
+  }
+
+  data = g_strdup_printf ("[Trash Info]\nPath=%s\nDeletionDate=%s\n",
+			  original_name_escaped, delete_time);
+
+  g_file_set_contents (infofile, data, -1, NULL);
+
   /* TODO: Maybe we should verify that you can delete the file from the trash
      before moving it? OTOH, that is hard, as it needs a recursive scan */
 
@@ -2142,29 +2174,6 @@ g_local_file_trash (GFile         *file,
 
   /* TODO: Do we need to update mtime/atime here after the move? */
 
-  /* Use absolute names for homedir */
-  if (is_homedir_trash)
-    original_name = g_strdup (local->filename);
-  else
-    original_name = try_make_relative (local->filename, topdir);
-  original_name_escaped = g_uri_escape_string (original_name, "/", FALSE);
-  
-  g_free (original_name);
-  g_free (topdir);
-  
-  {
-    time_t t;
-    struct tm now;
-    t = time (NULL);
-    localtime_r (&t, &now);
-    delete_time[0] = 0;
-    strftime(delete_time, sizeof (delete_time), "%Y-%m-%dT%H:%M:%S", &now);
-  }
-
-  data = g_strdup_printf ("[Trash Info]\nPath=%s\nDeletionDate=%s\n",
-			  original_name_escaped, delete_time);
-
-  g_file_set_contents (infofile, data, -1, NULL);
   g_free (infofile);
   g_free (data);
   
@@ -2682,7 +2691,7 @@ g_local_file_measure_size_of_file (gint           parent_fd,
         (!g_path_is_absolute (filename) || len > g_path_skip_root (filename) - filename))
       wfilename[len] = '\0';
 
-    retval = _wstat32i64 (wfilename, &buf);
+    retval = _wstati64 (wfilename, &buf);
     save_errno = errno;
 
     g_free (wfilename);

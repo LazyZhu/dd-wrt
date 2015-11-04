@@ -2343,8 +2343,10 @@
  * {
  *   g_auto(GQueue) queue = G_QUEUE_INIT;
  *   g_auto(GVariantBuilder) builder;
+ *   g_auto(GStrv) strv;
  *
  *   g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+ *   strv = g_strsplit("a:b:c", ":", -1);
  *
  *   ...
  *
@@ -2357,7 +2359,7 @@
  * }
  * ]|
  *
- * You must initialise the variable in some way -- either by use of an
+ * You must initialize the variable in some way -- either by use of an
  * initialiser or by ensuring that an _init function will be called on
  * it unconditionally before it goes out of scope.
  *
@@ -2393,9 +2395,8 @@
  * gboolean
  * check_exists(GVariant *dict)
  * {
- *   g_autoptr(GVariant) dirname;
- *   g_autoptr(GVariant) basename = NULL;
- *   g_autoptr(gchar) path = NULL;
+ *   g_autoptr(GVariant) dirname, basename = NULL;
+ *   g_autofree gchar *path = NULL;
  *
  *   dirname = g_variant_lookup_value (dict, "dirname", G_VARIANT_TYPE_STRING);
  *
@@ -2418,6 +2419,8 @@
  * You must initialise the variable in some way -- either by use of an
  * initialiser or by ensuring that it is assigned to unconditionally
  * before it goes out of scope.
+ *
+ * See also g_auto(), g_autofree() and g_steal_pointer().
  *
  * Since: 2.44
  */

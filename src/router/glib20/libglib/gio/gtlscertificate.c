@@ -335,12 +335,18 @@ parse_and_create_certificate_list (const gchar  *data,
   while (p && *p)
     {
       gchar *cert_pem;
+      GError *error = NULL;
 
-      cert_pem = parse_next_pem_certificate (&p, end, FALSE, NULL);
-      if (!cert_pem)
+      cert_pem = parse_next_pem_certificate (&p, end, FALSE, &error);
+      if (error)
         {
           g_slist_free_full (pem_list, g_free);
+          g_error_free (error);
           return first_pem_list;
+        }
+      else if (!cert_pem)
+        {
+          break;
         }
 
       pem_list = g_slist_prepend (pem_list, cert_pem);
@@ -465,17 +471,22 @@ g_tls_certificate_new_from_pem  (const gchar  *data,
 				 gssize        length,
 				 GError      **error)
 {
+  GError *child_error = NULL;
   gchar *key_pem;
   GTlsCertificate *cert;
 
   g_return_val_if_fail (data != NULL, NULL);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
   if (length == -1)
     length = strlen (data);
 
-  key_pem = parse_private_key (data, length, FALSE, error);
-  if (error && *error)
-    return NULL;
+  key_pem = parse_private_key (data, length, FALSE, &child_error);
+  if (child_error != NULL)
+    {
+      g_propagate_error (error, child_error);
+      return NULL;
+    }
 
   cert = parse_and_create_certificate (data, length, key_pem, error);
   g_free (key_pem);
