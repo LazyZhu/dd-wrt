@@ -122,11 +122,10 @@ include rules/samba3.mk
 include rules/ntfs-3g.mk
 include rules/mmc.mk
 include rules/mmc-fonera.mk
-include rules/mmc-ixp4xx.mk
-include rules/openser.mk				
+include rules/openser.mk
 include rules/nocat.mk
 include rules/http-redirect.mk
-include rules/smtp-redirect.mk		
+include rules/smtp-redirect.mk
 include rules/chillispot.mk
 include rules/frottle.mk
 include rules/ebtables.mk
@@ -155,7 +154,6 @@ include rules/iproute2.mk
 include rules/igmp-proxy.mk
 include rules/udpxy.mk
 include rules/parprouted.mk
-
 include rules/hostapd.mk
 ifeq ($(CONFIG_MADWIFI),y)
 include rules/hostapd-wps.mk
@@ -202,7 +200,7 @@ include rules/p910nd.mk
 include rules/ethtool.mk
 include rules/openlldp.mk
 include rules/ipsec-tools.mk
-include rules/strace.mk
+#include rules/strace.mk
 include rules/asterisk.mk
 include rules/zaptel.mk
 include rules/iperf.mk
@@ -213,7 +211,7 @@ include rules/services.mk
 include rules/utils.mk
 include rules/libutils.mk
 include rules/zlib.mk
-include rules/oled.mk
+#include rules/oled.mk
 include rules/pound.mk
 include rules/radvd.mk
 include rules/nprobe.mk
@@ -224,11 +222,11 @@ include rules/ap-serv.mk
 include rules/tolapai.mk
 include rules/buffalo-flash.mk
 include rules/relayd.mk
-include $(TOP)/private/ath9k-rules/ath9k.mk
+#include $(TOP)/private/ath9k-rules/ath9k.mk
 include rules/libnltiny.mk
 include rules/hotplug2.mk
 include rules/dsl_cpe_control.mk
-include rules/atm.mk
+#include rules/atm.mk
 include rules/aiccu.mk
 include rules/l2tpv3tun.mk
 include rules/rt3062.mk
@@ -236,7 +234,6 @@ include rules/usbip.mk
 include rules/glib.mk
 include rules/libxml2.mk
 #include rules/xtables-addons.mk
-#snort
 include rules/libnfnetlink.mk
 include rules/libnetfilter_queue.mk
 include rules/libdnet.mk
