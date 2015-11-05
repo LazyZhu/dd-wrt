@@ -333,7 +333,8 @@ MACHINE_START(BRCM_NS, "Northstar Prototype")
 //      IO_BASE_PA,
 //   .io_pg_offst =                             /* for early debug */
 //      (IO_BASE_VA >>18) & 0xfffc,
-    .smp = smp_ops(brcm_smp_ops),.fixup = board_fixup,	/* Opt. early setup_arch() */
+    .smp = smp_ops(brcm_smp_ops),
+    .fixup = board_fixup,	/* Opt. early setup_arch() */
     .map_io = board_map_io,	/* Opt. from setup_arch() */
     .init_irq = board_init_irq,	/* main.c after setup_arch() */
     .init_time = board_init_timer,	/* main.c after IRQs */
@@ -638,6 +639,7 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bcm947xx_flash_parts[nparts].size = mtd->size - vmlz_off;
 		if(is_ex6200) // reserve for board_data
 			bcm947xx_flash_parts[nparts].size -= 0x10000;
+
 #ifdef PLC
 		/* Reserve for PLC */
 		bcm947xx_flash_parts[nparts].size -= ROUNDUP(0x1000, mtd->erasesize);

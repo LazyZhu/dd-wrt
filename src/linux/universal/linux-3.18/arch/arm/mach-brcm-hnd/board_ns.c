@@ -220,6 +220,8 @@ static void __init brcm_setup(void)
 	}
 	
 	printk(KERN_INFO "coherence_win_size = %X\n",coherence_win_sz);
+	printk(KERN_INFO "coherence_flag = %X\n", coherence_flag);
+	printk(KERN_INFO "ddr_phys_offset_va =%X\n", ddr_phys_offset_va);
 
 //      if (strncmp(boot_command_line, "root=/dev/mtdblock", strlen("root=/dev/mtdblock")) == 0)
 //              sprintf(saved_root_name, "/dev/mtdblock%d", rootfs_mtdblock());
@@ -624,7 +626,7 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 #else
 
 		bcm947xx_flash_parts[nparts].size = mtd->size - vmlz_off;
-		if(is_ex6200)
+		if(is_ex6200) // reserve for board_data
 			bcm947xx_flash_parts[nparts].size -= 0x10000;
 
 #ifdef PLC
@@ -731,7 +733,8 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bcm947xx_flash_parts[nparts].size = (size - bcm947xx_flash_parts[nparts].offset) - ROUNDUP(nvram_space, mtd->erasesize);
 		nparts++;
 	}
-	
+
+	/* Setup board_data MTD partition */
 	if(is_ex6200){
 		bcm947xx_flash_parts[nparts].name = "board_data";
 		bcm947xx_flash_parts[nparts].size = ROUNDUP(nvram_space, mtd->erasesize);
@@ -800,6 +803,7 @@ static uint lookup_nflash_rootfs_offset(hndnand_t * nfl, struct mtd_info *mtd, i
 	/* Look at every block boundary till 16MB; higher space is reserved for application data. */
 
 	rbsize = blocksize = mtd->erasesize;	//65536;
+
 	if (nvram_match("boardnum", "24") && nvram_match("boardtype", "0x0646")
 	    && nvram_match("boardrev", "0x1110")
 	    && nvram_match("gpio7", "wps_button")) {
