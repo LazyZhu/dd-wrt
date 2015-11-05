@@ -748,7 +748,7 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bcm947xx_flash_parts[nparts].offset = bcm947xx_flash_parts[2].offset + bcm947xx_flash_parts[2].size;
 		bcm947xx_flash_parts[nparts].offset += (mtd->erasesize - 1);
 		bcm947xx_flash_parts[nparts].offset &= ~(mtd->erasesize - 1);
-		bcm947xx_flash_parts[nparts].size = (size - bcm947xx_flash_parts[nparts].offset) - ROUNDUP(NVRAM_SPACE, mtd->erasesize);
+		bcm947xx_flash_parts[nparts].size = (size - bcm947xx_flash_parts[nparts].offset) - ROUNDUP(nvram_space, mtd->erasesize);
 		if(is_r1d) // reserve for R1D board_data + nvram_cfe
 			bcm947xx_flash_parts[nparts].size -= 0x20000;
 		nparts++;
@@ -1217,7 +1217,7 @@ struct mtd_partition *init_nflash_mtd_partitions(hndnand_t * nfl, struct mtd_inf
 		bcm947xx_nflash_parts[nparts].offset = bcm947xx_nflash_parts[nparts - 1].offset + bcm947xx_nflash_parts[nparts - 1].size;
 		bcm947xx_nflash_parts[nparts].offset += (mtd->erasesize - 1);
 		bcm947xx_nflash_parts[nparts].offset &= ~(mtd->erasesize - 1);
-		bcm947xx_nflash_parts[nparts].size = (size - bcm947xx_nflash_parts[nparts].offset) - ROUNDUP(NVRAM_SPACE, mtd->erasesize);
+		bcm947xx_nflash_parts[nparts].size = (size - bcm947xx_nflash_parts[nparts].offset) - ROUNDUP(nvram_space, mtd->erasesize);
 		nparts++;
 	}
 #endif

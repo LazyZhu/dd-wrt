@@ -1175,7 +1175,7 @@ struct mtd_partition *init_nflash_mtd_partitions(hndnand_t * nfl, struct mtd_inf
 		bcm947xx_nflash_parts[nparts].offset = bcm947xx_nflash_parts[nparts - 1].offset + bcm947xx_nflash_parts[nparts - 1].size;
 		bcm947xx_nflash_parts[nparts].offset += (mtd->erasesize - 1);
 		bcm947xx_nflash_parts[nparts].offset &= ~(mtd->erasesize - 1);
-		bcm947xx_nflash_parts[nparts].size = (size - bcm947xx_nflash_parts[nparts].offset) - ROUNDUP(NVRAM_SPACE, mtd->erasesize);
+		bcm947xx_nflash_parts[nparts].size = (size - bcm947xx_nflash_parts[nparts].offset) - ROUNDUP(nvram_space, mtd->erasesize);
 		nparts++;
 	}
 #endif
