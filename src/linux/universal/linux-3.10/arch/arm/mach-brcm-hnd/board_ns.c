@@ -553,6 +553,12 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bootsz = 0x200000;
 	}
 
+	if (nvram_match("boardnum", "24") && nvram_match("boardtype", "0x0646")
+	    && nvram_match("boardrev", "0x1100")
+	    && nvram_match("gpio8","wps_button")) {
+		bootsz = 0x200000;
+	}
+
 	if (nvram_match("boardnum", "24") && nvram_match("boardtype", "0x072F")
 	    && nvram_match("boardrev", "0x1101")
 	    && nvram_match("gpio7", "wps_button")) {
@@ -971,6 +977,13 @@ struct mtd_partition *init_nflash_mtd_partitions(hndnand_t * nfl, struct mtd_inf
 	if (nvram_match("model","RT-AC87U")) {
 		printk(KERN_EMERG "Asus AC87U\n");
 		bootossz = 0x4000000;
+	}
+
+	if (nvram_match("model","WS880") || nvram_match("odmpid","WS880") || nvram_match("productid","WS880") ||
+	    (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1101"))) {
+		printk(KERN_EMERG "Router model: Huawei WS880, 32M firmware space\n");
+		bootossz = 0x2000000; // 32M
+	//	bootossz = 0x4000000; // 64M
 	}
 
 	if (nvram_match("boardnum", "1234") && nvram_match("boardtype", "0x072F")) {
