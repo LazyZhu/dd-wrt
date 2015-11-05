@@ -580,6 +580,8 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		}
 		size = maxsize;
 	}
+
+	// Added gpio0 for R1D diff
 	if (nvram_match("boardnum", "32") && nvram_match("boardtype", "0x0665")
 	    && nvram_match("boardrev", "0x1301") && !nvram_match("gpio0", "usbport1")) {
 		maxsize = 0x200000;

@@ -510,7 +510,9 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 	uint32 bootsz;
 	uint32 maxsize = 0;
 	int is_ex6200 = 0;
+	int is_r1d = 0;
 	int nobackup = 0;
+
 #ifdef CONFIG_FAILSAFE_UPGRADE
 	char *img_boot = nvram_get(BOOTPARTITION);
 	char *imag_1st_offset = nvram_get(IMAGE_FIRST_OFFSET);
@@ -580,10 +582,22 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		size = maxsize;
 	}
 
+	// Added gpio0 for R1D diff
 	if (nvram_match("boardnum", "32") && nvram_match("boardtype", "0x0665")
-	    && nvram_match("boardrev", "0x1301")) {
+	    && nvram_match("boardrev", "0x1301") && !nvram_match("gpio0", "usbport1")) {
 		maxsize = 0x200000;
 		size = maxsize;
+	}
+	// R1D (same IDs as Netgear R7000 fix)
+	if (nvram_match("model","R1D") || nvram_match("odmpid","R1D") || nvram_match("productid","R1D") ||
+	    (nvram_match("boardnum", "32") && nvram_match("boardtype", "0x0665")
+		&& nvram_match("boardrev", "0x1301") && nvram_match("gpio0", "usbport1"))) {
+		printk(KERN_EMERG "### Xiaomi R1D SFLASH\n");
+		// bootsz = 0x40000; autodetect
+		// size = 0x40000;
+		// maxsize = 0x800000;
+		// maxsize = 0xfe0000; // 16646144 (all except board_data and nvram)
+		is_r1d = 1;
 	}
 
 	bootdev = soc_boot_dev((void *)sih);
@@ -643,6 +657,12 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bcm947xx_flash_parts[nparts].offset = vmlz_off;
 		knl_size = bcm947xx_flash_parts[nparts].size;
 		offset = bcm947xx_flash_parts[nparts].offset + knl_size;
+
+		if(is_r1d) { // hardcoded size and offset (0xFA0000, 0x40000)
+			// reserve for nvram + board_data + nvram_cfe
+			bcm947xx_flash_parts[nparts].offset = 0x40000;
+			bcm947xx_flash_parts[nparts].size = 0xF90000;
+		}
 		nparts++;
 
 		/* Setup rootfs MTD partition */
@@ -654,7 +674,10 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		offs &= ~(mtd->erasesize - 1);
 		offs -= bcm947xx_flash_parts[nparts].offset;
 		bcm947xx_flash_parts[nparts].size = offs;
-
+		//if(is_r1d) { // hardcoded size and offset (0xFA0000, 0x40000)
+		//	bcm947xx_flash_parts[nparts].offset = 0x40000;
+		//	bcm947xx_flash_parts[nparts].size = 0xFA0000;
+		//}
 		bcm947xx_flash_parts[nparts].mask_flags = MTD_WRITEABLE;	/* forces on read only */
 		nparts++;
 #ifdef CONFIG_FAILSAFE_UPGRADE
@@ -731,6 +754,8 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bcm947xx_flash_parts[nparts].offset += (mtd->erasesize - 1);
 		bcm947xx_flash_parts[nparts].offset &= ~(mtd->erasesize - 1);
 		bcm947xx_flash_parts[nparts].size = (size - bcm947xx_flash_parts[nparts].offset) - ROUNDUP(nvram_space, mtd->erasesize);
+		if(is_r1d) // reserve for R1D board_data + nvram_cfe
+			bcm947xx_flash_parts[nparts].size -= 0x20000;
 		nparts++;
 	}
 
@@ -741,6 +766,17 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bcm947xx_flash_parts[nparts].offset = (size - 0x10000) - bcm947xx_flash_parts[nparts].size;
 		nparts++;
 	}
+	// R1D board_data:
+	//bcm947xx_flash_parts[nparts].name = "board_data";
+	//bcm947xx_flash_parts[nparts].size = 0x10000;
+	//bcm947xx_flash_parts[nparts].offset = 0xfe0000;
+	//nparts++;
+	if(is_r1d){ // hardcoded size and offset (0x10000, 0xfe0000)
+		bcm947xx_flash_parts[nparts].name = "board_data";
+		bcm947xx_flash_parts[nparts].size = 0x10000;
+		bcm947xx_flash_parts[nparts].offset = 0xfe0000;
+		nparts++;
+	}
 	
 	/* Setup nvram MTD partition */
 	bcm947xx_flash_parts[nparts].name = "nvram_cfe";
@@ -749,9 +785,13 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 		bcm947xx_flash_parts[nparts].offset = (size - 0x10000) - bcm947xx_flash_parts[nparts].size;
 	else
 		bcm947xx_flash_parts[nparts].offset = size - bcm947xx_flash_parts[nparts].size;
+	if(is_r1d) {
+		bcm947xx_flash_parts[nparts].name = "nvram_cfe";
+		bcm947xx_flash_parts[nparts].size = 0x10000;
+		bcm947xx_flash_parts[nparts].offset = 0xff0000;
+	}
 	if(!is_ex6200 && !nobackup)//skip on ex6200
 		nparts++;
-	
 
 	bcm947xx_flash_parts[nparts].name = "nvram";
 	bcm947xx_flash_parts[nparts].size = ROUNDUP(nvram_space, mtd->erasesize);
@@ -762,6 +802,16 @@ struct mtd_partition *init_mtd_partitions(hndsflash_t * sfl_info, struct mtd_inf
 	else
 		bcm947xx_flash_parts[nparts].offset = size - bcm947xx_flash_parts[nparts].size;
 	bcm947xx_flash_parts[nparts].offset-=bcm947xx_flash_parts[nparts].size;
+
+	// R1D nvram (CFE):
+	//bcm947xx_flash_parts[nparts].name = "nvram";
+	//bcm947xx_flash_parts[nparts].size = 0x10000;
+	//bcm947xx_flash_parts[nparts].offset = 0xff0000;
+	//nparts++;
+	if(is_r1d) { // hardcoded size and offset (0x10000, 0xfd0000)
+		bcm947xx_flash_parts[nparts].offset = 0xfd0000;
+		bcm947xx_flash_parts[nparts].size = 0x10000;
+	}
 	nparts++;
 
 	return bcm947xx_flash_parts;
