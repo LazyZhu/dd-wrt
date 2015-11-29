@@ -21,6 +21,7 @@
 #include <string.h>
 #include <errno.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <typedefs.h>
 #include <shutils.h>
@@ -162,8 +163,17 @@ void start_hotplug_usb(void)
 }
 
 /* Optimize performance */
-#define READ_AHEAD_KB_BUF	1024
+#define READ_AHEAD_KB_BUF	"1024"
 #define READ_AHEAD_CONF	"/sys/block/%s/queue/read_ahead_kb"
+
+static int writestr(char *path, char *a)
+{
+	int fd = open(path, O_WRONLY);
+	if (fd < 0)
+		return 1;
+	write(fd, a, strlen(a));
+	close(fd);
+}
 
 static void optimize_block_device(char *devname)
 {
@@ -174,7 +184,7 @@ static void optimize_block_device(char *devname)
 	memset(blkdev, 0, sizeof(blkdev));
 	strncpy(blkdev, devname, 3);
 	sprintf(read_ahead_conf, READ_AHEAD_CONF, blkdev);
-	sysprintf("echo %d > %s", READ_AHEAD_KB_BUF, read_ahead_conf);
+	writestr(read_ahead_conf,READ_AHEAD_KB_BUF);
 }
 
 //Kernel 3.x

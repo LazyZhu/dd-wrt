@@ -25,6 +25,7 @@ CONFIG_DIR825=
 CONFIG_WNDR3700=
 CONFIG_WR1043V2=
 CONFIG_WR841V9=
+CONFIG_WR841V10=
 CONFIG_DAP2230=
 CONFIG_DAP2662=
 CONFIG_DAP2330=
@@ -204,7 +205,7 @@ endif
 ifeq ($(CONFIG_QTN),y)
   CFLAGS += -DHAVE_QTN -DRPCOVERRIDE
   OBJS += qtnapi.o 
-  CFLAGS +=  -I$(TOP)/qtn/libqcsapi_client -I$(TOP)/qtn/libqcsapi_client/librpc
+  CFLAGS +=  -I$(TOP)/qtn/libqcsapi_client -I$(TOP)/qtn/libqcsapi_client/librpc 
   QTNFLAGS =  -L$(TOP)/qtn/libqcsapi_client -lqcsapi_client   -L$(TOP)/qtn/libqcsapi_client/librpc -lrpc
 endif
 ifeq ($(CONFIG_SAMBA3),y)
@@ -289,6 +290,12 @@ ifeq ($(CONFIG_WRT1900AC),y)
 endif
 ifeq ($(CONFIG_MVEBU),y)
   CFLAGS += -DHAVE_MVEBU
+endif
+ifeq ($(CONFIG_IPQ806X),y)
+  CFLAGS += -DHAVE_IPQ806X
+endif
+ifeq ($(CONFIG_R7500),y)
+  CFLAGS += -DHAVE_R7500
 endif
 ifeq ($(CONFIG_MT7620),y)
   CFLAGS += -DHAVE_MT7620
@@ -1072,6 +1079,9 @@ CFLAGS += -DHAVE_WA901V3
 endif
 ifeq ($(CONFIG_WR841V9),y)
 CFLAGS += -DHAVE_WR841V9
+endif
+ifeq ($(CONFIG_WR841V10),y)
+CFLAGS += -DHAVE_WR841V10
 endif
 ifeq ($(CONFIG_WR842V2),y)
 CFLAGS += -DHAVE_WR842V2

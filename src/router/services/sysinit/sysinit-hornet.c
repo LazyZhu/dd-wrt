@@ -154,7 +154,6 @@ void start_sysinit(void)
 		nvram_set("et0macaddr_safe", ether_etoa((unsigned char *)ifr.ifr_hwaddr.sa_data, eabuf));
 		close(s);
 	}
-
 #ifdef HAVE_WR741V4
 #ifdef HAVE_SWCONFIG
 #ifndef HAVE_WR710
@@ -215,15 +214,6 @@ void start_sysinit(void)
 
 	detect_wireless_devices();
 
-	led_control(LED_POWER, LED_ON);
-	led_control(LED_SES, LED_OFF);
-	led_control(LED_SES2, LED_OFF);
-	led_control(LED_DIAG, LED_OFF);
-	led_control(LED_BRIDGE, LED_OFF);
-	led_control(LED_WLAN0, LED_OFF);
-	led_control(LED_WLAN1, LED_OFF);
-	led_control(LED_VPN, LED_OFF);
-	led_control(LED_CONNECTED, LED_OFF);
 	setWirelessLed(0, 0);
 
 	/*

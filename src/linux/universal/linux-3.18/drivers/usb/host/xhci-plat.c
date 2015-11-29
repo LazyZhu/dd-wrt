@@ -104,6 +104,10 @@ static int xhci_plat_probe(struct platform_device *pdev)
 	hcd->rsrc_start = res->start;
 	hcd->rsrc_len = resource_size(res);
 
+	if (pdata->usb2_susphy_quirk) {
+		hcd->susphy = pdata->susphy;
+	}
+
 	hcd->regs = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(hcd->regs)) {
 		ret = PTR_ERR(hcd->regs);
@@ -120,7 +124,7 @@ static int xhci_plat_probe(struct platform_device *pdev)
 		if (ret)
 			goto put_hcd;
 	}
-
+#if IS_ENABLED(CONFIG_USB_XHCI_MVEBU)
 	if (of_device_is_compatible(pdev->dev.of_node,
 				    "marvell,armada-375-xhci") ||
 	    of_device_is_compatible(pdev->dev.of_node,
@@ -129,7 +133,14 @@ static int xhci_plat_probe(struct platform_device *pdev)
 		if (ret)
 			goto disable_clk;
 	}
-
+	
+	if (of_device_is_compatible(pdev->dev.of_node,
+				     "marvell,armada-380-xhci")) {
+		ret = xhci_mvebu_vbus_init_quirk();
+		if (ret)
+		       goto disable_clk;
+	}
+#endif
 	ret = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (ret)
 		goto disable_clk;

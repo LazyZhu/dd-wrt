@@ -1217,7 +1217,16 @@ void start_restore_defaults(void)
 		generic = wrt1900;
 	else
 		generic = wrt1200;
-
+#elif HAVE_IPQ806X
+	struct nvram_param generic[] = {
+		{"lan_ifname", "br0"},
+		{"lan_ifnames", "eth0 eth1 ath0",},
+		{"wan_ifname", "eth0"},
+		{"wan_ifname2", "eth0"},
+		{"wan_ifnames", "eth0"},
+		{"wan_default", "eth0"},
+		{0, 0}
+	};
 #elif HAVE_WDR4900
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
@@ -1972,7 +1981,7 @@ void start_restore_defaults(void)
 #ifdef HAVE_RB500
 	linux_overrides = generic;
 	int brand = getRouterBrand();
-#elif defined(HAVE_MVEBU) || defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
+#elif defined(HAVE_MVEBU) || defined(HAVE_IPQ806X) || defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
     || defined(HAVE_GATEWORX) || defined(HAVE_FONERA) || defined(HAVE_SOLO51) || defined(HAVE_RT2880) || defined(HAVE_LS2) || defined(HAVE_LS5) \
     || defined(HAVE_WHRAG108) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_OPENRISC) \
     || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_CA8)  || defined(HAVE_OCTEON)
@@ -2188,7 +2197,7 @@ void start_restore_defaults(void)
 	/*
 	 * Restore defaults 
 	 */
-#if defined(HAVE_MVEBU) || defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
+#if defined(HAVE_MVEBU) || defined(HAVE_IPQ806X) || defined(HAVE_XSCALE) || defined(HAVE_X86) || defined(HAVE_MAGICBOX) || defined(HAVE_LAGUNA) || defined(HAVE_VENTANA) || defined(HAVE_NORTHSTAR) || defined(HAVE_RB600) \
     || defined(HAVE_GATEWORX) || defined(HAVE_FONERA) || defined(HAVE_SOLO51) || defined(HAVE_RT2880) || defined(HAVE_LS2) || defined(HAVE_LS5) \
     || defined(HAVE_WHRAG108) || defined(HAVE_TW6600) || defined(HAVE_PB42) || defined(HAVE_LSX) || defined(HAVE_DANUBE) || defined(HAVE_OPENRISC) \
     || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_CA8) || defined(HAVE_80211AC) || defined(HAVE_OCTEON)
@@ -2544,11 +2553,12 @@ void start_restore_defaults(void)
 			nvram_set("vlan2ports", "0 7u");
 		}
 		break;
+	case ROUTER_LINKSYS_EA6350:
 	case ROUTER_ASUS_AC3200:
 		if (!nvram_get("vlan1ports") || nvram_match("vlan1ports", "")
 		    || !nvram_get("vlan2ports")
 		    || nvram_match("vlan2ports", "")) {
-			nvram_set("vlan1ports", "1 2 3 5*");
+			nvram_set("vlan1ports", "0 1 2 3 5*");
 			nvram_set("vlan2ports", "4 5u");
 		}
 		break;
@@ -2918,7 +2928,12 @@ void start_drivers(void)
 		led_control(LED_USB, LED_ON);
 		led_control(LED_USB1, LED_ON);
 
+<<<<<<< HEAD
 		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx");
+=======
+		insmod
+		    ("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx dwc3 dwc3-qcom phy-qcom-hsusb phy-qcom-ssusb");
+>>>>>>> upstream/master
 
 		if (nvram_match("usb_storage", "1")) {
 			insmod("scsi_mod scsi_wait_scan sd_mod cdrom sr_mod usb-storage sata_mv ehci-orion");
@@ -2950,6 +2965,7 @@ void start_drivers(void)
 		eval("stopservice", "samba3");
 		eval("stopservice", "ftpsrv");
 		sysprintf("umount /%s", nvram_default_get("usb_mntpoint", "mnt"));
+<<<<<<< HEAD
 
 		//ahci
 		rmmod("sdhci-esdhc-imx sdhci-pltfm sdhci mmc_block ahci_imx mmc_core ahci_mvebu ahci_imx ahci_platforms ahci_platform ahci libahci_platform libahci libata");
@@ -2972,6 +2988,47 @@ void start_drivers(void)
 		rmmod("usbcore usb-common");
 		/* unload filesystems */
 		/* xfs */
+=======
+		rmmod("phy-qcom-hsusb");
+		rmmod("phy-qcom-ssusb");
+		rmmod("phy-qcom-dwc3");
+		rmmod("dwc3-qcom");
+		rmmod("dwc3");
+		rmmod("usblp");
+		rmmod("printer");
+		rmmod("usb-storage");
+		rmmod("sr_mod");
+		rmmod("cdrom");
+		rmmod("sd_mod");
+		rmmod("scsi_wait_scan");
+		rmmod("scsi_mod");
+
+		rmmod("usbmisc_imx");
+		rmmod("ci13xxx_imx");
+		rmmod("ci_hdrc");
+		rmmod("phy-mxs-usb");
+		rmmod("fsl-mph-dr-of");
+
+		rmmod("usb-libusual");
+		rmmod("dwc_otg");	// usb
+		rmmod("xhci-pci");
+		rmmod("xhci-plat-hcd");
+		rmmod("xhci-hcd");
+
+		rmmod("usb-ohci");
+		rmmod("ohci-hcd");
+		rmmod("uhci-hcd");
+		rmmod("usb-uhci");
+		rmmod("ehci-pci");
+		rmmod("ehci-platform");
+		rmmod("ehci-hcd");
+		rmmod("fsl-mph-dr-of");
+		rmmod("usbcore");
+		rmmod("usb-common");
+
+/* unload filesystems */
+/* xfs */
+>>>>>>> upstream/master
 		rmmod("xfs");
 		/* fat */
 		rmmod("msdos vfat fat");
@@ -3003,6 +3060,22 @@ void start_drivers(void)
 		led_control(LED_USB1, LED_OFF);
 	}
 #endif
+#ifdef HAVE_NORTHSTAR
+	set_smp_affinity(111, 2);
+	set_smp_affinity(112, 2);
+#endif
+}
+
+void start_post_sysinit(void)
+{
+	led_control(LED_POWER, LED_ON);
+	led_control(LED_SES, LED_OFF);
+	led_control(LED_SES2, LED_OFF);
+	led_control(LED_DIAG, LED_OFF);
+	led_control(LED_BRIDGE, LED_OFF);
+	led_control(LED_WLAN0, LED_OFF);
+	led_control(LED_WLAN1, LED_OFF);
+	led_control(LED_CONNECTED, LED_OFF);
 
 }
 

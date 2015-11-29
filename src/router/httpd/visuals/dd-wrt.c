@@ -338,6 +338,21 @@ void ej_get_clkfreq(webs_t wp, int argc, char_t ** argv)
 	}
 	return;
 }
+#elif HAVE_IPQ806X
+void ej_get_clkfreq(webs_t wp, int argc, char_t ** argv)
+{
+	FILE *fp = fopen("/sys/kernel/debug/clk/krait0_pri_mux/clk_rate", "rb");
+	if (fp) {
+		int freq;
+		fscanf(fp, "%d", &freq);
+		fclose(fp);
+		websWrite(wp, "%d", freq / 1000000);
+	} else {
+		websWrite(wp, "1400");
+
+	}
+	return;
+}
 #elif HAVE_X86
 void ej_get_clkfreq(webs_t wp, int argc, char_t ** argv)
 {
@@ -2337,13 +2352,29 @@ static void show_channel(webs_t wp, char *dev, char *prefix, int type)
 				// temp must be replaced with the actual selected country
 				char regdomain[16];
 				char *country;
+				int checkband=255;
 				sprintf(regdomain, "%s_regdomain", prefix);
 				country = nvram_default_get(regdomain, "UNITED_STATES");
 				// temp end
 
+				if (nvram_nmatch("ng-only", "%s_net_mode", prefix)
+				        || nvram_nmatch("n2-only", "%s_net_mode", prefix)
+				        || nvram_nmatch("bg-mixed", "%s_net_mode", prefix)
+				        || nvram_nmatch("ng-mixed", "%s_net_mode", prefix)
+				        || nvram_nmatch("b-only", "%s_net_mode", prefix)
+				        || nvram_nmatch("g-only", "%s_net_mode", prefix)) {
+				                checkband=2;
+				}
+				if (nvram_nmatch("a-only", "%s_net_mode", prefix)
+				        || nvram_nmatch("na-only", "%s_net_mode", prefix)
+				        || nvram_nmatch("ac-only", "%s_net_mode", prefix)
+				        || nvram_nmatch("acn-mixed", "%s_net_mode", prefix)
+				        || nvram_nmatch("n5-only", "%s_net_mode", prefix)) {
+				                checkband=5;
+				}
 				if (nvram_nmatch("80", "%s_channelbw", prefix))
 					channelbw = 80;
-				chan = mac80211_get_channels(prefix, getIsoName(country), channelbw, 0xff);
+				chan = mac80211_get_channels(prefix, getIsoName(country), channelbw, checkband);
 				/* if (chan == NULL)
 				   chan =
 				   list_channels_ath9k(dev, "DE", 40,
@@ -4050,6 +4081,8 @@ else {
 			websWrite(wp, "document.write(\"<option value=\\\"5\\\" %s >1+3</option>\");\n", nvram_match(wl_txantenna, "5") ? "selected=\\\"selected\\\"" : "");
 		if (maxtx > 5)
 			websWrite(wp, "document.write(\"<option value=\\\"7\\\" %s >1+2+3</option>\");\n", nvram_match(wl_txantenna, "7") ? "selected=\\\"selected\\\"" : "");
+		if (maxtx > 7)
+			websWrite(wp, "document.write(\"<option value=\\\"15\\\" %s >1+2+3+4</option>\");\n", nvram_match(wl_txantenna, "15") ? "selected=\\\"selected\\\"" : "");
 		websWrite(wp, "//]]>\n</script>\n");
 		websWrite(wp, "</select>\n");
 		websWrite(wp, "</div>\n");
@@ -4065,6 +4098,8 @@ else {
 			websWrite(wp, "document.write(\"<option value=\\\"5\\\" %s >1+3</option>\");\n", nvram_match(wl_rxantenna, "5") ? "selected=\\\"selected\\\"" : "");
 		if (maxrx > 5)
 			websWrite(wp, "document.write(\"<option value=\\\"7\\\" %s >1+2+3</option>\");\n", nvram_match(wl_rxantenna, "7") ? "selected=\\\"selected\\\"" : "");
+		if (maxrx > 7)
+			websWrite(wp, "document.write(\"<option value=\\\"15\\\" %s >1+2+3+4</option>\");\n", nvram_match(wl_rxantenna, "15") ? "selected=\\\"selected\\\"" : "");
 		websWrite(wp, "//]]>\n</script>\n");
 		websWrite(wp, "</select>\n");
 		websWrite(wp, "</div>\n");
@@ -4914,6 +4949,8 @@ if (!strcmp(prefix, "wl2"))
 				websWrite(wp, "document.write(\"<option value=\\\"5\\\" %s >1+3</option>\");\n", nvram_match(wl_txantenna, "5") ? "selected=\\\"selected\\\"" : "");
 			if (maxtx > 5)
 				websWrite(wp, "document.write(\"<option value=\\\"7\\\" %s >1+2+3</option>\");\n", nvram_match(wl_txantenna, "7") ? "selected=\\\"selected\\\"" : "");
+			if (maxtx > 7)
+				websWrite(wp, "document.write(\"<option value=\\\"15\\\" %s >1+2+3+4</option>\");\n", nvram_match(wl_txantenna, "15") ? "selected=\\\"selected\\\"" : "");
 			websWrite(wp, "//]]>\n</script>\n");
 			websWrite(wp, "</select>\n");
 			websWrite(wp, "</div>\n");
@@ -4929,6 +4966,8 @@ if (!strcmp(prefix, "wl2"))
 				websWrite(wp, "document.write(\"<option value=\\\"5\\\" %s >1+3</option>\");\n", nvram_match(wl_rxantenna, "5") ? "selected=\\\"selected\\\"" : "");
 			if (maxrx > 5)
 				websWrite(wp, "document.write(\"<option value=\\\"7\\\" %s >1+2+3</option>\");\n", nvram_match(wl_rxantenna, "7") ? "selected=\\\"selected\\\"" : "");
+			if (maxrx > 7)
+				websWrite(wp, "document.write(\"<option value=\\\"15\\\" %s >1+2+3+4</option>\");\n", nvram_match(wl_rxantenna, "15") ? "selected=\\\"selected\\\"" : "");
 			websWrite(wp, "//]]>\n</script>\n");
 			websWrite(wp, "</select>\n");
 			websWrite(wp, "</div>\n");

@@ -51,8 +51,8 @@ void start_samba3(void)
 		set_smp_affinity(163, 2);
 		set_smp_affinity(169, 2);
 	} else {
-		set_smp_affinity(163, 3);
-		set_smp_affinity(169, 3);
+		set_smp_affinity(163, 1);
+		set_smp_affinity(169, 2);
 	}
 
 	if (!nvram_match("samba3_enable", "1")) {
@@ -197,20 +197,19 @@ void start_samba3(void)
 	chmod("/jffs", 0777);
 
 #ifdef HAVE_SMP
-	eval("/usr/bin/taskset", "0x2", "/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf");
-#else
-	eval("/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf");
+	if (eval("/usr/bin/taskset", "0x2", "/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf"))
 #endif
+		eval("/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf");
+
 	eval("/usr/sbin/nmbd", "-D", "--configfile=/tmp/smb.conf");
 	if (pidof("nmbd") <= 0) {
 		eval("/usr/sbin/nmbd", "-D", "--configfile=/tmp/smb.conf");
 	}
 	if (pidof("smbd") <= 0) {
 #ifdef HAVE_SMP
-		eval("/usr/bin/taskset", "0x2", "/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf");
-#else
-		eval("/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf");
+		if (eval("/usr/bin/taskset", "0x2", "/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf"))
 #endif
+			eval("/usr/sbin/smbd", "-D", "--configfile=/tmp/smb.conf");
 	}
 	syslog(LOG_INFO, "Samba3 : samba started\n");
 

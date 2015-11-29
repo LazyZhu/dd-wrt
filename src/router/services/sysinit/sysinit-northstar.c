@@ -2733,7 +2733,7 @@ void start_sysinit(void)
 		}
 		break;
 	case ROUTER_DLINK_DIR895:
-		if (!strncmp(nvram_safe_get("et0macaddr"), "00:90", 5)) {
+		if (!strncmp(nvram_safe_get("et0macaddr"), "00:90", 5) || !strncmp(nvram_safe_get("et0macaddr"), "00:00", 5)) {
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
 			fread(buf, 1, 24, fp);
@@ -2766,14 +2766,14 @@ void start_sysinit(void)
 		}
 		break;
 	case ROUTER_DLINK_DIR885:
-		if (!strncmp(nvram_safe_get("et0macaddr"), "00:90", 5)) {
+		if (!strncmp(nvram_safe_get("et2macaddr"), "00:90", 5) || !strncmp(nvram_safe_get("et2macaddr"), "00:00", 5)) {
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
 			fread(buf, 1, 24, fp);
 			pclose(fp);
 			buf[24] = 0;
 			fprintf(stderr, "set main mac %s\n", &buf[7]);
-			nvram_set("et0macaddr", &buf[7]);
+			nvram_set("et2macaddr", &buf[7]);
 
 			fp = popen("cat /dev/mtdblock0|grep wlan24mac=", "r");
 			fread(buf, 1, 27, fp);
@@ -2790,9 +2790,11 @@ void start_sysinit(void)
 			nvram_set("1:macaddr", &buf[10]);
 			nvram_commit();
 		}
+		nvram_unset("et0macaddr");
+		nvram_unset("et1macaddr");
 		break;
 	case ROUTER_DLINK_DIR880:
-		if (nvram_get("0:venid") == NULL) {
+		if (nvram_get("0:venid") == NULL || nvram_match("0:maxp2ga0","94")) {
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
 			fread(buf, 1, 24, fp);
@@ -2860,9 +2862,9 @@ void start_sysinit(void)
 				{"ofdmlrbw202gpo", "0"},
 				{"devid", "0x43a1"},
 				{"dot11agofdmhrbw202gpo", "0x0"},
-				{"maxp2ga0", "94"},
-				{"maxp2ga1", "94"},
-				{"maxp2ga2", "94"},
+				{"maxp2ga0", "102"},
+				{"maxp2ga1", "102"},
+				{"maxp2ga2", "102"},
 				{"rxgainerr2ga0", "63"},
 				{"rxgainerr2ga1", "31"},
 				{"rxgainerr2ga2", "31"},
@@ -2884,10 +2886,10 @@ void start_sysinit(void)
 				{"measpower1", "0x7f"},
 				{"measpower2", "0x7f"},
 				{"tssiposslope2g", "1"},
-				{"ledbh13", "7"},
-				{"ledbh0", "11"},
-				{"ledbh1", "11"},
-				{"ledbh2", "11"},
+				{"ledbh13", "8B"},
+				{"ledbh0", "8B"},
+				{"ledbh1", "8B"},
+				{"ledbh2", "8B"},
 				{0, 0}
 			};
 			struct nvram_param dir880_1params[] = {
@@ -2919,9 +2921,9 @@ void start_sysinit(void)
 				{"measpower1", "0x7f"},
 				{"measpower2", "0x7f"},
 				{"sb40and80lr5ghpo", "0"},
-				{"maxp5ga0", "94,94,94,94"},
-				{"maxp5ga1", "94,94,94,94"},
-				{"maxp5ga2", "94,94,94,94"},
+				{"maxp5ga0", "102,102,102,102"},
+				{"maxp5ga1", "102,102,102,102"},
+				{"maxp5ga2", "102,102,102,102"},
 				{"sar5g", "15"},
 				{"gainctrlsph", "0"},
 				{"aga0", "71"},
@@ -2983,10 +2985,10 @@ void start_sysinit(void)
 				{"mcsbw1605gmpo", "0"},
 				{"mcslr5gmpo", "0"},
 				{"pa5ga2", "0xff3d,0x1aee,0xfcc1,0xff33,0x1a56,0xfcc4,0xff3f,0x1b04,0xfcc1,0xff47,0x1b48,0xfcc2"},
-				{"ledbh14", "7"},
-				{"ledbh0", "11"},
-				{"ledbh1", "11"},
-				{"ledbh2", "11"},
+				{"ledbh14", "8B"},
+				{"ledbh0", "8B"},
+				{"ledbh1", "8B"},
+				{"ledbh2", "8B"},
 				{0, 0}
 			};
 
@@ -3010,7 +3012,7 @@ void start_sysinit(void)
 
 		break;
 	case ROUTER_DLINK_DIR860:
-		if (nvram_get("devpath0") == NULL) {
+		if (nvram_get("devpath0") == NULL || nvram_match("0:maxp2ga0","0x50")) {
 			nvram_set("devpath0", "pci/1/1/");
 			nvram_set("devpath1", "pci/2/1/");
 
@@ -3071,8 +3073,8 @@ void start_sysinit(void)
 				{"ledbh8", "11"},
 				{"ledbh9", "11"},
 				{"leddc", "0xffff"},
-				{"maxp2ga0", "0x50"},
-				{"maxp2ga1", "0x50"},
+				{"maxp2ga0", "0x60"},
+				{"maxp2ga1", "0x60"},
 				{"mcs2gpo0", "0x7777"},
 				{"mcs2gpo1", "0x9777"},
 				{"mcs2gpo2", "0x7777"},
@@ -3142,9 +3144,9 @@ void start_sysinit(void)
 				{"maxp2ga0", "66"},
 				{"maxp2ga1", "66"},
 				{"maxp2ga2", "66"},
-				{"maxp5ga0", "78,78,78,78"},
-				{"maxp5ga1", "78,78,78,78"},
-				{"maxp5ga2", "78,78,78,78"},
+				{"maxp5ga0", "102,102,102,102"},
+				{"maxp5ga1", "102,102,102,102"},
+				{"maxp5ga2", "102,102,102,102"},
 				{"mcsbw1605ghpo", "0"},
 				{"mcsbw1605glpo", "0"},
 				{"mcsbw1605gmpo", "0"},
@@ -3299,7 +3301,7 @@ void start_sysinit(void)
 	case ROUTER_DLINK_DIR868:
 	case ROUTER_DLINK_DIR865:
 
-		if (nvram_get("pci/1/1/venid") == NULL) {
+		if (nvram_get("pci/1/1/venid") == NULL || nvram_match("0:maxp2a0","0x56")) {
 
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
@@ -3325,9 +3327,9 @@ void start_sysinit(void)
 			nvram_set("pci/1/1/macaddr", &buf[10]);
 
 			struct nvram_param dir868_1_1params[] = {
-				{"maxp2ga0", "0x56"},
-				{"maxp2ga1", "0x56"},
-				{"maxp2ga2", "0x56"},
+				{"maxp2ga0", "0x60"},
+				{"maxp2ga1", "0x60"},
+				{"maxp2ga2", "0x60"},
 				{"cckbw202gpo", "0x0000"},
 				{"cckbw20ul2gpo", "0x0000"},
 				{"legofdmbw202gpo", "0x00000000"},
@@ -3472,7 +3474,7 @@ void start_sysinit(void)
 				{"rxgains5gelnagaina0", "1"},
 				{"rxgains5gtrisoa0", "7"},
 				{"rxgains5gtrelnabypa0", "1"},
-				{"maxp5ga0", "92,92,92,92"},
+				{"maxp5ga0", "102,102,102,102"},
 				{"pa5ga0", "0xff26,0x188e,0xfcf0,0xff2a,0x18ee,0xfcec,0xff21,0x18b4,0xfcec,0xff23,0x1930,0xfcdd"},
 				{"maxp2ga1", "76"},
 				{"pa2ga1", "0xfe80,0x1472,0xfabc"},
@@ -3488,7 +3490,7 @@ void start_sysinit(void)
 				{"rxgains5gelnagaina1", "1"},
 				{"rxgains5gtrisoa1", "6"},
 				{"rxgains5gtrelnabypa1", "1"},
-				{"maxp5ga1", "92,92,92,92"},
+				{"maxp5ga1", "102,102,102,102"},
 				{"pa5ga1", "0xff35,0x1a3c,0xfccc,0xff31,0x1a06,0xfccf,0xff2b,0x1a54,0xfcc5,0xff30,0x1ad5,0xfcb9"},
 				{"maxp2ga2", "76"},
 				{"pa2ga2", "0xfe82,0x14bf,0xfad9"},
@@ -3504,7 +3506,7 @@ void start_sysinit(void)
 				{"rxgains5gelnagaina2", "1"},
 				{"rxgains5gtrisoa2", "5"},
 				{"rxgains5gtrelnabypa2", "1"},
-				{"maxp5ga2", "92,92,92,92"},
+				{"maxp5ga2", "102,102,102,102"},
 				{"pa5ga2", "0xff2e,0x197b,0xfcd8,0xff2d,0x196e,0xfcdc,0xff30,0x1a7d,0xfcc2,0xff2e,0x1ac6,0xfcb4"},
 				{0, 0}
 			};
@@ -3717,9 +3719,8 @@ void start_sysinit(void)
 			nvram_set("devpath0", "pci/1/1/");
 			nvram_set("devpath1", "pci/2/1/");
 		}
-		nvram_set("partialboots", "0");
-		nvram_commit();
 	case ROUTER_LINKSYS_EA6400:
+	case ROUTER_LINKSYS_EA6350:
 		nvram_set("partialboots", "0");
 		nvram_commit();
 		break;
@@ -4269,17 +4270,6 @@ void start_sysinit(void)
 	eval("vconfig", "add", "eth0", "2");
 	insmod("switch-core");
 	insmod("switch-robo");
-
-#ifndef HAVE_SAMBA
-	if (!nvram_match("samba3_enable", "1"))
-#endif
-	{			// not set txworkq 
-		set_smp_affinity(163, 2);
-		set_smp_affinity(169, 2);
-	}
-	set_smp_affinity(111, 2);
-	set_smp_affinity(112, 2);
-
 	/*
 	 * network drivers 
 	 */
@@ -4304,21 +4294,14 @@ void start_sysinit(void)
 
 	insmod("wl");
 
+	set_smp_affinity(163, 1);	//eth1 and eth2  on core 0
+	set_smp_affinity(169, 2);	//eth3 or eth2 core 1
+
 	/*
 	 * Set a sane date 
 	 */
 	stime(&tm);
 //      nvram_set("wl0_ifname", "ath0");
-
-	led_control(LED_POWER, LED_ON);
-	led_control(LED_DIAG, LED_OFF);
-	led_control(LED_SES, LED_OFF);
-	led_control(LED_SES2, LED_OFF);
-	led_control(LED_BRIDGE, LED_OFF);
-	led_control(LED_WLAN0, LED_OFF);
-	led_control(LED_WLAN1, LED_OFF);
-	led_control(LED_WLAN2, LED_OFF);
-	led_control(LED_CONNECTED, LED_OFF);
 
 	if (!nvram_match("disable_watchdog", "1")) {
 		eval("watchdog");

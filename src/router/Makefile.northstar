@@ -1,4 +1,4 @@
-    #
+#
 # Broadcom Linux Router Makefile
 #
 # Copyright 2001-2003, Broadcom Corporation
@@ -635,8 +635,13 @@ ifeq ($(CONFIG_BUILD_XIAOMI),y)
 endif # $(CONFIG_BUILD_XIAOMI)
 
 ifeq ($(CONFIG_BUILD_TPLINK),y)
+	./tools/trx -m 40000000 -o tools/tplink/kernel.hdr0 $(ARCH)-uclibc/vmlinuz.lzma
 	### Pack for TP-Link ###
 	cd tools/tplink && ./mktplinkfw3 -B CPE510 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc9.bin
+	cd tools/tplink && ./mktplinkfw3 -B ARCHERC9 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc9.bin
+	cd tools/tplink && ./mktplinkfw3 -B ARCHERC9v2 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc9v2.bin
+	cd tools/tplink && ./mktplinkfw3 -B ARCHERC1900 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc1900.bin
+	cd tools/tplink && ./mktplinkfw3 -B ARCHERC8 -k kernel.hdr0 -r ../../arm-uclibc/root.fs -o ../../$(ARCH)-uclibc/archerc8.bin
 endif # $(CONFIG_BUILD_TPLINK)
 
 ifeq ($(CONFIG_BUILD_DLINK),y)
@@ -710,6 +715,7 @@ ifeq ($(CONFIG_BUILD_ASUS),y)
 	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC87U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac87u-firmware.trx
 	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC88U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac88u-firmware.trx
 	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC5300,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac5300-firmware.trx
+	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC3200,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac3200-firmware.trx
 	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-N18U,3.0.0.4,$(ARCH)-uclibc/asus_rt-n18u-firmware.trx
 endif # $(CONFIG_BUILD_ASUS)
 

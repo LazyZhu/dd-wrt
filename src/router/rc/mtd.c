@@ -270,7 +270,7 @@ int mtd_write(const char *path, const char *mtd)
 #if defined(HAVE_MVEBU)
 	char *part = getUEnv("boot_part");
 	if (part) {
-		fprintf(stderr,"boot partiton is %s\n",part);
+		fprintf(stderr, "boot partiton is %s\n", part);
 		if (!strcmp(part, "2")) {
 			mtd = "linux";
 			eval("ubootenv", "set", "boot_part", "1");
@@ -278,17 +278,26 @@ int mtd_write(const char *path, const char *mtd)
 			mtd = "linux2";
 			eval("ubootenv", "set", "boot_part", "2");
 		}
-		fprintf(stderr,"flash to partition %s\n",mtd);
+		fprintf(stderr, "flash to partition %s\n", mtd);
 	} else {
-		fprintf(stderr,"no boot partition info found\n");
+		fprintf(stderr, "no boot partition info found\n");
 	}
 #endif
 
 	switch (brand) {
+	case ROUTER_TRENDNET_TEW827:
+		if (nvram_match("bootpartition", "0")) {
+			mtd = "linux2";
+			eval("startservice", "bootsecondary");
+		} else {
+			eval("startservice", "bootprimary");
+		}
+		break;
 	case ROUTER_BUFFALO_WZR900DHP:
 	case ROUTER_BUFFALO_WZR600DHP2:
 	case ROUTER_LINKSYS_EA6900:
 	case ROUTER_LINKSYS_EA6700:
+	case ROUTER_LINKSYS_EA6350:
 	case ROUTER_LINKSYS_EA6400:
 	case ROUTER_LINKSYS_EA6500V2:
 	case ROUTER_TRENDNET_TEW828:
@@ -594,10 +603,7 @@ int mtd_write(const char *path, const char *mtd)
 #ifndef NETGEAR_CRC_FAKE
 	calculate_checksum(0, NULL, 0);	// init
 #endif
-#if defined(HAVE_MVEBU)		// erase all blocks first
-
-	mtd_erase(mtd);
-#endif
+	int first = 0;
 	/* 
 	 * Write file or URL to MTD device 
 	 */
@@ -620,6 +626,13 @@ int mtd_write(const char *path, const char *mtd)
 		// else
 		// count +=
 		// http_get (path, &buf[off], len - off, erase_info.start + off);
+
+#if defined(HAVE_MVEBU) || defined(HAVE_IPQ806X)	// erase all blocks first
+		if (!first) {
+			mtd_erase(mtd);
+			first = 1;
+		}
+#endif
 
 		/* 
 		 * for debug 
@@ -687,7 +700,7 @@ int mtd_write(const char *path, const char *mtd)
 				badblocks += mtd_info.erasesize;
 				continue;
 			}
-#if !defined(HAVE_MVEBU)	// we do not need to erase again. it has been done before
+#if !defined(HAVE_MVEBU) && !defined(HAVE_IPQ806X)	// we do not need to erase again. it has been done before
 
 			if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0) {
 				fprintf(stderr, "\nerase/write failed\n");

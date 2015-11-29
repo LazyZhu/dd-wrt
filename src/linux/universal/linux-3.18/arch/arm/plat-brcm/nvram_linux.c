@@ -50,7 +50,7 @@
 #include <nflash.h>
 #endif
 
-int nvram_space = DEF_NVRAM_SPACE;
+int nvram_space = 0x10000;
 
 /* Temp buffer to hold the nvram transfered romboot CFE */
 char __initdata ram_nvram_buf[MAX_NVRAM_SPACE] __attribute__((aligned(PAGE_SIZE)));
@@ -146,7 +146,6 @@ early_nvram_init(void)
 			goto found;
 		}
 	}
-
 	bootdev = soc_boot_dev((void *)sih);
 #ifdef CONFIG_MTD_NFLASH
 	if (bootdev == SOC_BOOTDEV_NANDFLASH) {
@@ -191,7 +190,6 @@ early_nvram_init(void)
 		off = FLASH_MIN;
 		while (off <= lim) {
 			/* Windowed flash access */
-
 			header = (struct nvram_header *)(flash_base + off - (nvram_space*2));
 			if (header->magic == NVRAM_MAGIC)
 				if (nvram_calc_crc(header) == (uint8)header->crc_ver_init) {
@@ -207,7 +205,8 @@ early_nvram_init(void)
 					remap_cfe=1;
 					goto found;
 				}
-			off += DEF_NVRAM_SPACE;
+			
+			off += 0x10000;
 		}
 	}
 	else {
@@ -415,10 +414,10 @@ nvram_set(const char *name, const char *value)
 	if ((ret = _nvram_set(name, value))) {
 		printk( KERN_INFO "nvram: consolidating space!\n");
 		/* Consolidate space and try again */
-		if ((header = kmalloc(nvram_space,GFP_ATOMIC))) {
+		if ((header = vmalloc(nvram_space))) {
 			if (_nvram_commit(header) == 0)
 				ret = _nvram_set(name, value);
-			kfree(header);
+			vfree(header);
 		}
 	}
 	spin_unlock_irqrestore(&nvram_lock, flags);
@@ -480,7 +479,7 @@ nvram_nflash_commit(void)
 	unsigned long flags;
 	u_int32_t offset;
 
-	if (!(buf = kmalloc(nvram_space,GFP_ATOMIC))) {
+	if (!(buf = vmalloc(nvram_space))) {
 		printk(KERN_WARNING "nvram_commit: out of memory\n");
 		return -ENOMEM;
 	}
@@ -511,7 +510,7 @@ nvram_nflash_commit(void)
 
 done:
 	mutex_unlock(&nvram_sem);
-	kfree(buf);
+	vfree(buf);
 	return ret;
 }
 #endif
@@ -547,7 +546,7 @@ nvram_commit(void)
 #endif
 	/* Backup sector blocks to be erased */
 	erasesize = ROUNDUP(nvram_space, nvram_mtd->erasesize);
-	if (!(buf = kmalloc(erasesize,GFP_ATOMIC))) {
+	if (!(buf = vmalloc(erasesize))) {
 		printk(KERN_WARNING "nvram_commit: out of memory\n");
 		return -ENOMEM;
 	}
@@ -653,7 +652,7 @@ nvram_commit(void)
 
 done:
 	mutex_unlock(&nvram_sem);
-	kfree(buf);
+	vfree(buf);
 	return ret;
 }
 

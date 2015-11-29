@@ -729,6 +729,14 @@
 
 #define ROUTER_WRT_1900ACS 0xf311
 
+#define ROUTER_LINKSYS_EA6350 0xf41b
+
+#define ROUTER_NETGEAR_R7500 0xf50f
+
+#define ROUTER_LINKSYS_EA8500 0xf60f
+
+#define ROUTER_TRENDNET_TEW827 0xf701
+
 #define NVROUTER "DD_BOARD"
 
 static inline int startswith(char *source, char *cmp)

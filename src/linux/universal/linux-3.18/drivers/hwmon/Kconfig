@@ -515,7 +515,7 @@ config SENSORS_G762
 
 	  This driver can also be built as a module.  If so, the module
 	  will be called g762.
-
+	 
 config SENSORS_GPIO_FAN
 	tristate "GPIO fan"
 	depends on GPIOLIB

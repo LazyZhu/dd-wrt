@@ -31,7 +31,8 @@
 #include "dwmac_dma.h"
 
 static int dwmac1000_dma_init(void __iomem *ioaddr, int pbl, int fb, int mb,
-			      int burst_len, u32 dma_tx, u32 dma_rx, int atds)
+			      int burst_len, u32 dma_tx, u32 dma_rx, int atds,
+			      int aal)
 {
 	u32 value = readl(ioaddr + DMA_BUS_MODE);
 	int limit;
@@ -62,6 +63,10 @@ static int dwmac1000_dma_init(void __iomem *ioaddr, int pbl, int fb, int mb,
 	value = DMA_BUS_MODE_PBL | ((pbl << DMA_BUS_MODE_PBL_SHIFT) |
 				    (pbl << DMA_BUS_MODE_RPBL_SHIFT));
 
+	/* Address Aligned Beats */
+	if (aal)
+		value |= DMA_BUS_MODE_AAL;
+
 	/* Set the Fixed burst mode */
 	if (fb)
 		value |= DMA_BUS_MODE_FB;
@@ -69,10 +74,6 @@ static int dwmac1000_dma_init(void __iomem *ioaddr, int pbl, int fb, int mb,
 	/* Mixed Burst has no effect when fb is set */
 	if (mb)
 		value |= DMA_BUS_MODE_MB;
-
-#ifdef CONFIG_STMMAC_DA
-	value |= DMA_BUS_MODE_DA;	/* Rx has priority over tx */
-#endif
 
 	if (atds)
 		value |= DMA_BUS_MODE_ATDS;
@@ -110,8 +111,29 @@ static int dwmac1000_dma_init(void __iomem *ioaddr, int pbl, int fb, int mb,
 	return 0;
 }
 
+static u32 dwmac1000_configure_fc(u32 csr6, int rxfifosz)
+{
+	csr6 &= ~DMA_CONTROL_RFA_MASK;
+	csr6 &= ~DMA_CONTROL_RFD_MASK;
+
+	/* Leave flow control disabled if receive fifo size is less than
+	 * 4K or 0. Otherwise, send XOFF when fifo is 1K less than full,
+	 * and send XON when 2K less than full.
+	 */
+	if (rxfifosz < 4096) {
+		csr6 &= ~DMA_CONTROL_EFC;
+		pr_debug("GMAC: disabling flow control, rxfifo too small(%d)\n",
+			 rxfifosz);
+	} else {
+		csr6 |= DMA_CONTROL_EFC;
+		csr6 |= RFA_FULL_MINUS_1K;
+		csr6 |= RFD_FULL_MINUS_2K;
+	}
+	return csr6;
+}
+
 static void dwmac1000_dma_operation_mode(void __iomem *ioaddr, int txmode,
-					 int rxmode)
+					 int rxmode, int rxfifosz)
 {
 	u32 csr6 = readl(ioaddr + DMA_CONTROL);
 
@@ -156,6 +178,9 @@ static void dwmac1000_dma_operation_mode(void __iomem *ioaddr, int txmode,
 		else
 			csr6 |= DMA_CONTROL_RTC_128;
 	}
+
+	/* Configure flow control based on rx fifo size */
+	csr6 = dwmac1000_configure_fc(csr6, rxfifosz);
 
 	writel(csr6, ioaddr + DMA_CONTROL);
 }

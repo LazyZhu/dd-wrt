@@ -648,6 +648,13 @@ ar8327_cleanup(struct ar8xxx_priv *priv)
 	ar8327_leds_cleanup(priv);
 }
 
+static inline void
+ar8216_sw_reg_set(struct ar8xxx_priv *priv, int reg, u32 val)
+{
+	ar8xxx_write(priv, reg, val);
+}
+
+
 static void
 ar8327_init_globals(struct ar8xxx_priv *priv)
 {
@@ -677,6 +684,10 @@ ar8327_init_globals(struct ar8xxx_priv *priv)
 	/* Disable EEE on all phy's due to stability issues */
 	for (i = 0; i < AR8XXX_NUM_PHYS; i++)
 		data->eee[i] = false;
+
+	/* Updating HOL registers and RGMII delay settings
+	with the values suggested by QCA switch team */
+
 }
 
 static void
