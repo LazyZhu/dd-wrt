@@ -2928,12 +2928,7 @@ void start_drivers(void)
 		led_control(LED_USB, LED_ON);
 		led_control(LED_USB1, LED_ON);
 
-<<<<<<< HEAD
-		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx");
-=======
-		insmod
-		    ("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx dwc3 dwc3-qcom phy-qcom-hsusb phy-qcom-ssusb");
->>>>>>> upstream/master
+		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx dwc3 dwc3-qcom phy-qcom-hsusb phy-qcom-ssusb");
 
 		if (nvram_match("usb_storage", "1")) {
 			insmod("scsi_mod scsi_wait_scan sd_mod cdrom sr_mod usb-storage sata_mv ehci-orion");
@@ -2965,7 +2960,6 @@ void start_drivers(void)
 		eval("stopservice", "samba3");
 		eval("stopservice", "ftpsrv");
 		sysprintf("umount /%s", nvram_default_get("usb_mntpoint", "mnt"));
-<<<<<<< HEAD
 
 		//ahci
 		rmmod("sdhci-esdhc-imx sdhci-pltfm sdhci mmc_block ahci_imx mmc_core ahci_mvebu ahci_imx ahci_platforms ahci_platform ahci libahci_platform libahci libata");
@@ -2975,6 +2969,8 @@ void start_drivers(void)
 #ifdef HAVE_USBAUDIO
 		rmmod("snd-usb-audio.ko snd-usbmidi-lib.ko snd-pcm-oss.ko snd-mixer-oss.ko snd-seq-midi.ko snd-rawmidi.ko snd-seq-midi-event.ko snd-seq-dummy.ko snd-seq.ko snd-seq-device.ko snd-pcm.ko snd-hwdep.ko snd-page-alloc.ko snd-timer.ko snd.ko soundcore.ko");
 #endif
+		// qcom
+		rmmod("phy-qcom-hsusb phy-qcom-ssusb phy-qcom-dwc3 dwc3-qcom dwc3");
 		// printer
 		rmmod("usblp printer");
 		// storage
@@ -2983,52 +2979,12 @@ void start_drivers(void)
 		rmmod("usbmisc_imx ci13xxx_imx ci_hdrc phy-mxs-usb fsl-mph-dr-of");
 		rmmod("usb-libusual dwc_otg");
 		// core
-		rmmod("xhci-pci xhci-plat-hcd xhci-hcd ohci-hcd usb-ohci uhci-hcd usb-uhci");
+		rmmod("xhci-pci xhci-plat-hcd xhci-hcd");
+		rmmod("ohci-hcd usb-ohci uhci-hcd usb-uhci");
 		rmmod("ehci-pci ehci-platform ehci-hcd");
 		rmmod("usbcore usb-common");
 		/* unload filesystems */
 		/* xfs */
-=======
-		rmmod("phy-qcom-hsusb");
-		rmmod("phy-qcom-ssusb");
-		rmmod("phy-qcom-dwc3");
-		rmmod("dwc3-qcom");
-		rmmod("dwc3");
-		rmmod("usblp");
-		rmmod("printer");
-		rmmod("usb-storage");
-		rmmod("sr_mod");
-		rmmod("cdrom");
-		rmmod("sd_mod");
-		rmmod("scsi_wait_scan");
-		rmmod("scsi_mod");
-
-		rmmod("usbmisc_imx");
-		rmmod("ci13xxx_imx");
-		rmmod("ci_hdrc");
-		rmmod("phy-mxs-usb");
-		rmmod("fsl-mph-dr-of");
-
-		rmmod("usb-libusual");
-		rmmod("dwc_otg");	// usb
-		rmmod("xhci-pci");
-		rmmod("xhci-plat-hcd");
-		rmmod("xhci-hcd");
-
-		rmmod("usb-ohci");
-		rmmod("ohci-hcd");
-		rmmod("uhci-hcd");
-		rmmod("usb-uhci");
-		rmmod("ehci-pci");
-		rmmod("ehci-platform");
-		rmmod("ehci-hcd");
-		rmmod("fsl-mph-dr-of");
-		rmmod("usbcore");
-		rmmod("usb-common");
-
-/* unload filesystems */
-/* xfs */
->>>>>>> upstream/master
 		rmmod("xfs");
 		/* fat */
 		rmmod("msdos vfat fat");
