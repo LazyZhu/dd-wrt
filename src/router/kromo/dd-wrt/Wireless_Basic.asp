@@ -358,7 +358,9 @@ if (submitcheck(F))
 var update;
 
 addEvent(window, "load", function() {
+<!-- dirty JS hack 
 <% ifdef("HAVE_ATH9K", "initChannelProperties();"); %>
+-->
 	var wl0_mode = "<% nvg("wl0_mode"); %>";
 	   if (wl0_mode=="ap" || wl0_mode=="infra")
 	{
