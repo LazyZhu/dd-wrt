@@ -5049,6 +5049,7 @@ extern int isac66;
 extern int isac68;
 extern int isbuffalo;
 extern int isbuffalowxr;
+extern int isws880;
 extern int isdefault;
 #ifndef USE_LZMA
 #include <linux/printk.h>
@@ -5059,7 +5060,7 @@ si_gpioout2(si_t *sih, uint32 mask, uint32 val, uint8 priority)
 {
 	uint regoff;
 #ifndef USE_LZMA
-//	printk(KERN_INFO "out2 %X/%d   = %X/%d\n",mask,mask,val,val);
+//	printk(KERN_INFO "### out2: mask 0x%x, val 0x%x\n",mask,val);
 #endif
 	if (isdefault)
 	    return si_gpioout(sih,mask,val,priority);
@@ -5102,6 +5103,27 @@ si_gpioout2(si_t *sih, uint32 mask, uint32 val, uint8 priority)
 	{
 	    return si_gpioout(sih,mask,val,priority);
 	}
+	// blink 2.4 (mask 1 val 1/0)
+//	if (isws880 && (mask = 1))
+//	{
+#ifndef USE_LZMA
+//	    printk(KERN_INFO "### ws880 mask 0x%x, val 0x%x (mask 1)\n",mask,val);
+#endif
+	    //return 0;
+//	}
+	// blink 5.0 (mask 2 val 2/0)
+//	if (isws880 && ((mask = 2))
+//	{
+#ifndef USE_LZMA
+//	    printk(KERN_INFO "### ws880 mask 0x%x, val 0x%x (mask 2)\n",mask,val);
+#endif
+	    //return 0;
+//	}
+	// disable blink for Wi-Fi
+	if (isws880 && ((mask & val)))
+	{
+	    return 0;
+	}
 	
 	regoff = 0;
 	if (!gpio_sih)
@@ -5132,7 +5154,7 @@ si_gpioouten2(si_t *sih, uint32 mask, uint32 val, uint8 priority)
 	uint regoff;
 
 #ifndef USE_LZMA
-//	printk(KERN_INFO "outen2 %X/%d   = %X/%d\n",mask,mask,val,val);
+//	printk(KERN_INFO "### outen2: mask 0x%x, val 0x%x\n",mask,val);
 #endif
 	if (isdefault)
 	    return si_gpioouten(sih,mask,val,priority);
@@ -5145,7 +5167,6 @@ si_gpioouten2(si_t *sih, uint32 mask, uint32 val, uint8 priority)
 	{
 	    return si_gpioouten(sih,mask,val,priority);
 	}
-
 
 	if (isbuffalo && (mask&(1<<12)))
 	{
