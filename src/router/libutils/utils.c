@@ -6304,11 +6304,17 @@ int led_control(int type, int act)
 		break;
 	case ROUTER_HUAWEI_WS880:
 		usb_gpio = 0x10e;	// (-14) USB led
-		bridge_gpio = 0x101;	// ( -1) LAN led //HW
+		//bridge_gpio = 0x101;	// ( -1) LAN led // blink defined somewhere else
+		ses_gpio = 0x106;	// ( -6) WPS led
 		diag_gpio = 0x106;	// ( -6) WPS led
+		//diag_gpio = 0x101;	// ( -6) LAN led // unused, for DIAG
 		connected_gpio = 0x00c;	// ( 12) INTERNET led
-		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio) //HW
-		wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio) //HW
+		//wlan0_gpio = 0x101;	// ( -1) LAN led (2GHz Radio) // blink defined somewhere else
+		wlan0_gpio = 0x100;	// ( -0) WLAN led (2GHz Radio) // blink defined somewhere else
+		//wlan0_gpio = 0x106;	// ( -6) WPS led (2GHz Radio) // blink defined somewhere else
+		wlan1_gpio = 0x101;	// ( -1) LAN led (5GHz Radio) // blink defined somewhere else
+		//wlan1_gpio = 0x100;	// ( -0) WLAN led (5GHz Radio) // blink defined somewhere else
+		//wlan1_gpio = 0x106;	// ( -6) WPS led (5GHz Radio) // blink defined somewhere else
 		//usb_power = 0x007;	// (  7) USB power on/off !!! KERNEL POWER !!! enable this freeze router on boot with USB disabled
 		break;
 	case ROUTER_ASUS_AC3200:
