@@ -10,7 +10,7 @@ INPUT="$BOLD => $NORM"
 i=1 # Will count available partitions (+ 1)
 cd /tmp
 
-echo -e $INFO This script will guide you through the Entware installation.
+echo -e $INFO This script will guide you through the Entware-ng installation.
 echo -e $INFO Script modifies only \"entware\" folder on the chosen drive,
 echo -e $INFO no other data will be touched. Existing installation will be
 echo -e $INFO replaced with this one. Also some start scripts will be installed,
@@ -191,8 +191,10 @@ chmod +x /jffs/etc/config/post-mount
 # announce post-mount script to dd-wrt
 /usr/sbin/nvram set usb_runonmount=/jffs/etc/config/post-mount
 
-echo -e "$INFO Starting Entware deployment....\n"
-wget http://qnapware.zyxmon.org/binaries-armv7/installer/entware_install_arm.sh
-sh ./entware_install_arm.sh
+echo -e "$INFO Starting Entware-ng deployment....\n"
+#wget http://qnapware.zyxmon.org/binaries-armv7/installer/entware_install_arm.sh
+wget http://entware.zyxmon.org/binaries/armv7/installer/entware_install.sh
+#sh ./entware_install_arm.sh
+sh ./entware_install.sh
 sync
 
