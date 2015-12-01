@@ -1565,6 +1565,20 @@ void period_check(int sig)
 				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
 				sleep(1);
 				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+				if (nvram_match("wanup", "1"))
+					led_control(LED_CONNECTED, LED_ON);	// (INTERNET) led on
+				if (nvram_match("wl_radio", "1"))
+					led_control(LED_WLAN, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("wl0_radio", "1"))
+					led_control(LED_WLAN0, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("wl1_radio", "1"))
+					led_control(LED_WLAN1, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("wl2_radio", "1"))
+					led_control(LED_WLAN2, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("usb_enable", "1")) {
+					led_control(LED_USB, LED_ON);	// (USB) led on
+					led_control(LED_USB1, LED_ON);	// (USB1) led on
+				}
 				break;
 			case 1:
 				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning off LEDS\n");
@@ -1607,6 +1621,20 @@ void period_check(int sig)
 				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
 				sleep(1);
 				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+				if (nvram_match("wanup", "1"))
+					led_control(LED_CONNECTED, LED_ON);	// (INTERNET) led on
+				if (nvram_match("wl_radio", "1"))
+					led_control(LED_WLAN, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("wl0_radio", "1"))
+					led_control(LED_WLAN0, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("wl1_radio", "1"))
+					led_control(LED_WLAN1, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("wl2_radio", "1"))
+					led_control(LED_WLAN2, LED_ON);	// (Wi-Fi) led on
+				if (nvram_match("usb_enable", "1")) {
+					led_control(LED_USB, LED_ON);	// (USB) led on
+					led_control(LED_USB1, LED_ON);	// (USB1) led on
+				}
 				break;
 			case 1:
 				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning off LEDS\n");
