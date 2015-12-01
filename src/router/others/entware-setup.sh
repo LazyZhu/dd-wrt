@@ -93,27 +93,10 @@ while : ; do
                 echo "audio:x:29:root,nobody" >>/etc/group 2>/dev/null
         fi
 
-        # D-BUS
+        # Avahi / D-BUS
         # If the netdev group doesn't exist, add it (exist in avahi-dbus.conf):
         if ! grep "^netdev:" /etc/group 1>/dev/null 2>&1; then
                 echo "netdev:x:85:root,nobody" >>/etc/group 2>/dev/null
-        fi
-
-        # HFS Plus (OS X) native uid/gid
-        # If the hfs user doesn't exist, add it:
-        if ! grep "^hfs:" /etc/passwd 1>/dev/null 2>&1; then
-                echo "hfs:*:99:99:hfs:/var:/bin/false" >>/etc/passwd 2>/dev/null
-        fi
-
-        # If the hfs group doesn't exist, add it:
-        if ! grep "^hfs:" /etc/group 1>/dev/null 2>&1; then
-                echo "hfs:x:99:hfs,root,nobody" >>/etc/group 2>/dev/null
-        fi
-
-        # Avahi (unprivileged)
-        # If the nobody user doesn't exist, add it:
-        if ! grep "^nobody:" /etc/passwd 1>/dev/null 2>&1; then
-                echo "nobody:*:65534:65534:nobody:/var:/bin/false" >>/etc/passwd 2>/dev/null
         fi
 
         # If the nogroup group doesn't exist, add it:
@@ -121,8 +104,8 @@ while : ; do
                 echo "nogroup:x:65534:" >>/etc/group 2>/dev/null
         fi
 
-        # check interval
-        sleep 30
+        # check interval 1m
+        sleep 60
 done&
 EOF
 chmod +x /jffs/etc/config/S01-gids-check.startup
@@ -155,12 +138,11 @@ cat > /jffs/etc/config/post-mount << EOF
 # POST-MOUNT
 #
 
-sleep 1
+# HFS+ R/W support
 logger -s -p local0.notice -t post-mount "### checking filesystems..."
 for mountdev in \`/bin/mount | grep -E 'hfsplus' | grep ro | cut -d" " -f1\`
 do
         logger -s -p local0.notice -t post-mount "### checking hfsplus at \$mountdev..."
-        # fsck_hfs -ay \$mountdev
         fsck_hfs -fy \$mountdev
         logger -s -p local0.notice -t post-mount "### remount hfsplus rw..."
         mount -o remount,rw,force \$mountdev
@@ -168,7 +150,7 @@ do
         chmod 777 \`/bin/mount | grep \$mountdev | cut -d" " -f3\`
 done
 
-sleep 1
+# Search EntWARE on USB disks
 logger -s -p local0.notice -t post-mount "### looking for available EntWARE partitions..."
 for mountpath in \`/bin/mount | grep -E 'ext2|ext3|ext4' | cut -d" " -f3\`
 do
@@ -190,11 +172,13 @@ EOF
 chmod +x /jffs/etc/config/post-mount
 # announce post-mount script to dd-wrt
 /usr/sbin/nvram set usb_runonmount=/jffs/etc/config/post-mount
+# mount disks with label path
+/usr/sbin/nvram set usb_mntbylabel=1
+# store changes permanently
+/usr/sbin/nvram commit
 
 echo -e "$INFO Starting Entware-ng deployment....\n"
-#wget http://qnapware.zyxmon.org/binaries-armv7/installer/entware_install_arm.sh
 wget http://entware.zyxmon.org/binaries/armv7/installer/entware_install.sh
-#sh ./entware_install_arm.sh
 sh ./entware_install.sh
 sync
 
