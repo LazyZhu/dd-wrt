@@ -946,7 +946,7 @@ void period_check(int sig)
 		val = get_gpio(240);
 	} else if (brand == ROUTER_HUAWEI_WS880) {
 		// initialize val for ws880
-		val = get_gpio(2) << 2;
+		val = get_gpio(2) << 2;	// RESET button
 	} else {
 
 		if ((fp = fopen(GPIO_FILE, "r"))) {
@@ -1266,9 +1266,9 @@ void period_check(int sig)
 		sesgpio = 0x107;	// gpio 7, inversed
 		break;
 	case ROUTER_HUAWEI_WS880:
-		sesgpio = 0x103;	// gpio 3, inversed
+		sesgpio = 0x103;	// gpio 3, inversed (WPS button)
 		val |= get_gpio(3) << 3;
-		wifigpio = 0x10f;	// gpio 15, inversed
+		wifigpio = 0x10f;	// gpio 15, inversed (POWER button)
 		val |= get_gpio(15) << 15;
 		break;
 	case ROUTER_DLINK_DIR860:
@@ -1554,80 +1554,102 @@ void period_check(int sig)
 #endif
 #ifdef HAVE_RADIOOFF
 		// Stealth Mode
-		if (nvram_match("radiooff_stealthswitch", "1")) {
-			fprintf(stderr, "\n############################################\n");
+		else if (nvram_match("radiooff_stealthswitch", "1")) {
 			int str_mode = nvram_match("stealthmode", "1") ? 0 : 1; // switch mode on press
-			led_control(LED_SES, LED_FLASH);	// when pressed, blink white
+			led_control(LED_SES, LED_FLASH);		// (SES) led flash
 			switch (str_mode) {
 			case 0:
-				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning on LED control\n");
+				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning on LEDS\n");
 				fprintf(stderr, "### SES / AOSS / EZ-setup button: set stealthmode = 0\n");
 				nvram_set("stealthmode", "0");
+				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+				sleep(1);
+				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
 				break;
 			case 1:
 				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning off LEDS\n");
-				fprintf(stderr, "# LED_POWER\n");
+				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
 				led_control(LED_POWER, LED_OFF);
-				fprintf(stderr, "# LED_DIAG\n");
 				led_control(LED_DIAG, LED_OFF);
-				fprintf(stderr, "# LED_DIAG_DISABLED\n");
 				led_control(LED_DIAG_DISABLED, LED_OFF);
-				fprintf(stderr, "# LED_CONNECTED\n");
 				led_control(LED_CONNECTED, LED_OFF);
-				fprintf(stderr, "# LED_DISCONNECTED\n");
 				led_control(LED_DISCONNECTED, LED_OFF);
-				fprintf(stderr, "# LED_BRIDGE\n");
 				led_control(LED_BRIDGE, LED_OFF);
-				fprintf(stderr, "# LED_DMZ\n");
 				led_control(LED_DMZ, LED_OFF);
-				fprintf(stderr, "# LED_VPN\n");
 				led_control(LED_VPN, LED_OFF);
-				fprintf(stderr, "# LED_SES\n");
 				led_control(LED_SES, LED_OFF);
-				fprintf(stderr, "# LED_SES2\n");
 				led_control(LED_SES2, LED_OFF);
-				fprintf(stderr, "# LED_USB\n");
 				led_control(LED_USB, LED_OFF);
-				fprintf(stderr, "# LED_USB1\n");
 				led_control(LED_USB1, LED_OFF);
-				fprintf(stderr, "# LED_SEC0\n");
 				led_control(LED_SEC0, LED_OFF);
-				fprintf(stderr, "# LED_SEC1\n");
 				led_control(LED_SEC1, LED_OFF);
-				fprintf(stderr, "# LED_WLAN\n");
 				led_control(LED_WLAN, LED_OFF);
-				fprintf(stderr, "# LED_WLAN0\n");
 				led_control(LED_WLAN0, LED_OFF);
-				fprintf(stderr, "# LED_WLAN1\n");
 				led_control(LED_WLAN1, LED_OFF);
-				fprintf(stderr, "# LED_WLAN2\n");
 				led_control(LED_WLAN2, LED_OFF);
-				fprintf(stderr, "### SES / AOSS / EZ-setup button: set stealthmode = 1\n");
 				nvram_set("stealthmode", "1");
 				break;
 			}
-			fprintf(stderr, "############################################\n\n");
 		}
 #endif
 	} else if ((wifigpio != 0xfff)
 		   && (((wifigpio & 0x100) == 0 && (val & pushwifi))
 		       || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
-		led_control(LED_WLAN, LED_FLASH);	// when pressed, blink white
-		switch (wifi_mode) {
-		case 1:
-			// (DIAG) led
-			led_control(LED_DIAG, LED_FLASH);
-			dd_syslog(LOG_DEBUG, "WiFi button: turning radio(s) on\n");
-			sysprintf("startstop radio_on");
-			wifi_mode = 0;
-			break;
-		case 0:
-			// (DIAG) led
-			led_control(LED_DIAG, LED_FLASH);
-			dd_syslog(LOG_DEBUG, "WiFi button: turning radio(s) off\n");
-			sysprintf("startstop radio_off");
-			wifi_mode = 1;
-			break;
+
+		// Stealth Mode ON/OFF by Wi-Fi button (in case WPS button choosen to control Wi-Fi)
+		if (nvram_match("radiooff_button", "1")) {
+			int str_mode = nvram_match("stealthmode", "1") ? 0 : 1; // switch mode on press
+			switch (str_mode) {
+			case 0:
+				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning on LEDS\n");
+				fprintf(stderr, "### Wi-Fi button: set stealthmode = 0\n");
+				nvram_set("stealthmode", "0");
+				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+				sleep(1);
+				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+				break;
+			case 1:
+				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning off LEDS\n");
+				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+				led_control(LED_POWER, LED_OFF);
+				led_control(LED_DIAG, LED_OFF);
+				led_control(LED_DIAG_DISABLED, LED_OFF);
+				led_control(LED_CONNECTED, LED_OFF);
+				led_control(LED_DISCONNECTED, LED_OFF);
+				led_control(LED_BRIDGE, LED_OFF);
+				led_control(LED_DMZ, LED_OFF);
+				led_control(LED_VPN, LED_OFF);
+				led_control(LED_SES, LED_OFF);
+				led_control(LED_SES2, LED_OFF);
+				led_control(LED_USB, LED_OFF);
+				led_control(LED_USB1, LED_OFF);
+				led_control(LED_SEC0, LED_OFF);
+				led_control(LED_SEC1, LED_OFF);
+				led_control(LED_WLAN, LED_OFF);
+				led_control(LED_WLAN0, LED_OFF);
+				led_control(LED_WLAN1, LED_OFF);
+				led_control(LED_WLAN2, LED_OFF);
+				nvram_set("stealthmode", "1");
+				break;
+			}
+		} else { // Wi-Fi ON/OFF by Wi-Fi button
+			led_control(LED_WLAN, LED_FLASH);	// when pressed, blink white
+			switch (wifi_mode) {
+			case 1:
+				// (DIAG) led
+				led_control(LED_DIAG, LED_FLASH);
+				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning radio(s) on\n");
+				sysprintf("startstop radio_on");
+				wifi_mode = 0;
+				break;
+			case 0:
+				// (DIAG) led
+				led_control(LED_DIAG, LED_FLASH);
+				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning radio(s) off\n");
+				sysprintf("startstop radio_off");
+				wifi_mode = 1;
+				break;
+			}
 		}
 
 	} else {
