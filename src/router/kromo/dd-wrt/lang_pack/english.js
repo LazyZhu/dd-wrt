@@ -2545,8 +2545,8 @@ wl_adv.row2="Best Effort";
 wl_adv.row3="Video";
 wl_adv.row4="Voice";
 wl_adv.table2="EDCA STA Parameters (Client to AP)";
-wl_adv.lng="Long"; 					//************* don't use .long! *************
-wl_adv.shrt="Short"; 				//************* don't use .short! **************
+wl_adv.lng="Long"; 	//************* don't use .long! *************
+wl_adv.shrt="Short"; 	//************* don't use .short! ************
 wl_adv.mpbs="Mbps";
 
 //help container
