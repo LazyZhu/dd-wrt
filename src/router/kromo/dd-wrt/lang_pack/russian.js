@@ -1,8 +1,8 @@
 ﻿//////////////////////////////////////////////////////////////////////////////////////////////
 //	Russian reference translation file - DD-WRT V23 SP1 by Yuri Krasilnikov 28/11/2008
-//	Language update for DD-WRT V24 SP2 02/03/2014
+//	Language update for DD-WRT V3 02/12/2015
+//	UTF-8 version for DD-WRT v3 02/11/2015
 //////////////////////////////////////////////////////////////////////////////////////////////
-
 lang_charset.set="UTF-8";
 
 // ** COMMON SHARE LABEL **//
@@ -2214,4 +2214,3 @@ dhcp.server="IP-адрес DHCP-сервера:";
 dhcp.tclient="Имя хоста клиента";
 
 donate.mb="Вы можете также внести пожертвование через систему Moneybookers на счет mb@dd-wrt.com";
-

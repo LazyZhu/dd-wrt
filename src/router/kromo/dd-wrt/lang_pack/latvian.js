@@ -1,13 +1,10 @@
-﻿//////////////////////////////////////////////////////////////////////////////////////////////
-//        Latvian reference translation file - DD-WRT V24  SP2 by Janis V. 26/11/2009       //
-//        initial release                                                                   //
 //////////////////////////////////////////////////////////////////////////////////////////////
+//	Latvian reference translation file - DD-WRT V24  SP2 by Janis V. 26/11/2009
+//	UTF-8 version for DD-WRT v3 02/11/2015
+//////////////////////////////////////////////////////////////////////////////////////////////
+lang_charset.set="UTF-8";
 
 // ** COMMON SHARE LABEL **//
-
-lang_charset.set="iso-8859-1";
-
-
 share.apn="APN";
 share.pin="PIN kods";
 share.dial="Iezvanvirkne";
@@ -1475,7 +1472,7 @@ status_conn.h2="Active IP Connections";
 // ** Status_SputnikAPD.asp **//
 
 status_sputnik.titl="Sputnik Agent Status";
-status_sputnik.h2="Sputnik&reg; Agent&trade;";
+status_sputnik.h2="Sputnik® Agent™";
 status_sputnik.manage="Managed By";
 status_sputnik.license="SCC License No.";
 

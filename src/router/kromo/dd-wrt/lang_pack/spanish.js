@@ -1,7 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//    Traducción Española del archivo de referencia - DD-WRT V24 SP2 por Theliel 26/07/2010         //
+//	Traducción Española del archivo de referencia - DD-WRT V24 SP2 por Theliel 26/07/2010
+//	UTF-8 version for DD-WRT v3 02/11/2015
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-lang_charset.set="utf-8";
+lang_charset.set="UTF-8";
 
 // ** COMMON SHARE LABEL **//
 share.apn="APN";

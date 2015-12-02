@@ -1,7 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
-//				German translation DD-WRT													//
+//	German translation DD-WRT
+//	UTF-8 version for DD-WRT v3 02/11/2015
 //////////////////////////////////////////////////////////////////////////////////////////////
-lang_charset.set="utf-8";
+lang_charset.set="UTF-8";
 
 // ** COMMON SHARE LABEL **//
 share.annex="Annex Typ";
@@ -834,7 +835,7 @@ hotspot.sputnik_learn="Mehr Lernen";
 hotspot.wifidog_legend="Wifidog";
 hotspot.wifidog_srv="Wifidog daemon";
 hotspot.wifidog_id="Gateway ID";
-hotspot.wifidog_url="Portal's URL";
+hotspot.wifidog_url="Portal&#39;s URL";
 hotspot.wifidog_port="Port";
 hotspot.wifidog_httpdname="Web Server Name";
 hotspot.wifidog_httpdconn="Maximale Benutzeranzahl";
