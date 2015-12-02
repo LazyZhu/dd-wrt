@@ -1,12 +1,10 @@
 ﻿////////////////////////////////////////////////////////////////////////////////////
-// DD-WRT v24-sp2 / Croatian / updated from r19947 / by Silvio Peša / 2012-10-15 // 
-//////////////////////////////////////////////////////////////////////////////////
-
-// ** COMMON SHARE LABEL **//
-
+//	DD-WRT v24-sp2 / Croatian / updated from r19947 / by Silvio Peša / 2012-10-15
+//	UTF-8 version for DD-WRT v3 02/11/2015
+////////////////////////////////////////////////////////////////////////////////////
 lang_charset.set="UTF-8";
 
-
+// ** COMMON SHARE LABEL **//
 share.annex="DSL Annex Tip";
 share.apn="APN";
 share.pin="PIN";
@@ -353,7 +351,7 @@ errmsg.err50="Morate unijeti SSID.";
 
 // Management.asp error messages
 errmsg.err51="The Router is currently set to its default password. As a security measure, you must change the password before the Remote Management feature can be enabled. Click the OK button to change your password. Click the Cancel button to leave the Remote Management feature disabled.";
-errmsg.err52="Password confirmation doesn't match.";
+errmsg.err52="Password confirmation doesn&#39;t match.";
 
 // Port_Services.asp error messages
 errmsg.err53="After finished all actions, click the Apply button to save the settings.";

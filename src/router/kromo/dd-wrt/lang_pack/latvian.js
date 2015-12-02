@@ -285,7 +285,7 @@ errmsg.err29=" have illegal ascii code.";
 errmsg.err30=" have illegal hexadecimal digits.";
 errmsg.err31=" value is illegal.";
 errmsg.err32="IP address and gateway is not at same subnet mask.";
-errmsg.err33="IP address and gateway can't be same.";
+errmsg.err33="IP address and gateway can&#39;t be same.";
 errmsg.err34=" is not allowed to contain a space.";
 errmsg.err110="End number must be bigger then start number";
 errmsg.err111="Invalid IP address";
@@ -323,7 +323,7 @@ errmsg.err50="You must input a SSID.";
 
 // Management.asp error messages
 errmsg.err51="The Router is currently set to its default password. As a security measure, you must change the password before the Remote Management feature can be enabled. Click the OK button to change your password. Click the Cancel button to leave the Remote Management feature disabled.";
-errmsg.err52="Password confirmation doesn't match.";
+errmsg.err52="Password confirmation doesn&#39;t match.";
 
 // Port_Services.asp error messages
 errmsg.err53="After finished all actions, click the Apply button to save the settings.";
@@ -748,7 +748,7 @@ hotspot.sputnik_learn="Learn more";
 hotspot.wifidog_legend="Wifidog";
 hotspot.wifidog_srv="Wifidog daemon";
 hotspot.wifidog_id="Gateway ID";
-hotspot.wifidog_url="Portal's URL";
+hotspot.wifidog_url="Portal&#39;s URL";
 hotspot.wifidog_port="Port";
 hotspot.wifidog_httpdname="Web Server Name";
 hotspot.wifidog_httpdconn="Max Users";
@@ -1372,8 +1372,8 @@ status_lan.conratio="Ratio";
 
 //help container
 
-hstatus_lan.right2="This is the Router's MAC Address, as seen on your local, Ethernet network.";
-hstatus_lan.right4="This shows the Router's IP Address, as it appears on your local, Ethernet network.";
+hstatus_lan.right2="This is the Router&#39;s MAC Address, as seen on your local, Ethernet network.";
+hstatus_lan.right4="This shows the Router&#39;s IP Address, as it appears on your local, Ethernet network.";
 hstatus_lan.right6="When the Router is using a Subnet Mask, it is shown here.";
 hstatus_lan.right8="If you are using the Router as a DHCP server, that will be displayed here.";
 hstatus_lan.right10="By clicking on any MAC address, you will obtain the Organizationally Unique Identifier of the network interface (IEEE Standards OUI database search).";
@@ -1431,8 +1431,8 @@ status_router.cputemp="CPU Temperature";
 //help container
 
 hstatus_router.right2="This is the specific name for the router, which you set on the <i>Setup</i> tab.";
-hstatus_router.right4="This is the router's MAC Address, as seen by your ISP.";
-hstatus_router.right6="This is the router's current firmware.";
+hstatus_router.right4="This is the router&#39;s MAC Address, as seen by your ISP.";
+hstatus_router.right6="This is the router&#39;s current firmware.";
 hstatus_router.right8="This is time received from the ntp server set on the <em>" + bmenu.setup + " | " + bmenu.setupbasic + "</em> tab.";
 hstatus_router.right10="This is a measure of the time the router has been \"up\" and running.";
 hstatus_router.right12="This is given as three numbers that represent the system load during the last one, five, and fifteen minute periods.";
@@ -1459,8 +1459,8 @@ status_inet.delete_confirm="WARNING! This will delete all traffic data. Proceed?
 //help container
 
 hstatus_inet.right2="This shows the information required by your ISP for connection to the Internet. This information was entered on the Setup Tab. You can <em>Connect</em> or <em>Disconnect</em> your connection here by clicking on that button.";
-hstatus_inet.right4="This shows your router's Internet traffic since last reboot.";
-hstatus_inet.right6="This shows your router's Internet traffic by month. Drag the mouse over graph to see daily data. Data is stored in nvram.";
+hstatus_inet.right4="This shows your router&#39;s Internet traffic since last reboot.";
+hstatus_inet.right6="This shows your router&#39;s Internet traffic by month. Drag the mouse over graph to see daily data. Data is stored in nvram.";
 
 
 // ** Status_Conntrack.asp **//
@@ -1511,7 +1511,7 @@ status_gpsi.sat="Visible Satelites";
 
 //help container
 
-hstatus_wireless.right2="This is the Router's MAC Address, as seen on your local, wireless network.";
+hstatus_wireless.right2="This is the Router&#39;s MAC Address, as seen on your local, wireless network.";
 hstatus_wireless.right4="As selected from the Wireless tab, this will display the wireless mode (Mixed, G-Only, B-Only or Disabled) used by the network.";
 
 
@@ -1544,7 +1544,7 @@ upgrad.titl="Firmware Upgrade";
 upgrad.h2="Firmware Management";
 upgrad.legend="Firmware Upgrade";
 upgrad.info1="After flashing, reset to";
-upgrad.resetOff="Don't reset";
+upgrad.resetOff="Don&#39;t reset";
 upgrad.resetOn="Reset to Default settings";
 upgrad.file="Please select a file to upgrade";
 upgrad.warning="W A R N I N G";
@@ -1627,7 +1627,7 @@ wol.pass="SecureOn Password";
 
 hwol.right2="This page allows you to <em>Wake Up</em> hosts on your local network (for example locally connected to your router). You can manually wake up hosts by clicking the <em>"+sbutton.wol+"</em> or you can program an automatic schedule wake up thanks to the "+wol.srv+".";
 hwol.right4="MAC Address(es) are entered in the format xx:xx:xx:xx:xx:xx (for example 01:23:45:67:89:AB) and must be separated by a <em>SPACE</em>";
-hwol.right6="IP Address is typically the broadcast address for the local network, but could be a remote address if the target host is not connected to the router's local network.";
+hwol.right6="IP Address is typically the broadcast address for the local network, but could be a remote address if the target host is not connected to the router&#39;s local network.";
 
 
 // ** WanMAC.asp **//

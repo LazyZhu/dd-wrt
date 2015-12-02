@@ -280,13 +280,13 @@ errmsg.err10="Onaylanan şifre Girilen Şifreyle eşleşmedi. Lütfen şifreyi t
 errmsg.err11="Şifrede boşluğa izin verilmez.";
 errmsg.err12="Çalıştırmak için bir komut girmelisiniz.";
 errmsg.err13="Yükseltme başarısız oldu.";
-errmsg.err45="HTTPS'de yok! Lütfen HTTP modunda bağlanın.";
-errmsg.err46="HTTPS'de yok";
+errmsg.err45="HTTPS&#39;de yok! Lütfen HTTP modunda bağlanın.";
+errmsg.err46="HTTPS&#39;de yok";
 
 //common.js error messages
 errmsg.err14=" değer aralık dışında [";
 errmsg.err15="WAN MAC Adresi aralık dışındadır [00 - ff].";
-errmsg.err16="MAC'ın ikinci karakteri çift sayı olmalıdır : [0, 2, 4, 6, 8, A, C, E].";
+errmsg.err16="MAC&#39;ın ikinci karakteri çift sayı olmalıdır : [0, 2, 4, 6, 8, A, C, E].";
 errmsg.err17="MAC Adresi doğru değil.";
 errmsg.err18="MAC Adresi uzunluğu doğru değil.";
 errmsg.err19="MAC Adresi yayın adresi olamaz.";
@@ -325,13 +325,13 @@ errmsg.err43="Aralığı yeniden anahtarla";
 errmsg.err42="Lütfen geri yüklemek için bir yapılandırma dosyası seçin.";
 
 //WL_ActiveTable.asp error messages
-errmsg.err44="Toplam denetim sayısı 256'i aşıyor.";
+errmsg.err44="Toplam denetim sayısı 256&#39;i aşıyor.";
 
 //Site_Survey.asp error messages
 errmsg.err47="Geçersiz SSID.";
 
 //Wireless_WDS.asp error messages
-errmsg.err48="WDS geçerli yönlendirici yapılandırmayla uyumlu değil. Lütfen şu noktaları kontrol edin:\n * Kablosuz Mod, AP'ye ayarlanmalıdır \n * WPA2, WDS altında desteklenmez \n * Kablosuz Ağ B-Salt modu WDS altında desteklenmez";
+errmsg.err48="WDS geçerli yönlendirici yapılandırmayla uyumlu değil. Lütfen şu noktaları kontrol edin:\n * Kablosuz Mod, AP&#39;ye ayarlanmalıdır \n * WPA2, WDS altında desteklenmez \n * Kablosuz Ağ B-Salt modu WDS altında desteklenmez";
 
 //Wireless_radauth.asp error messages
 errmsg.err49="Radius yalnızca AP modunda vardır.";

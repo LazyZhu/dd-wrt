@@ -268,7 +268,7 @@ sbutton.prev="« Anterior";
 
 errmsg.err0="Debes introducir un Usuario.";
 errmsg.err1="Debes introducir un Nombre para el Router.";
-errmsg.err2="Fuera de rango, ajuste la dirección IP inicial ó user\'s números.";
+errmsg.err2="Fuera de rango, ajuste la dirección IP inicial ó user&#39;s números.";
 errmsg.err3="Debes elegir al menos un día.";
 errmsg.err4="La hora final debe ser posterior a la hora de inicio.";
 errmsg.err5="La longitud de la dirección MAC no es correcta.";
@@ -1889,9 +1889,9 @@ wl_adv.row2="Mejor Esfuerzo";
 wl_adv.row3="Video";
 wl_adv.row4="Voz";
 wl_adv.table2="Parámetros EDCA STA (Cliente a AP)";
-wl_adv.lng="Largo";	//************* don't use .long! *************
+wl_adv.lng="Largo";		//************* don't use .long! *************
 wl_adv.shrt="Corto";	//************* don't use .short! ************
-    
+
 //help container
 hwl_adv.right2="Deberías escoger entre <em>Auto</em> ó <em>Clave Compartida</em>. La autenticación por clave compartida es más segura, pero todos los dispositivos en tu red deberán soportar <em>Autenticación por Clave Compartida</em>.";
 

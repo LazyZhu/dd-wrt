@@ -274,59 +274,59 @@ sbutton.prev="&laquo; Anterior";
 
 
 // ** COMMON ERROR MESSAGES  **//
-errmsg.err0="Heu d'entrar un nom d'usuari.";
-errmsg.err1="Heu d'entrar un Nom d'Encaminador.";
-errmsg.err2="Fora de rang, sis plau, ajusteu l'adreça IP inical o els nombres del usuari.";
+errmsg.err0="Heu d&#39;entrar un nom d&#39;usuari.";
+errmsg.err1="Heu d&#39;entrar un Nom d&#39;Encaminador.";
+errmsg.err2="Fora de rang, sis plau, ajusteu l&#39;adreça IP inical o els nombres del usuari.";
 errmsg.err3="Heu de seleccionar almenys un dia.";
-errmsg.err4="El temps final ha d'ésser més gran que el temps inicial.";
-errmsg.err5="La longitud de l'Adreça MAC no és correcta.";
-errmsg.err6="Heu d'entrar una contrasenya.";
-errmsg.err7="Heu d'entrar un nom de host.";
-errmsg.err8="Heu d'entrar una adreça IP o un nom de host.";
+errmsg.err4="El temps final ha d&#39;ésser més gran que el temps inicial.";
+errmsg.err5="La longitud de l&#39;Adreça MAC no és correcta.";
+errmsg.err6="Heu d&#39;entrar una contrasenya.";
+errmsg.err7="Heu d&#39;entrar un nom de host.";
+errmsg.err8="Heu d&#39;entrar una adreça IP o un nom de host.";
 errmsg.err9="Adreça IP DMZ il·legal.";
 errmsg.err10="La contrasenya confirmada no coincidia amb la Contrasenya Entrada. Sis plau, torneu a entrar la contrasenya.";
 errmsg.err11="Cap espais es permeten en la Contrasenya";
-errmsg.err12="Heu d'entrar un ordre per a executar.";
+errmsg.err12="Heu d&#39;entrar un ordre per a executar.";
 errmsg.err13="Actualització fallada.";
-errmsg.err45="No disponible en HTTPS! Sis plau, connecta't en mode HTTP.";
+errmsg.err45="No disponible en HTTPS! Sis plau, connecta&#39;t en mode HTTP.";
 errmsg.err46="No disponible en HTTPS";
 
 //common.js error messages
 errmsg.err14=" el valor està fora de rang [";
-errmsg.err15="L'adreça MAC WAN està fora de rang [00 - ff].";
-errmsg.err16="El segon caràcter del MAC ha d'ésser un nombre parell : [0, 2, 4, 6, 8, A, C, E].";
-errmsg.err17="L'Adreça MAC no és correcta.";
-errmsg.err18="La longitude de l'Adreça MAC no és correcta.";
-errmsg.err19="L'Adreça MAC no pot ésser l'adreça de difusió.";
-errmsg.err20="Entreu l'adreça MAC en format (xx:xx:xx:xx:xx:xx).";
-errmsg.err21="Format d'adreça MAC invàlid.";
-errmsg.err22="L'adreça MAC WAN no és correcta.";
+errmsg.err15="L&#39;adreça MAC WAN està fora de rang [00 - ff].";
+errmsg.err16="El segon caràcter del MAC ha d&#39;ésser un nombre parell : [0, 2, 4, 6, 8, A, C, E].";
+errmsg.err17="L&#39;Adreça MAC no és correcta.";
+errmsg.err18="La longitude de l&#39;Adreça MAC no és correcta.";
+errmsg.err19="L&#39;Adreça MAC no pot ésser l&#39;adreça de difusió.";
+errmsg.err20="Entreu l&#39;adreça MAC en format (xx:xx:xx:xx:xx:xx).";
+errmsg.err21="Format d&#39;adreça MAC invàlid.";
+errmsg.err22="L&#39;adreça MAC WAN no és correcta.";
 errmsg.err23="Valor hex invàlid ";
 errmsg.err24=" trobat en adreça MAC ";
 errmsg.err25="El valor de clau no és correct.";
 errmsg.err26="La longitud de clau no és correcta.";
 errmsg.err27="Màscara de subxarxa il·legal.";
-errmsg.err28=" ha contingut càracters il·legals, ha d'ésser [ 0 - 9 ].";
+errmsg.err28=" ha contingut càracters il·legals, ha d&#39;ésser [ 0 - 9 ].";
 errmsg.err29=" ha contingut codi ascii il·legal.";
 errmsg.err30=" ha contingut xifres hexadecimals il·legals.";
 errmsg.err31=" valor és il·legal.";
-errmsg.err32="L'adreça IP i el gateway no estan a la mateixa màscara de subxarxa.";
-errmsg.err33="L'adreça IP i el gateway no poden ésser el mateix.";
+errmsg.err32="L&#39;adreça IP i el gateway no estan a la mateixa màscara de subxarxa.";
+errmsg.err33="L&#39;adreça IP i el gateway no poden ésser el mateix.";
 errmsg.err34=" no es permet contenir un espai.";
-errmsg.err110="El nombre final ha d'ésser més gran que el nombre inicial";
+errmsg.err110="El nombre final ha d&#39;ésser més gran que el nombre inicial";
 errmsg.err111="Adreça IP invàlid";
 errmsg.err112="Caràcters entrats invàlids \"<invchars>\" en camp \"<fieldname>\"";
 
 //Wol.asp error messages
-errmsg.err35="Heu d'entrar una adreça MAC per a executar.";
-errmsg.err36="Heu d'entrar una adreça de difusió de xarxa per a executar.";
-errmsg.err37="Heu d'entrar un port UDP per a executar.";
+errmsg.err35="Heu d&#39;entrar una adreça MAC per a executar.";
+errmsg.err36="Heu d&#39;entrar una adreça de difusió de xarxa per a executar.";
+errmsg.err37="Heu d&#39;entrar un port UDP per a executar.";
 
 //WL_WPATable.asp error messages
 //WPA.asp error messages
 errmsg.err38="Sis plau, entra una Clau Compartida!";
-errmsg.err39="Calu Invàlida, ha d'ésser entre 8 i 63 càracters ASCII o 64 xifres hexadecimals";
-errmsg.err40="Heu d'entrar una clau per Clau ";
+errmsg.err39="Calu Invàlida, ha d&#39;ésser entre 8 i 63 càracters ASCII o 64 xifres hexadecimals";
+errmsg.err40="Heu d&#39;entrar una clau per Clau ";
 errmsg.err41="Invalid Length in key ";
 errmsg.err43="Interval de canvi de clau";
 
@@ -340,32 +340,32 @@ errmsg.err44="Les proves totals excedeixen 256 demandes.";
 errmsg.err47="SSID invàlid.";
 
 //Wireless_WDS.asp error messages
-errmsg.err48="WDS no és compatible amb la configuració actual del encaminador. Sis plau, comproveu els punts següents :\n * Mode Sense Fil ha d'ésser AP \n * WPA2 no es suporta baix WDS \n * Mode Només B de Xarxa Sense Fil no es suporta baix WDS";
+errmsg.err48="WDS no és compatible amb la configuració actual del encaminador. Sis plau, comproveu els punts següents :\n * Mode Sense Fil ha d&#39;ésser AP \n * WPA2 no es suporta baix WDS \n * Mode Només B de Xarxa Sense Fil no es suporta baix WDS";
 
 //Wireless_radauth.asp error messages
 errmsg.err49="Radius només se dispon en mode AP.";
 
 //Wireless_Basic.asp error messages
-errmsg.err50="Heu d'entrar una SSID.";
+errmsg.err50="Heu d&#39;entrar una SSID.";
 
 // Management.asp error messages
-errmsg.err51="El Encaminador actualment té establerta la seva contrasenya per defecte. Com medida de seguretat, heu de canviar la contrasenya abans que la funció d'Administració Remota es pot habilitar. Heu clic en la botó Acepta per a canviar la vostra contrasenya. Heu clic en el botó Cancel·la per a deixar la funció d'Administració Remota deshabilitada.";
+errmsg.err51="El Encaminador actualment té establerta la seva contrasenya per defecte. Com medida de seguretat, heu de canviar la contrasenya abans que la funció d&#39;Administració Remota es pot habilitar. Heu clic en la botó Acepta per a canviar la vostra contrasenya. Heu clic en el botó Cancel·la per a deixar la funció d&#39;Administració Remota deshabilitada.";
 errmsg.err52="La confirmació de contrasenya no coincideix.";
 
 // Port_Services.asp error messages
 errmsg.err53="Després que totes les accions es compleixen, heu clic en Aplica per a desar les paràmetres.";
-errmsg.err54="Heu d'entrar un Nom de Servei.";
+errmsg.err54="Heu d&#39;entrar un Nom de Servei.";
 errmsg.err55="El Nom de Servei existeix.";
 
 // QoS.asp error messages
 errmsg.err56="El valor de port està fora de rang [0 - 65535]";
 
 // Routing.asp error messages
-errmsg.err57="Suprimir l'Entrada ?";
-errmsg.err103=" ha d'ésser més baix que ";
+errmsg.err57="Suprimir l&#39;Entrada ?";
+errmsg.err103=" ha d&#39;ésser més baix que ";
 
 // Status_Lan.asp error messages
-errmsg.err58="Heu clic per a suprimir l'arrendament";
+errmsg.err58="Heu clic per a suprimir l&#39;arrendament";
 errmsg.err581="Heu clic per a desconnectar el client PPTP";
 
 //Status_Wireless.asp error messages
@@ -373,7 +373,7 @@ errmsg.err59="No disponible! Sis plau, habiliteu la Xarxa Sense Fil.";
 
 //Upgrade.asp error messages
 errmsg.err60="Sis plau, per a actualitzar, seleccioneu un fitxer.";
-errmsg.err61="Fitxer d'imatge incorrecte.";
+errmsg.err61="Fitxer d&#39;imatge incorrecte.";
 
 //Services.asp error messages
 errmsg.err62=" ja està definit com arrendament estàtic.";
@@ -502,7 +502,7 @@ config.h22="Restaura Configuració";
 config.legend2="Restaura Paràmetres";
 config.mess2="Sis plau, seleccioneu un fitxer per a restaurar";
 config.mess3="A D V E R T È N C I A";
-config.mess4="Només pujeu fitxers creats per aquest microprogramari i del mateix model d'encaminador.<br />No pujeu cap fitxer que no fos creat per aquesta interfície!";
+config.mess4="Només pujeu fitxers creats per aquest microprogramari i del mateix model d&#39;encaminador.<br />No pujeu cap fitxer que no fos creat per aquesta interfície!";
 
 //help container
 hconfig.right2="Podeu fer una còpia de la vostra configuració actual en cas de que necesitis reinitialitzar el encaminador als seus paràmetres per defecte de fàbrica.<br /><br />Feu clic en el botó <em>Fer Còpia</em> per a fer una còpia de la vostra configuració actual.";
@@ -522,14 +522,14 @@ ddns.wildcard="Comodín";
 ddns.statu="Estatus DDNS";
 ddns.system="Servidor DYNDNS";
 ddns.options="Opcions DDNS Adicionals";
-ddns.forceupd="Interval d'Actualizació Forçada";
+ddns.forceupd="Interval d&#39;Actualizació Forçada";
 ddns.wanip="Comprovis la IP external";
 
 ddnsm.all_closed="Servidor DDNS actualment està tancat";
 ddnsm.all_resolving="Resolent nom de domini";
-ddnsm.all_errresolv="Resolució de nom de domini s'ha fallada";
+ddnsm.all_errresolv="Resolució de nom de domini s&#39;ha fallada";
 ddnsm.all_connecting="Connectant al servidor";
-ddnsm.all_connectfail="Connexió al servidor s'ha fallada";
+ddnsm.all_connectfail="Connexió al servidor s&#39;ha fallada";
 ddnsm.all_disabled="Funció DDNS està deshabilitada";
 ddnsm.all_noip="Cap connexió WAN";
 
@@ -1851,7 +1851,7 @@ olupgrade.version="Versió";
 olupgrade.release="Llançament";
 olupgrade.readme="Llegiu-me";
 olupgrade.choose="Trieu";
-olupgrade.retrieve_error="Error al treure la informació d'actualització";
+olupgrade.retrieve_error="Error al treure la informació d&#39;actualització";
 
 nintendo.titl="Nintendo";
 nintendo.spotpass.titl="Nintendo SpotPass";
@@ -2144,17 +2144,17 @@ hwl_basic.right6="Feu clic en qualsevol hora per habilitar o deshabilitar la sen
 
 // ** Fail_s.asp / Fail_u_s.asp / Fail.asp **//
 fail.mess1="Els valors que heu introduïts són invàlids. Sis plau, torneu a intentar.";
-fail.mess2="La actualització s'ha fallat.";
+fail.mess2="La actualització s&#39;ha fallat.";
 
 
 // ** Success*.asp / Reboot.asp  **//
 success.saved="Paràmetres desats.";
-success.restore="Paràmetres restaurats.<br/>La unitat s'està reiniciant ara. Sis plau, espereu un moment...";
-success.upgrade="Actualització reeixita.<br/>La unitat s'està reiniciant ara. Sis plau, espereu un moment...";
+success.restore="Paràmetres restaurats.<br/>La unitat s&#39;està reiniciant ara. Sis plau, espereu un moment...";
+success.upgrade="Actualització reeixita.<br/>La unitat s&#39;està reiniciant ara. Sis plau, espereu un moment...";
 success.success_noreboot="Les paràmetres són reexits.";
 success.success_reboot=success.success_noreboot + "<br />La unitat s'està reiniciant ara. Sis plau, espereu un moment...";
 
-success.alert_reset="Tots els paràmetres de configuració s'han restaurats als seus valors per defecte.<br /><br />";
+success.alert_reset="Tots els paràmetres de configuració s&#39;han restaurats als seus valors per defecte.<br /><br />";
 success.alert1="Sis plau, comproveu els sigüents abans de connectar de nou:";
 success.alert2="Si heu canviat la direcció IP del vostre encaminador, sis plau, nota que heu de soltar/renovar les adreçes de les vostres clients en la xarxa.";
 success.alert3="Si esteu connectat per WLAN, sis plau, uniu-vos a la xarxa i llavors feu clic en <em>Continua</em>.";

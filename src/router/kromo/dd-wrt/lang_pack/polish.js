@@ -1,12 +1,10 @@
 ﻿//////////////////////////////////////////////////////////////////////////////////////////////
-//		Polish translation file - DD-WRT V24 SP2       11/Apr/2012										//
+//	Polish translation file - DD-WRT V24 SP2	11/Apr/2012
+//	UTF-8 version for DD-WRT v3 02/11/2015
 //////////////////////////////////////////////////////////////////////////////////////////////
+lang_charset.set="UTF-8";
 
 // ** COMMON SHARE LABEL **//
-
-lang_charset.set="utf-8";
-
-
 share.apn="APN";
 share.pin="PIN";
 share.dial="Dial String";
@@ -307,7 +305,7 @@ errmsg.err29=" have illegal ascii code.";
 errmsg.err30=" have illegal hexadecimal digits.";
 errmsg.err31=" value is illegal.";
 errmsg.err32="IP address and gateway is not at same subnet mask.";
-errmsg.err33="IP address and gateway can't be same.";
+errmsg.err33="IP address and gateway can&#39;t be same.";
 errmsg.err34=" is not allowed to contain a space.";
 errmsg.err110="End number must be bigger then start number";
 errmsg.err111="Invalid IP address";
@@ -345,7 +343,7 @@ errmsg.err50="You must input a SSID.";
 
 // Management.asp error messages
 errmsg.err51="The Router is currently set to its default password. As a security measure, you must change the password before the Remote Management feature can be enabled. Click the OK button to change your password. Click the Cancel button to leave the Remote Management feature disabled.";
-errmsg.err52="Password confirmation doesn't match.";
+errmsg.err52="Password confirmation doesn&#39;t match.";
 
 // Port_Services.asp error messages
 errmsg.err53="After finished all actions, click the Apply button to save the settings.";

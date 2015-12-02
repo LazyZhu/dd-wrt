@@ -276,7 +276,7 @@ errmsg.err29=" have illegal ascii code.";
 errmsg.err30=" have illegal hexadecimal digits.";
 errmsg.err31=" value is illegal.";
 errmsg.err32="IP address and gateway is not at same subnet mask.";
-errmsg.err33="IP address and gateway can't be same.";
+errmsg.err33="IP address and gateway can&#39;t be same.";
 errmsg.err34=" is not allowed to contain a space.";
 
 //Wol.asp error messages
@@ -312,7 +312,7 @@ errmsg.err50="You must input a SSID.";
 
 // Management.asp error messages
 errmsg.err51="The Router is currently set to its default password. As a security measure, you must change the password before the Remote Management feature can be enabled. Click the OK button to change your password. Click the Cancel button to leave the Remote Management feature disabled.";
-errmsg.err52="Password confirmation doesn't match.";
+errmsg.err52="Password confirmation doesn&#39;t match.";
 
 // Port_Services.asp error messages
 errmsg.err53="After finished all actions, click the Apply button to save the settings.";
@@ -1500,7 +1500,7 @@ upgrad.titl="Firmware Upgrade";
 upgrad.h2="Firmware Management";
 upgrad.legend="Firmware Upgrade";
 upgrad.info1="After flashing, reset to";
-upgrad.resetOff="Don't reset";
+upgrad.resetOff="Don&#39;t reset";
 upgrad.resetOn="Reset to Default settings";
 upgrad.file="Please select a file to upgrade";
 upgrad.warning="تـحــذيـر";
