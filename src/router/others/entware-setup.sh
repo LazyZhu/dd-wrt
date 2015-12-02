@@ -143,8 +143,8 @@ logger -s -p local0.notice -t post-mount "### checking filesystems..."
 for mountdev in \`/bin/mount | grep -E 'hfsplus' | grep ro | cut -d" " -f1\`
 do
         logger -s -p local0.notice -t post-mount "### checking hfsplus at \$mountdev..."
-        fsck_hfs -fy \$mountdev
-        logger -s -p local0.notice -t post-mount "### remount hfsplus rw..."
+        fsck_hfs -py \$mountdev
+        logger -s -p local0.notice -t post-mount "### remount hfsplus r/w..."
         mount -o remount,rw,force \$mountdev
         # make it world writable
         chmod 777 \`/bin/mount | grep \$mountdev | cut -d" " -f3\`
