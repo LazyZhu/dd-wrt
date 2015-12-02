@@ -2365,6 +2365,10 @@ void start_sysinit(void)
 			sleep(1);
 		};
 		if (nvram_get("0:venid") == NULL) {
+			/* disable LED blinking */
+			nvram_set("0:ledbh0", "11"); // 2.4 GHz led
+			nvram_set("1:ledbh0", "11"); // 5.0 GHz led
+			/* MAC setup */
 			MAC_ADD(mac);
 			MAC_ADD(mac);
 			/* 2 GHz */

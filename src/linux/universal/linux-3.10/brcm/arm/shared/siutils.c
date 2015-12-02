@@ -5103,27 +5103,13 @@ si_gpioout2(si_t *sih, uint32 mask, uint32 val, uint8 priority)
 	{
 	    return si_gpioout(sih,mask,val,priority);
 	}
+	// disable blink for WS880 Wi-Fi
 	// blink 2.4 (mask 1 val 1/0)
-//	if (isws880 && (mask = 1))
-//	{
-#ifndef USE_LZMA
-//	    printk(KERN_INFO "### ws880 mask 0x%x, val 0x%x (mask 1)\n",mask,val);
-#endif
-	    //return 0;
-//	}
 	// blink 5.0 (mask 2 val 2/0)
-//	if (isws880 && ((mask = 2))
+//	if (isws880 && ((mask & val)))
 //	{
-#ifndef USE_LZMA
-//	    printk(KERN_INFO "### ws880 mask 0x%x, val 0x%x (mask 2)\n",mask,val);
-#endif
-	    //return 0;
+//	    return 0;
 //	}
-	// disable blink for Wi-Fi
-	if (isws880 && ((mask & val)))
-	{
-	    return 0;
-	}
 	
 	regoff = 0;
 	if (!gpio_sih)
