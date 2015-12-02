@@ -2211,7 +2211,7 @@ void start_restore_defaults(void)
 
 #ifndef HAVE_MADWIFI
 	int icnt = get_wl_instances();
-	if (brand == ROUTER_HUAWEI_WS880)	//nikk: dual radio, wl detect fix
+	if (brand == ROUTER_HUAWEI_WS880)	// dual radio, wl detect fix (we don't need 3rd interface values in nvram)
 		icnt = 2;
 #else
 	int icnt = getdevicecount();
@@ -2292,11 +2292,6 @@ void start_restore_defaults(void)
 			break;
 		case ROUTER_HUAWEI_WS880:
 			// some initial vars
-			// nvram_set("vlan1hwname", "et0");
-			// nvram_set("vlan1ports", "1 2 3 4 5*");
-			// nvram_set("vlan2hwname", "et0");
-			// nvram_set("vlan2ports", "0 5u"); // in another switch
-			// nvram_set("clkfreq", "800,533");
 			nvram_set("language", "russian");
 			nvram_set("router_style", "red");
 			nvram_set("router_style_dark", "1");
@@ -2308,7 +2303,7 @@ void start_restore_defaults(void)
 			nvram_set("boot_wait", "off");
 			nvram_set("wait_time", "3");
 			// for debug
-			nvram_set("service_debug", "1");
+			//nvram_set("service_debug", "1");
 			nvram_set("syslogd_enable", "1");
 			cprintf("add defaults for Huawei WS880\n");
 			// Flash all WS880 GPIO LEDS

@@ -2302,7 +2302,7 @@ void start_sysinit(void)
 			set_regulation(1, "US", "0");
 		break;
 	case ROUTER_HUAWEI_WS880:
-		/* force reset to defaults (upgrade from Tomato etc)
+		/* force reset nvram to defaults (upgrade from Tomato etc) */
 		if (nvram_get("productid") != NULL || nvram_match("http_username", "admin")) {
 			int deadcount = 10;
 			while (deadcount--) {
@@ -2320,7 +2320,7 @@ void start_sysinit(void)
 			nvram_set("flash_active", "1");	// prevent recommit of value until reboot is done
 			sys_reboot();
 		}
-		// ALL leds OFF
+		/* ALL leds OFF
 		set_gpio(14, 1);	// USB led
 		set_gpio(1, 1);		// LAN led
 		set_gpio(12, 0);	// INTERNET led
@@ -2333,7 +2333,7 @@ void start_sysinit(void)
 		set_gpio(2, 1);		// fixup reset button
 		set_gpio(3, 1);		// fixup wps button
 		set_gpio(15, 1);	// fixup pwr button
-		// set_gpio(7, 1);	// USB pwr OFF?
+		// set_gpio(7, 1);	// USB pwr OFF
 
 		// PIN setup
 		char pin[10];
@@ -2352,7 +2352,7 @@ void start_sysinit(void)
 		if (!sv_valid_hwaddr(nvram_safe_get("lan_hwaddr"))) {
 			fprintf(stderr, "sysinit-northstar: set WS880 LAN mac: %s\n", mac);
 			nvram_set("lan_hwaddr", mac);
-			// diag blink INTERNET led
+			// diag blink INTERNET led 2 times
 			set_gpio(12, 0);
 			sleep(1);
 			set_gpio(12, 1);
@@ -2607,9 +2607,9 @@ void start_sysinit(void)
 			set_gpio(6, 1);
 			sleep(1);
 			// for debug
-			nvram_set("service_debug", "1");
+			//nvram_set("service_debug", "1");
 			nvram_set("syslogd_enable", "1");
-			nvram_set("console_loglevel", "5");
+			//nvram_set("console_loglevel", "5");
 			nvram_commit();
 			fprintf(stderr, "sysinit-northstar: sys_reboot 4 sure (new macs and wi-fi)\n");
 			sys_reboot();
