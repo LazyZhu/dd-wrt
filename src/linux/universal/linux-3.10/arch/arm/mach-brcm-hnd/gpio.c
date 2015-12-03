@@ -229,7 +229,7 @@ static int __init gpio_init(void)
 		isac66 = 1;
 	}
 
-	if (nvram_match("model","RT-AC68U") || ((boardnum != 24) && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1100"))) {
+	if (nvram_match("model","RT-AC68U")) {
 		printk(KERN_EMERG "Asus-RT-AC68U GPIO init\n");
 		isac68 = 1;
 	}
@@ -238,7 +238,7 @@ static int __init gpio_init(void)
 	    (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1101"))) {
 		printk(KERN_EMERG "### Huawei WS880 GPIO init\n");
 		isws880 = 1;
-		// ALL OFF
+		// ALL
 		// gpios = 0<<0 | 0<<1 | 1<<2 | 1<<3 | 0<<6 | 0<<7 | 1<<12 | 0<<14 | 1<<15 ;
 	}
 

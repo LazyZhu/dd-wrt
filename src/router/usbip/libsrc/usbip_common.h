@@ -36,7 +36,7 @@ extern int usbip_use_debug ;
 
 #define pr_fmt(fmt)	"%s: %s: " fmt "\n", PROGNAME
 #define dbg_fmt(fmt)	pr_fmt("%s:%d:[%s] " fmt), "debug",	\
-		        __FILE__, __LINE__, __FUNCTION__
+		        __FILE__, __LINE__, __func__
 
 #define err(fmt, args...)						\
 	do {								\
@@ -80,11 +80,12 @@ enum usb_device_speed {
 	USB_SPEED_UNKNOWN = 0,                  /* enumerating */
 	USB_SPEED_LOW, USB_SPEED_FULL,          /* usb 1.1 */
 	USB_SPEED_HIGH,                         /* usb 2.0 */
-	USB_SPEED_VARIABLE                      /* wireless (usb 2.5) */
+	USB_SPEED_WIRELESS,			/* wireless (usb 2.5) */
+	USB_SPEED_SUPER,			/* usb 3.0 */
 };
 
 /* FIXME: how to sync with drivers/usbip_common.h ? */
-enum usbip_device_status{
+enum usbip_device_status {
 	/* sdev is available. */
 	SDEV_ST_AVAILABLE = 0x01,
 	/* sdev is now used. */
@@ -132,7 +133,8 @@ struct usbip_usb_device {
 void dump_usb_interface(struct usbip_usb_interface *);
 void dump_usb_device(struct usbip_usb_device *);
 int read_usb_device(struct sysfs_device *sdev, struct usbip_usb_device *udev);
-int read_attr_value(struct sysfs_device *dev, const char *name, const char *format);
+int read_attr_value(struct sysfs_device *dev, const char *name,
+		    const char *format);
 int read_usb_interface(struct usbip_usb_device *udev, int i,
 		       struct usbip_usb_interface *uinf);
 
@@ -141,7 +143,9 @@ const char *usbip_status_string(int32_t status);
 
 int usbip_names_init(char *);
 void usbip_names_free(void);
-void usbip_names_get_product(char *buff, size_t size, uint16_t vendor, uint16_t product);
-void usbip_names_get_class(char *buff, size_t size, uint8_t class, uint8_t subclass, uint8_t protocol);
+void usbip_names_get_product(char *buff, size_t size, uint16_t vendor,
+			     uint16_t product);
+void usbip_names_get_class(char *buff, size_t size, uint8_t class,
+			   uint8_t subclass, uint8_t protocol);
 
 #endif /* __USBIP_COMMON_H */

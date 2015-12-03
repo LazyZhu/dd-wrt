@@ -3020,7 +3020,6 @@ void start_drivers(void)
 void start_post_sysinit(void)
 {
 	led_control(LED_POWER, LED_ON);
-	led_control(LED_POWER1, LED_ON);
 	led_control(LED_SES, LED_OFF);
 	led_control(LED_SES2, LED_OFF);
 	led_control(LED_DIAG, LED_OFF);
@@ -3033,10 +3032,10 @@ void start_post_sysinit(void)
 	led_control(LED_USB1, LED_OFF);
 	led_control(USB_POWER, LED_OFF);
 	led_control(USB_POWER1, LED_OFF);
-	led_control(USB_DMZ, LED_OFF);
-	led_control(USB_VPN, LED_OFF);
-	led_control(USB_SEC0, LED_OFF);
-	led_control(USB_SEC1, LED_OFF);
+	led_control(LED_DMZ, LED_OFF);
+	led_control(LED_VPN, LED_OFF);
+	led_control(LED_SEC0, LED_OFF);
+	led_control(LED_SEC1, LED_OFF);
 }
 
 /*
