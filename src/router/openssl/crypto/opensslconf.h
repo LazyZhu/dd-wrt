@@ -83,6 +83,9 @@ extern "C" {
 #ifndef OPENSSL_NO_SSL2
 # define OPENSSL_NO_SSL2
 #endif
+#ifndef OPENSSL_NO_SSL3
+# define OPENSSL_NO_SSL3
+#endif
 #ifndef OPENSSL_NO_STORE
 # define OPENSSL_NO_STORE
 #endif
@@ -185,6 +188,9 @@ extern "C" {
 # if defined(OPENSSL_NO_SSL2) && !defined(NO_SSL2)
 #  define NO_SSL2
 # endif
+# if defined(OPENSSL_NO_SSL3) && !defined(NO_SSL3)
+#  define NO_SSL3
+# endif
 # if defined(OPENSSL_NO_STORE) && !defined(NO_STORE)
 #  define NO_STORE
 # endif
@@ -192,8 +198,6 @@ extern "C" {
 #  define NO_UNIT_TEST
 # endif
 #endif
-
-#define OPENSSL_CPUID_OBJ
 
 /* crypto/opensslconf.h.in */
 
@@ -317,7 +321,7 @@ extern "C" {
    optimization options.  Older Sparc's work better with only UNROLL, but
    there's no way to tell at compile time what it is you're running on */
  
-#if defined( sun )		/* Newer Sparc's */
+#if defined( __sun ) || defined ( sun )		/* Newer Sparc's */
 #  define DES_PTR
 #  define DES_RISC1
 #  define DES_UNROLL

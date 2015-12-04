@@ -711,18 +711,13 @@ endif # $(CONFIG_BUILD_DLINK)
 
 ifeq ($(CONFIG_BUILD_ASUS),y)
 	### Pack for Asus ###
-	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC56U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac56u-firmware.trx
-	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC68U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac68u-firmware.trx
-	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC87U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac87u-firmware.trx
-	../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-N18U,3.0.0.4,$(ARCH)-uclibc/asus_rt-n18u-firmware.trx
-
-	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC56U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac56u-firmware.trx
-	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC68U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac68u-firmware.trx
-	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC87U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac87u-firmware.trx
-	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC88U,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac88u-firmware.trx
-	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC5300,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac5300-firmware.trx
-	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC3200,3.0.0.4,$(ARCH)-uclibc/asus_rt-ac3200-firmware.trx
-	-./tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-N18U,3.0.0.4,$(ARCH)-uclibc/asus_rt-n18u-firmware.trx
+	-../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC56U,3.0.0.4.380.760,$(ARCH)-uclibc/asus_rt-ac56u-firmware.trx
+	-../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC68U,3.0.0.4.380.760,$(ARCH)-uclibc/asus_rt-ac68u-firmware.trx
+	-../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC87U,3.0.0.4.380.760,$(ARCH)-uclibc/asus_rt-ac87u-firmware.trx
+	-../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC88U,3.0.0.4.380.760,$(ARCH)-uclibc/asus_rt-ac88u-firmware.trx
+	-../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC5300,3.0.0.4.380.760,$(ARCH)-uclibc/asus_rt-ac5300-firmware.trx
+	-../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-AC3200,3.0.0.4.380.760,$(ARCH)-uclibc/asus_rt-ac3200-firmware.trx
+	-../../opt/tools/trx_asus -i $(ARCH)-uclibc/northstar-firmware-squashfs.bin -r RT-N18U,3.0.0.4.380.760,$(ARCH)-uclibc/asus_rt-n18u-firmware.trx
 endif # $(CONFIG_BUILD_ASUS)
 
 ifeq ($(CONFIG_BUILD_BUFFALO),y)
