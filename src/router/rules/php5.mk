@@ -44,7 +44,7 @@ libgd-configure:
 	$(MAKE) -C libgd
 
 libgd-install:
-
+	@true
 
 
 libmcrypt:
