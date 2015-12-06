@@ -243,6 +243,7 @@ input, select { /* align together */
 input.num { /* they need some air */
 	margin-top: 1px;
 	margin-bottom: 1px;
+	/* padding: 2px; /* more narrow num fields, but will not align with other inputs' padding */
 }
 td#n_smbuser_shareaccess {
 	padding-top: 0.21em;
