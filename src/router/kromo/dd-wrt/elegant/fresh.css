@@ -81,7 +81,6 @@ border: solid 1px #707070;
 box-shadow: 0 0 5px 1px #969696;
 }
 input {
-/* padding: 4px; */
 padding: 2px 6px; /* align with select */
 line-height: 1.42857; /* align with select */
 font-size: 12px;
@@ -243,7 +242,8 @@ input, select { /* align together */
 input.num { /* they need some air */
 	margin-top: 1px;
 	margin-bottom: 1px;
-	/* padding: 2px; /* more narrow num fields, but will not align with other inputs' padding */
+	padding-left: 2px;
+	padding-right: 4px;
 }
 td#n_smbuser_shareaccess {
 	padding-top: 0.21em;
