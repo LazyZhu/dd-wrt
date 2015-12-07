@@ -4,7 +4,8 @@
 ### #########################################
 DEVDIR=/home/dd-wrt/dd-wrt
 GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-4.8-linaro_musl-1.1.5_eabi/bin
-REVISION="26424M"
+REVISION="28000M" # redefined, just default value
+KERNELVERSION="3.10" # 3.10 stable, 3.18 experimental
 export PATH=$GCCARM:$PATH
 export ARCH=arm
 
@@ -26,14 +27,17 @@ EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
 # MINI (~10MB firmware) - try to build with that config it first!
 # cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_mini $DEVDIR/src/router/.config
 # 16M (~16MB firmware)
-cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_16m $DEVDIR/src/router/.config
+# cp -f $DEVDIR/src/router/configs/northstar/.config_ws880_16m $DEVDIR/src/router/.config
 # STD (~30MB firmware)
-# cp -f $DEVDIR/src/router/configs/northstar/.config_ws880 $DEVDIR/src/router/.config
+cp -f $DEVDIR/src/router/configs/northstar/.config_ws880 $DEVDIR/src/router/.config
 # R1D (14.3MB MAX)
 # cp -f $DEVDIR/src/router/configs/northstar/.config_xiaomi_r1d $DEVDIR/src/router/.config
 echo "CONFIG_BUILD_HUAWEI=y" >> $DEVDIR/src/router/.config
 echo "CONFIG_USB_AUDIO=y" >> $DEVDIR/src/router/.config
 echo "CONFIG_PPTP_PLUGIN=y" >> $DEVDIR/src/router/.config
+if [ $KERNELVERSION = "3.18" ]; then
+sed -i 's/KERNELVERSION=3.10/KERNELVERSION=3.18/g' $DEVDIR/src/router/.config
+fi
 # Make fw for other brands too
 # (uncomment desired and check src/router/Makefile.northstar)
 #echo "CONFIG_BUILD_XIAOMI=y" >> $DEVDIR/src/router/.config
@@ -145,11 +149,14 @@ echo ""
 #autoconf
 #automake --add-missing
 #autoreconf -ivf
+
 #cd $DEVDIR/src/router/zabbix
 #aclocal
+
 #cd $DEVDIR/src/router/openvpn
 #aclocal
 #autoconf
+### #########################################
 
 cd $DEVDIR/src/router
 echo ""
@@ -191,10 +198,10 @@ if [ -e arm-uclibc/xiaomi-r1d-firmware.bin ]
 then
    STAMP="`date +%Y-%m-%d_%H:%M`"
    mkdir -p ../../image
-   cp arm-uclibc/xiaomi-r1d-firmware.bin ../../image/dd-wrt.v24-K3_Xiaomi_R1D_"$STAMP"_r"$REVISION$EXTENDNO".bin
+   cp arm-uclibc/xiaomi-r1d-firmware.bin ../../image/dd-wrt.v3-K"$KERNELVERSION"_Xiaomi_R1D_"$STAMP"_r"$REVISION$EXTENDNO".bin
    echo ""
    echo ""
-   echo "Image created: image/dd-wrt.v24-K3_Xiaomi_R1D_"$STAMP"_r"$REVISION$EXTENDNO".bin"
+   echo "Image created: image/dd-wrt.v3-K"$KERNELVERSION"_Xiaomi_R1D_"$STAMP"_r"$REVISION$EXTENDNO".bin"
 fi
 
 # copy firmware to image dir
@@ -202,13 +209,13 @@ if [ -e arm-uclibc/huawei-ws880-firmware.trx ]
 then
    STAMP="`date +%Y-%m-%d_%H:%M`"
    mkdir -p ../../image
-   cp arm-uclibc/huawei-ws880-firmware.trx ../../image/dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx
+   cp arm-uclibc/huawei-ws880-firmware.trx ../../image/dd-wrt.v3-K"$KERNELVERSION"_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx
    echo ""
    echo ""
-   echo "Image created: dd-wrt.v24-K3_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx"
+   echo "Image created: dd-wrt.v3-K"$KERNELVERSION"_Huawei_WS880_"$STAMP"_r"$REVISION$EXTENDNO".trx"
 fi
 
-   echo ""
+   echo "DONE"
    echo ""
    echo "Have a look in the \"image\" directory"
    echo "and src/router/arm-uclibc directory"
