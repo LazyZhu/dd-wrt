@@ -71,53 +71,72 @@ echo '"' >> revision.h
 ### ###
 
 ### compile trx ###
-cd $DEVDIR/opt/tools/
-gcc -o trx trx.c
-gcc -o trx_asus trx_asus.c
+#cd $DEVDIR/opt/tools/
+#gcc -o trx trx.c
+#gcc -o trx_asus trx_asus.c
 
 ### compile jsformat ###
 #cd $DEVDIR/src/router/tools
 #rm jsformat
 #make jsformat
 
-### compile webcomp ###
-#cd $DEVDIR/tools/
-#rm ./strip
-#gcc strip.c -o ./strip
-#rm ./write3
-#gcc write3.c -o ./write3
-#rm ./write4
-#gcc write4.c -o ./write4
-#rm ./webcomp
-#gcc -o webcomp -DUEMF -DWEBS -DLINUX webcomp.c
+### compile webcomp tools ###
+cd $DEVDIR/tools/
+rm ./process_langfile
+gcc process_langfile.c -o ./process_langfile
+rm ./process_nvramconfigfile
+gcc process_nvramconfigfile.c -o ./process_nvramconfigfile
+rm ./removewhitespace
+gcc removewhitespace.c -o ./removewhitespace
+rm ./strip
+gcc strip.c -o ./strip
+rm ./write3
+gcc write3.c -o ./write3
+rm ./write4
+gcc write4.c -o ./write4
+rm ./webcomp
+gcc -o webcomp -DUEMF -DWEBS -DLINUX webcomp.c
 
 echo ""
 echo "************************************"
-echo " Fixing alconf..."
-echo " - comment this section after 1st run"
-echo " - some fixes doesn't needed at all"
+echo "*"
+echo "* Fix all configs for local build  "
+echo "*"
 echo "************************************"
+echo ""
+### #########################################
+### * comment this section after 1st run
+### * some fixes doesn't needed at all...
+### ###
 #cd $DEVDIR/src/router/zlib
 #aclocal
+
 #cd $DEVDIR/src/router/jansson
 #aclocal
+
 ### glib2.0/gettext automake version build error fix (moved to rules/*.mk)
 ### it still needs aclocal-1.13, link it in case yourth newer
 #sudo ln -s /usr/bin/automake /usr/bin/automake-1.13
 #sudo ln -s /usr/bin/aclocal /usr/bin/aclocal-1.13
+
 ### comgt compile fix
 #cd $DEVDIR/src/router/usb_modeswitch/libusb-compat
 #aclocal
 #autoreconf -ivf
+
 #cd $DEVDIR/src/router/pptpd
 #aclocal
+
 #cd $DEVDIR/src/router/igmp-proxy
 #aclocal
+
 #cd $DEVDIR/src/router/nocat
 #aclocal
+
 ### for snort (moved to rules/*.mk)
 #cd $DEVDIR/src/router/libnfnetlink
 #aclocal
+#autoreconf -ivf
 #cd $DEVDIR/src/router/libnetfilter_queue
 #aclocal
 #autoreconf -ivf
