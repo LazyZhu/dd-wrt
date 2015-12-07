@@ -48,6 +48,9 @@ fi
 #echo "CONFIG_BUILD_NETGEAR=y" >> $DEVDIR/src/router/.config
 #echo "CONFIG_BUILD_TRENDNET=y" >> $DEVDIR/src/router/.config
 
+# !!! TEMP need to fix
+echo "NO_PROCESSLANGFILES=y" >> $DEVDIR/src/router/.config
+
 cd $DEVDIR/src/router/libutils
 echo -n '#define SVN_REVISION "' > revision.h
 # svnversion -n . >> revision.h
