@@ -19,7 +19,7 @@ export ARCH=arm
 cd $DEVDIR
 # git pull
 REVISION=`git log --grep git-svn-id -n 1|grep -i dd-wrt|awk '{print $2}'|awk -F'@' '{print $2}'`
-EXTENDNO="-"`git rev-parse --verify HEAD --short`"-GIT"
+EXTENDNO="-"`git rev-parse --verify HEAD --short|cut -c 1-4`"-GIT"
 
 ### ###################
 ### setup target router
