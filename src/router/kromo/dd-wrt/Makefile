@@ -1028,7 +1028,7 @@ optimizefiles:
 	-repugly $(INSTALLDIR)/www
 ifeq ($(CONFIG_IAS),y)
 	-repugly $(INSTALLDIR)/www/intatstart/js
-	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/intatstart/js
+#	../../../../tools/removewhitespace.sh $(TOP)/../../tools $(INSTALLDIR)/www/intatstart/js
 endif
 ifeq ($(CONFIG_PWC),y)
 	-repugly $(INSTALLDIR)/www/js
