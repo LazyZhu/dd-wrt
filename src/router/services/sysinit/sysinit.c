@@ -1218,7 +1218,7 @@ void start_restore_defaults(void)
 	else
 		generic = wrt1200;
 #elif HAVE_IPQ806X
-	struct nvram_param generic[] = {
+	struct nvram_param ipq806x[] = {
 		{"lan_ifname", "br0"},
 		{"lan_ifnames", "eth0 eth1 ath0 ath1",},
 		{"wan_ifname", "eth0"},
@@ -1236,6 +1236,15 @@ void start_restore_defaults(void)
 		{"wan_default", "vlan2"},
 		{0, 0}
 	};
+
+	struct nvram_param *generic = NULL;
+
+	int wrt_brand = getRouterBrand();
+	if (wrt_brand == ROUTER_LINKSYS_EA8500)
+		generic = ea8500;
+	else
+		generic = ipq806x;
+
 #elif HAVE_WDR4900
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
@@ -1996,8 +2005,6 @@ void start_restore_defaults(void)
     || defined(HAVE_STORM) || defined(HAVE_ADM5120) || defined(HAVE_CA8)  || defined(HAVE_OCTEON)
 	int brand = getRouterBrand();
 	linux_overrides = generic;
-	if( brand == ROUTER_LINKSYS_EA8500 )
-		linux_overrides = ea8500;
 
 	if (nvram_invmatch("sv_restore_defaults", "0"))
 	{
