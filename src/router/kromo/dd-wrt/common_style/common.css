@@ -33,7 +33,7 @@ form {
 input.num {
   padding-left: 1px;
   padding-right: 1px;
-  text-align:center;
+  text-align:right;
 }
 #wrapper {
   position:relative;
