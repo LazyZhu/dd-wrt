@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -96,52 +95,49 @@ static void *call(void *handle, char *func, webs_t stream)	//jimmy, https, 8/4/2
 	return call_ej(func, handle, stream, argc, argv);
 }
 
-static int decompress(webs_t stream, char *pattern, int len, int last)
+static int decompress(webs_t stream, char *pattern, int len)
 {
 	struct DECODE {
-		char src;
+		char *src;
 		char *dst;
 	};
 
 	struct DECODE decode[] = {
-		{'i', "<input type="},	//
-		{'c', "<input class=\"spaceradio\""},	//
-		{'t', "<input class=\"text\""},	//
-		{'p', "<input class=\"num\""},	//
-		{'h', "<input class=\"button\""},	//
-		{'g', "<input class=\\\"button\\\""},	//
-		{'d', "<input id="},	//
-		{'f', "<div class=\"setting\""},	//
-		{'e', "<div class="},	//
-		{'n', "<div id="},	//
-		{'j', "<a href=\""},	//
-		{'o', "<option value="},	//
-		{'s', "<select name="},	//
-		{'u', "<span class="},	//
-		{'z', "<input name="},	//
-		{'x', "document.write(\""},	//
-		{'y', "<document."},	//
-		{'m', "<script type=\"text/javascript\">"},	//
+		{"{i}", "<input type="},	//
+		{"{c}", "<input class="},	//
+		{"{d}", "<input id="},	//
+		{"{e}", "<div class="},	//
+		{"{n}", "<div id="},	//
+		{"{j}", "<a href=\""},	//
+		{"{o}", "<option value="},	//
+		{"{s}", "<select name="},	//
+		{"{u}", "<span class="},	//
+		{"{z}", "<input name="},	//
+		{"{x}", "document.write(\""},	//
+		{"{y}", "<document."},	//
+		{"{m}", "<script type=\"text/javascript\">"},	//
 	};
 	int i;
 	int l = sizeof(decode) / sizeof(struct DECODE);
 	switch (len) {
 	case 1:
-		return 1;
+		for (i = 0; i < l; i++) {
+			if (pattern[0] == decode[i].src[0])
+				return 1;
+		}
 		break;
 	case 2:
 		for (i = 0; i < l; i++) {
-			if (pattern[1] == decode[i].src)
-				return i + 1;
+			if (pattern[0] == decode[i].src[0] && pattern[1] == decode[i].src[1])
+				return 1;
 		}
 		break;
 	case 3:
-		if (last && pattern[2] == '}') {
-			websWrite(stream, decode[last - 1].dst);
-			return 1;
-		} else {
-			websWrite(stream, pattern);
-			return 1;
+		for (i = 0; i < l; i++) {
+			if (pattern[0] == decode[i].src[0] && pattern[1] == decode[i].src[1] && pattern[2] == decode[i].src[2]) {
+				websWrite(stream, decode[i].dst);
+				return 1;
+			}
 		}
 		break;
 	}
@@ -201,11 +197,10 @@ static void do_ej_s(int (*get) (void), webs_t stream)	// jimmy, https, 8/4/2003
 		if (!asp) {
 			char pat = pattern[0];
 			if (pat == '{') {
-				ret = decompress(stream, pattern, len, ret);
+				ret = decompress(stream, pattern, len);
 				if (ret) {
-					if (len == 3) {
+					if (len == 3)
 						len = 0;
-					}
 					continue;
 				}
 			}
@@ -262,7 +257,7 @@ static void do_ej_s(int (*get) (void), webs_t stream)	// jimmy, https, 8/4/2003
 		dlclose(global_handle);
 	global_handle = NULL;
 #endif
-	free(pattern);
+	    free(pattern);
 	memdebug_leave();
 }
 
