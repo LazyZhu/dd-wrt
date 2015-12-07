@@ -128,8 +128,8 @@ color: #000;
 background-color: #FFF; /* as background */
 }
 select {
-/* padding: 4px 4px; */
-padding: 2px 2px; /* align with input */
+padding: 2px 2px; /* align select text with input text */
+height: 1.917em; /* Opera missing select padding hack */
 font-size: 12px;
 line-height: 1.42857;
 color: #555;
