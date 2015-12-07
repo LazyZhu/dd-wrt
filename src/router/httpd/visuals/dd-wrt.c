@@ -4203,13 +4203,13 @@ if (nvram_match(wl_mode, "ap") || nvram_match(wl_mode, "wdsap")
 			websWrite(wp, "<div class=\"setting\">\n");
 			websWrite(wp, "<div class=\"label\"><script type=\"text/javascript\">Capture(wl_basic.channel_wide)</script></div>\n");
 			websWrite(wp, "<select name=\"%s_nctrlsb\" >\n", prefix);
-			websWrite(wp, "<option value=\"ll\" %s><script type=\"text/javascript\">document.write(wl_basic.lower+\" \"+wl_basic.lower);</script></option>\n",
+			websWrite(wp, "<option value=\"ll\" %s><script type=\"text/javascript\">document.write(wl_basic.upper+\" \"+wl_basic.upper);</script></option>\n",
 				  nvram_nmatch("ll", "%s_nctrlsb", prefix) ? "selected=\\\"selected\\\"" : "");
-			websWrite(wp, "<option value=\"lu\" %s><script type=\"text/javascript\">document.write(wl_basic.lower+\" \"+wl_basic.upper);</script></option>\n",
+			websWrite(wp, "<option value=\"lu\" %s><script type=\"text/javascript\">document.write(wl_basic.upper+\" \"+wl_basic.lower);</script></option>\n",
 				  nvram_nmatch("lu", "%s_nctrlsb", prefix) ? "selected=\\\"selected\\\"" : "");
-			websWrite(wp, "<option value=\"ul\" %s><script type=\"text/javascript\">document.write(wl_basic.upper+\" \"+wl_basic.lower);</script></option>\n",
+			websWrite(wp, "<option value=\"ul\" %s><script type=\"text/javascript\">document.write(wl_basic.lower+\" \"+wl_basic.upper);</script></option>\n",
 				  nvram_nmatch("ul", "%s_nctrlsb", prefix) ? "selected=\\\"selected\\\"" : "");
-			websWrite(wp, "<option value=\"uu\" %s><script type=\"text/javascript\">document.write(wl_basic.upper+\" \"+wl_basic.upper);</script></option>\n",
+			websWrite(wp, "<option value=\"uu\" %s><script type=\"text/javascript\">document.write(wl_basic.lower+\" \"+wl_basic.lower);</script></option>\n",
 				  nvram_nmatch("uu", "%s_nctrlsb", prefix) ? "selected=\\\"selected\\\"" : "");
 			websWrite(wp, "</select>\n");
 			websWrite(wp, "</div>\n");
