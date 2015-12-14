@@ -159,12 +159,11 @@ length bit = yes
 			"require chap = %s\n"	//
 			"refuse pap = %s\n"	//
 			"redial = yes\n"	//
-			"redial timeout = 15\n"	//
+			"redial timeout = %s\n"	//
 			"require authentication = %s\n"	//
 			"name = %s\n"	//
 			"pppoptfile = /tmp/ppp/options.l2tp\n"	//
-			"length bit = yes\n", nvram_safe_get("l2tp_server_name"), nvram_safe_get("l2tp_server_name"), nvram_match("l2tp_req_chap", "0") ? "no" : "yes", nvram_match("l2tp_ref_pap", "0") ? "no" : "yes",
-			nvram_match("l2tp_req_auth", "0") ? "no" : "yes", username);
+			"length bit = yes\n", nvram_safe_get("l2tp_server_name"), nvram_safe_get("l2tp_server_name"), nvram_match("l2tp_req_chap", "0") ? "no" : "yes", nvram_match("l2tp_ref_pap", "0") ? "no" : "yes", nvram_safe_get("ppp_redialperiod"), nvram_match("l2tp_req_auth", "0") ? "no" : "yes", username);
 		fclose(fp);
 
 		/*
