@@ -56,11 +56,14 @@ static void getMac(char *newmac)
 		strcpy(newmac, nvram_safe_get("et0macaddr"));
 		break;
 	}
+	
 }
 
 void getLANMac(char *newmac)
 {
+
 	getMac(newmac);
+
 #ifndef HAVE_BUFFALO
 
 	if (nvram_match("port_swap", "1")) {
@@ -130,7 +133,8 @@ void getWirelessMac(char *newmac, int instance)
 
 	}
 #endif
-#ifdef HAVE_MVEBU
+#if defined(HAVE_MVEBU) || defined(HAVE_IPQ806X)
+/* NOTE: this is a workaround for EA8500 Device and might generate wrong macs for other IPQ devices. custom handling might be required here */
 	if (instance < 0)
 		instance = 0;
 
