@@ -154,6 +154,11 @@ length bit = yes
 */
 		fprintf(fp, "[global]\n"	// Global section
 			"port = 1701\n"	// Bind address
+			"debug avp = no\n"	// TEMP DEBUG
+			"debug network = no\n"	// TEMP DEBUG
+			"debug packet = no\n"	// TEMP DEBUG
+			"debug state = no\n"	// TEMP DEBUG
+			"debug tunnel = no\n"	// TEMP DEBUG
 			"[lac %s]\n"	//
 			"lns = %s\n"	//
 			"require chap = %s\n"	//
@@ -163,7 +168,7 @@ length bit = yes
 			"require authentication = %s\n"	//
 			"name = %s\n"	//
 			"pppoptfile = /tmp/ppp/options.l2tp\n"	//
-			"length bit = yes\n", nvram_safe_get("l2tp_server_name"), nvram_safe_get("l2tp_server_name"), nvram_match("l2tp_req_chap", "0") ? "no" : "yes", nvram_match("l2tp_ref_pap", "0") ? "no" : "yes", nvram_safe_get("ppp_redialperiod"), nvram_match("l2tp_req_auth", "0") ? "no" : "yes", username);
+			"length bit = yes\n", nvram_safe_get("l2tp_server_name"), nvram_safe_get("l2tp_server_ip"), nvram_match("l2tp_req_chap", "0") ? "no" : "yes", nvram_match("l2tp_ref_pap", "0") ? "no" : "yes", nvram_safe_get("ppp_redialperiod"), nvram_match("l2tp_req_auth", "0") ? "no" : "yes", username);
 		fclose(fp);
 
 		/*
