@@ -23,9 +23,19 @@
 #include <mach/io_map.h>
 #include <plat/plat-bcm5301x.h>
 
+#include <typedefs.h>
+#include <siutils.h>
+#include <bcmdevs.h>
+
 #ifdef CONFIG_PROC_FS
 #define DMU_PROC_NAME	"dmu"
 #endif /* CONFIG_PROC_FS */
+
+/* Global SB handle */
+extern si_t *bcm947xx_sih;
+
+/* Convenience */
+#define sih bcm947xx_sih
 
 static struct resource dmu_regs = {
 	.name = "dmu_regs",
@@ -407,7 +417,11 @@ static void __init soc_clocks_init(
 	/* is a OTPed 4708 chip which Ndiv == 0x50 */
 	reg = clk_genpll.regs_base + 0x14;
 	val = readl(reg);
-	if (((val >> 20) & 0x3ff) == 0x50) {
+	/* Add the condition of CHIP ID and package option to avoid overriding it on OTPed 4709C0
+	 * chip since 4709C0's OTP was programmed the same as 4708C0 on Ndiv.
+	 */
+	if (BCM4707_CHIP(CHIPID(sih->chip)) && (sih->chippkg == BCM4708_PKG_ID) &&
+		(((val >> 20) & 0x3ff) == 0x50)) {
 		/* CRU_CLKSET_KEY, unlock */
 		reg = clk_genpll.regs_base + 0x40;
 		val = 0x0000ea68;
