@@ -27,9 +27,15 @@ DEVICENAME ~~ (ppp) {
 	next
 }
 
-DEVICENAME ~~ (controlC[0-9]|pcmC0D0*|timer) {
+DEVICENAME ~~ (controlC[0-9]|pcmC[0-9]D0*|timer) {
 	nothrottle
 	makedev /dev/snd/%DEVICENAME% 0644
+	next
+}
+
+DEVICENAME ~~ (controlC[0-9]|pcmC[0-9]D0*), ACTION == remove {
+	nothrottle
+	exec rm -f /dev/snd/%DEVICENAME%
 	next
 }
 
@@ -48,7 +54,6 @@ DEVICENAME == device-mapper {
 	nothrottle
 	makedev /dev/mapper/control 0600
 }
-
 
 DEVPATH is set {
 	nothrottle
