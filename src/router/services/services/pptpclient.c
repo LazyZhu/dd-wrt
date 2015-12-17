@@ -156,10 +156,14 @@ void start_pptp(int status)
 	};
 	char username[80], passwd[80];
 
-	stop_dhcpc();
+	stop_dhcpc(); // commented in l2tp.c
+#ifdef HAVE_L2TP
+	stop_l2tp();
+#endif
 #ifdef HAVE_PPPOE
 	stop_pppoe();
 #endif
+	stop_pptp(); // as in l2tp.c
 	stop_vpn_modules();
 
 	snprintf(username, sizeof(username), "%s", nvram_safe_get("ppp_username"));
