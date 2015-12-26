@@ -428,8 +428,10 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 			}
 			/* use labels in mountpath if desired */
 			char label[32] = "usbdisk";
-			if (strstr(line, label)) {
-				if (nvram_match("usb_mntbylabel", "1")) {	
+			sprintf(label, "%s", nvram_safe_get("usb_mntlabel"));
+			// #define _GNU_SOURCE
+			if (strcasestr(line, label)) {
+				if (nvram_match("usb_mntbylabel", "1")) {
 					sprintf(mount_point, "/tmp/mnt/%s", label);
 				}
 			}
