@@ -472,6 +472,8 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 #endif
 	if (!strcmp(fs, "vfat")) {
 		ret = eval("/bin/mount", "-t", fs, "-o", "iocharset=utf8", path, mount_point);
+	} else if (!strcmp(fs, "hfsplus")) { // force rw mode for hfsplus
+		ret = eval("/bin/mount", "-t", fs, "--force", path, mount_point);
 	} else {
 		ret = eval("/bin/mount", "-t", fs, path, mount_point);
 	}
