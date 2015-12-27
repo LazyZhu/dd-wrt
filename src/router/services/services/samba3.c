@@ -72,7 +72,7 @@ void start_samba3(void)
 	}
 	start_mkfiles();
 	sysprintf("grep -q nobody /etc/passwd || echo \"nobody:*:65534:65534:nobody:/var:/bin/false\" >> /etc/passwd");
-	//sysprintf("grep -q nogroup /etc/group || echo \"nogroup:x:65534\" >> /etc/group");
+	sysprintf("grep -q users /etc/group || echo \"users:x:1000:root\" >> /etc/group"); // add samba users group
 	mkdir("/var/samba", 0700);
 	eval("touch", "/var/samba/smbpasswd");
 	if (nvram_match("samba3_advanced", "1")) {
@@ -82,6 +82,10 @@ void start_samba3(void)
 		for (cu = samba3users; cu; cu = cunext) {
 			if (strlen(cu->username)
 			    && cu->sharetype & SHARETYPE_SAMBA) {
+				//if (uniqueuserid == 1000)
+				//	sysprintf("sed -i '/^users:x:1000:/ s/$/%s/' /tmp/etc/group", cu->username); // add first user
+				//else
+					sysprintf("sed -i '/^users:x:1000:/ s/$/,%s/' /tmp/etc/group", cu->username); // add other users
 				sysprintf("echo \"%s\"\":*:%d:1000:\"%s\":/var:/bin/false\" >> /etc/passwd", cu->username, uniqueuserid++, cu->username);
 				eval("smbpasswd", cu->username, cu->password);
 			}
@@ -178,17 +182,19 @@ void start_samba3(void)
 						free(csu);
 					}
 				fprintf(fp, "\n");
-				fprintf(fp, "force user = root\n"); // map users to root
+				fprintf(fp, "force user = root\n"); // users files as root:users
+				fprintf(fp, "force group = users\n");
+				// this doesn't work yet for dirs
+				fprintf(fp, "directory mask = 0777\n"); // world writable dirs
+				fprintf(fp, "create mask = 0764\n"); // group writable files
 				} else {
 					for (csu = cs->users; csu; csu = csunext) {
 						csunext = csu->next;
 						free(csu);
 					}
-				fprintf(fp, "force user = nobody\n"); // map guests to nobody
+				fprintf(fp, "force user = nobody\n"); // public dirs/files as nobody
 				fprintf(fp, "force group = nobody\n");
 				}
-				fprintf(fp, "create mask = 0774\n"); // group writable files
-				fprintf(fp, "directory mask = 0775\n"); // group writable dirs
 			} else {
 				for (csu = cs->users; csu; csu = csunext) {
 					csunext = csu->next;
