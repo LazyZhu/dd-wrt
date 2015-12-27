@@ -1,5 +1,5 @@
 /*
- * proftp.c
+ * samba3.c
  *
  * Copyright (C) 2008 dd-wrt
  *
@@ -71,7 +71,8 @@ void start_samba3(void)
 		nvram_commit();
 	}
 	start_mkfiles();
-	sysprintf("echo \"nobody:*:65534:65534:nobody:/var:/bin/false\" >> /etc/passwd");
+	sysprintf("grep -q nobody /etc/passwd || echo \"nobody:*:65534:65534:nobody:/var:/bin/false\" >> /etc/passwd");
+	//sysprintf("grep -q nogroup /etc/group || echo \"nogroup:x:65534\" >> /etc/group");
 	mkdir("/var/samba", 0700);
 	eval("touch", "/var/samba/smbpasswd");
 	if (nvram_match("samba3_advanced", "1")) {
@@ -118,7 +119,9 @@ void start_samba3(void)
 			"dead time = 15\n"
 			"getwd cache = yes\n"
 			"lpq cache time = 30\n"
-			"printing = none\n" "load printers = No\n" "usershare allow guests = Yes\n", nvram_safe_get("router_name"), nvram_safe_get("samba3_srvstr"), nvram_safe_get("samba3_workgrp"));
+			"printing = none\n"
+			"load printers = No\n"
+			"usershare allow guests = Yes\n", nvram_safe_get("router_name"), nvram_safe_get("samba3_srvstr"), nvram_safe_get("samba3_workgrp"));
 
 		samba3shares = getsamba3shares();
 		for (cs = samba3shares; cs; cs = csnext) {
@@ -174,14 +177,18 @@ void start_samba3(void)
 						csunext = csu->next;
 						free(csu);
 					}
+				fprintf(fp, "\n");
+				fprintf(fp, "force user = root\n"); // map users to root
 				} else {
 					for (csu = cs->users; csu; csu = csunext) {
 						csunext = csu->next;
 						free(csu);
 					}
+				fprintf(fp, "force user = nobody\n"); // map guests to nobody
+				fprintf(fp, "force group = nobody\n");
 				}
-				fprintf(fp, "\n");
-				fprintf(fp, "force user = root\n");
+				fprintf(fp, "create mask = 0774\n"); // group writable files
+				fprintf(fp, "directory mask = 0775\n"); // group writable dirs
 			} else {
 				for (csu = cs->users; csu; csu = csunext) {
 					csunext = csu->next;
