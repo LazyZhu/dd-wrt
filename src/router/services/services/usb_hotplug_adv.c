@@ -293,16 +293,16 @@ static bool usb_load_modules(char *fs)
 		insmod("libcrc32c crc32c_generic lzo_compress lzo_decompress raid6_pq xor-neon xor btrfs");
 	}
 	if (!strcmp(fs, "hfs")) {
-		insmod("nls_base nls_cp932 nls_cp936 nls_cp950 nls_cp437 nls_iso8859-1 nls_iso8859-2 nls_utf8");
+		insmod("nls_base nls_cp932 nls_cp936 nls_cp950 nls_cp866 nls_cp437 nls_iso8859-1 nls_iso8859-2 nls_utf8");
 		insmod("hfs");
 	}
 	if (!strcmp(fs, "hfsplus")) {
-		insmod("nls_base nls_cp932 nls_cp936 nls_cp950 nls_cp437 nls_iso8859-1 nls_iso8859-2 nls_utf8");
+		insmod("nls_base nls_cp932 nls_cp936 nls_cp950 nls_cp866 nls_cp437 nls_iso8859-1 nls_iso8859-2 nls_utf8");
 		insmod("hfsplus");
 	}
 #endif
 	if (!strcmp(fs, "vfat")) {
-		insmod("nls_base nls_cp932 nls_cp936 nls_cp950 nls_cp437 nls_iso8859-1 nls_iso8859-2 nls_utf8");
+		insmod("nls_base nls_cp932 nls_cp936 nls_cp950 nls_cp866 nls_cp437 nls_iso8859-1 nls_iso8859-2 nls_utf8");
 		insmod("fat");
 		insmod("vfat");
 		insmod("msdos");
@@ -472,10 +472,12 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 		ret = eval("ntfs-3g", "-o", "compression,direct_io,big_writes", path, mount_point);
 	} else
 #endif
-	if (!strcmp(fs, "vfat")) {
-		ret = eval("/bin/mount", "-t", fs, "-o", "iocharset=utf8", path, mount_point);
-	} else if (!strcmp(fs, "hfsplus")) { // force rw mode for hfsplus with noatime
-		ret = eval("/bin/mount", "-t", fs, "--force", "-o", "noatime,umask=0", path, mount_point);
+	if (!strcmp(fs, "vfat")) { // set UTF8 charset for vfat (case sensitive FS)
+		ret = eval("/bin/mount", "-t", fs, "-o", "umask=0000,iocharset=utf8", path, mount_point);
+	} else if (!strncmp(fs, "ext", 3)) { // add user_xattr to Ext3/4
+		ret = eval("/bin/mount", "-t", fs, "-o", "noatime,user_xattr", path, mount_point);
+	} else if (!strncmp(fs, "hfs", 3)) { // force rw mode for hfs/hfsplus with noatime
+		ret = eval("/bin/mount", "-t", fs, "--force", "-o", "noatime", path, mount_point);
 	} else {
 		ret = eval("/bin/mount", "-t", fs, path, mount_point);
 	}
