@@ -72,7 +72,7 @@ void start_samba3(void)
 	}
 	start_mkfiles();
 	sysprintf("grep -q nobody /etc/passwd || echo \"nobody:*:65534:65534:nobody:/var:/bin/false\" >> /etc/passwd");
-	sysprintf("grep -q users /etc/group || echo \"users:x:1000:root\" >> /etc/group"); // add samba users group
+//	sysprintf("grep -q nas /etc/group || echo \"nas:x:1000:root,nobody\" >> /etc/group"); // add users group "nas"
 	mkdir("/var/samba", 0700);
 	eval("touch", "/var/samba/smbpasswd");
 	if (nvram_match("samba3_advanced", "1")) {
@@ -82,10 +82,10 @@ void start_samba3(void)
 		for (cu = samba3users; cu; cu = cunext) {
 			if (strlen(cu->username)
 			    && cu->sharetype & SHARETYPE_SAMBA) {
-				//if (uniqueuserid == 1000)
-				//	sysprintf("sed -i '/^users:x:1000:/ s/$/%s/' /tmp/etc/group", cu->username); // add first user
-				//else
-					sysprintf("sed -i '/^users:x:1000:/ s/$/,%s/' /tmp/etc/group", cu->username); // add other users
+//				if (uniqueuserid == 1000)
+//					sysprintf("sed -i '/^nas:x:1000:/ s/$/%s/' /tmp/etc/group", cu->username); // add first user
+//				else
+//					sysprintf("sed -i '/^nas:x:1000:/ s/$/,%s/' /tmp/etc/group", cu->username); // add other users
 				sysprintf("echo \"%s\"\":*:%d:1000:\"%s\":/var:/bin/false\" >> /etc/passwd", cu->username, uniqueuserid++, cu->username);
 				eval("smbpasswd", cu->username, cu->password);
 			}
@@ -102,7 +102,7 @@ void start_samba3(void)
 			"encrypt passwords = true\n"
 			"obey pam restrictions = yes\n"
 			"preferred master = yes\n"
-			"os level = 20\n"
+			"os level = 200\n"
 			"security = user\n"
 			"mangled names = no\n"
 			"max stat cache size = 64\n"
@@ -126,12 +126,22 @@ void start_samba3(void)
 			"printing = none\n"
 			"load printers = No\n"
 			"usershare allow guests = Yes\n", nvram_safe_get("router_name"), nvram_safe_get("samba3_srvstr"), nvram_safe_get("samba3_workgrp"));
+			fprintf(fp, // ASUS add
+			"unix charset = UTF8\n"
+			"display charset = UTF8\n"
+			//"force directory mode = 0777\n"
+			//"force create mode = 0777\n"
+			"map archive = no\n"
+			"map hidden = no\n"
+			"map read only = no\n"
+			"map system = no\n"
+			"store dos attributes = yes\n" // need user_xattr mount option for extfs / kernel support
+			"dos filemode = yes\n"); // allow owner change permissions
 
 		samba3shares = getsamba3shares();
 		for (cs = samba3shares; cs; cs = csnext) {
 			int hasuser = 0;
 			if (!cs->public) {
-
 				for (csu = cs->users; csu; csu = csunext) {
 					samba3users = getsamba3users();
 					for (cu = samba3users; cu; cu = cunext) {
@@ -157,8 +167,10 @@ void start_samba3(void)
 				fprintf(fp, "path = %s/%s\n", cs->mp, cs->sd);
 				fprintf(fp, "read only = %s\n", !strcmp(cs->access_perms, "ro") ? "Yes" : "No");
 				fprintf(fp, "guest ok = %s\n", cs->public == 1 ? "Yes" : "No");
+				fprintf(fp, "veto files = /._*/.DS_Store/\n");	// Mac stuff
+				fprintf(fp, "delete veto files = yes\n");	// Mac stuff
 				if (!cs->public) {
-					fprintf(fp, "valid users =");
+					fprintf(fp, "valid users = ");
 					int first = 0;
 					for (csu = cs->users; csu; csu = csunext) {
 						hasuser = 0;
@@ -172,36 +184,38 @@ void start_samba3(void)
 						}
 						if (!hasuser)
 							goto nextuser;
-
 						if (first)
 							fprintf(fp, ",");
 						first = 1;
-						fprintf(fp, " %s", csu->username);
-					      nextuser:;
+						fprintf(fp, "%s", csu->username);
+						nextuser:;
 						csunext = csu->next;
 						free(csu);
 					}
 				fprintf(fp, "\n");
-				fprintf(fp, "force user = root\n"); // users files as root:users
-				fprintf(fp, "force group = users\n");
-				// this doesn't work yet for dirs
-				fprintf(fp, "directory mask = 0777\n"); // world writable dirs
-				fprintf(fp, "create mask = 0764\n"); // group writable files
+				fprintf(fp, "force user = root\n");		// root user for private shares
 				} else {
 					for (csu = cs->users; csu; csu = csunext) {
 						csunext = csu->next;
 						free(csu);
 					}
-				fprintf(fp, "force user = nobody\n"); // public dirs/files as nobody
-				fprintf(fp, "force group = nobody\n");
+				fprintf(fp, "force user = nobody\n");		// nobody user for public shares
 				}
+				//fprintf(fp, "create mask = 660\n");		// The file AND mask
+				//fprintf(fp, "force create mode = 664\n");	// The file OR mask
+				//fprintf(fp, "security mask = 000\n");
+				//fprintf(fp, "force security mode = 660\n");
+				//fprintf(fp, "directory mask = 770\n");	// Directory AND mask
+				//fprintf(fp, "force directory mode = 775\n");	// Directory OR mask
+				//fprintf(fp, "directory security mask = 000\n");
+				//fprintf(fp, "force directory security mode = 770\n");
 			} else {
 				for (csu = cs->users; csu; csu = csunext) {
 					csunext = csu->next;
 					free(csu);
 				}
 			}
-		      nextshare:;
+			nextshare:;
 			csnext = cs->next;
 			free(cs);
 		}
