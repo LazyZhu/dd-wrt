@@ -100,7 +100,7 @@ void start_samba3(void)
 			"server string = %s\n"
 			"syslog = 10\n"
 			"encrypt passwords = true\n"
-			"obey pam restrictions = yes\n"
+			"obey pam restrictions = no\n"
 			"preferred master = yes\n"
 			"os level = 200\n"
 			"security = user\n"
@@ -169,6 +169,8 @@ void start_samba3(void)
 				fprintf(fp, "guest ok = %s\n", cs->public == 1 ? "Yes" : "No");
 				fprintf(fp, "veto files = /._*/.DS_Store/\n");	// Mac stuff
 				fprintf(fp, "delete veto files = yes\n");	// Mac stuff
+				fprintf(fp, "dos filetimes = yes\n");
+				fprintf(fp, "fake directory create times = yes\n");
 				if (!cs->public) {
 					fprintf(fp, "valid users = ");
 					int first = 0;
@@ -200,6 +202,11 @@ void start_samba3(void)
 						free(csu);
 					}
 				fprintf(fp, "force user = nobody\n");		// nobody user for public shares
+				fprintf(fp, "create mask = 0777\n");
+				fprintf(fp, "directory mask = 0777\n");
+				fprintf(fp, "force directory mode = 0777\n");
+				fprintf(fp, "force create mode = 0777\n");
+				fprintf(fp, "delete readonly = yes\n");
 				}
 				//fprintf(fp, "create mask = 660\n");		// The file AND mask
 				//fprintf(fp, "force create mode = 664\n");	// The file OR mask
