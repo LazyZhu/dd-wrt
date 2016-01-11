@@ -45,10 +45,10 @@
 #define WLAN_REGION          WW_VERSION
 #define FW_REGION            WW_VERSION   /* true f/w region */
 
-/*formal version control*/V1.0.3.24_1.1.20
+/*formal version control*/
 #define AMBIT_HARDWARE_VERSION     "U12H270T00"
-#define AMBIT_SOFTWARE_VERSION     "V1.0.3.24"
-#define AMBIT_UI_VERSION           "1.1.20"
+#define AMBIT_SOFTWARE_VERSION     "V1.0.5.5"
+#define AMBIT_UI_VERSION           "1.1.99"
 #define STRING_TBL_VERSION         "1.0.3.24_2.1.31.6"
 
 #define AMBIT_PRODUCT_NAME          "R7000"

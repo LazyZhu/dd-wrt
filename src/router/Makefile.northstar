@@ -134,6 +134,7 @@ kernelsource:
 	cd $(LINUXDIR)/../ && tar -xvjf $(LINUXDIR)/../linux-$(KERNELVERSION).tar.bz2
 	cd $(LINUXDIR)/../ && ./patch $(KERNELVERSION)
 
+include kernel-features.mk
 
 kernel:
 	# Also build kernel
@@ -161,11 +162,7 @@ endif
 ifeq ($(CONFIG_BUILD_XIAOMI),y)
 	cp $(LINUXDIR)/.config_xiaomi_r1d $(LINUXDIR)/.config
 endif
-ifeq ($(CONFIG_EOP_TUNNEL),y)
-	echo CONFIG_NET_ETHERIP=m >> $(LINUXDIR)/.config
-else
-	echo "# CONFIG_NET_ETHERIP is not set" >> $(LINUXDIR)/.config
-endif
+	$(kernelfeatures)
 ifeq ($(CONFIG_DIST),"mini")
 	sed -i 's/\# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set/CONFIG_CC_OPTIMIZE_FOR_SIZE=y/g' $(LINUXDIR)/.config
 else

@@ -126,7 +126,7 @@ void start_samba3(void)
 			"printing = none\n"
 			"load printers = No\n"
 			"usershare allow guests = Yes\n", nvram_safe_get("router_name"), nvram_safe_get("samba3_srvstr"), nvram_safe_get("samba3_workgrp"));
-			fprintf(fp, // ASUS add
+		fprintf(fp, // ASUS add
 			"unix charset = UTF8\n"
 			"display charset = UTF8\n"
 			//"force directory mode = 0777\n"

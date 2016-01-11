@@ -111,15 +111,15 @@ build_date:
 	echo "#define BUILD_DATE \"$(shell date +%D)\"" > ../../opt/build.h 
 	echo "CONFIG_MUSL=y" >> .config 
 
+include kernel-features.mk
 
 kernel:
 	cp $(LINUXDIR)/.config_ipq806x $(LINUXDIR)/.config
-
-ifeq ($(CONFIG_EOP_TUNNEL),y)
-	echo CONFIG_NET_ETHERIP=m >> $(LINUXDIR)/.config
-else
-	echo "# CONFIG_NET_ETHERIP is not set" >> $(LINUXDIR)/.config
+ifeq ($(CONFIG_R7500),y)
+	cp $(LINUXDIR)/.config_r7500 $(LINUXDIR)/.config
 endif
+
+	$(kernelfeatures)
 ifeq ($(CONFIG_USBIP),y)
 	sed -i 's/\# CONFIG_USBIP_CORE is not set/CONFIG_USBIP_CORE=m/g' $(LINUXDIR)/.config
 	echo "CONFIG_USBIP_VHCI_HCD=m" >> $(LINUXDIR)/.config
@@ -441,7 +441,7 @@ endif
 	
 	( dd if=$(ARCH)-uclibc/root.squashfs of=$(ARCH)-uclibc/root.squashfs.new bs=2k conv=sync; )
 
-	./tools/r7500/mkimage -A arm -O linux -T filesystem -C none -a 0x42208000 -e 0x42208000 -n 'Fakeroot' -s $(ARCH)-uclibc/rootfs.dummy
+	./tools/r7500/mkimage -A arm -O linux -T filesystem -C none -a 0x42208000 -e 0x42208000 -n 'DD-WRT - Fakeroot' -s $(ARCH)-uclibc/rootfs.dummy
 	
 	( dd if=$(ARCH)-uclibc/ipq806x-R7500-uImage of=$(ARCH)-uclibc/vmlinux-r7500.uImage.normal bs=2048k conv=sync; )
 	
@@ -482,7 +482,8 @@ endif
 	cat tools/ea8500/ea8500.tag >> $(ARCH)-uclibc/ddwrt-EA8500.bin
 	cp $(ARCH)-uclibc/ddwrt-EA8500.bin $(ARCH)-uclibc/EA8500-factory-to-ddwrt.img
 	
-	./tools/r7500/mkdniimg -B R7500 -v V1.0.0.82 -r "" -H "29764841+0+128+256+3x3+4x4" -i $(ARCH)-uclibc/ddwrt-R7500v1.bin -o $(ARCH)-uclibc/R7500v1-factory-to-ddwrt.img
+	#beware max image size is 24MB
+	./tools/r7500/mkdniimg -B R7500 -v 1.0.0.94 -r "" -H "29764841+0+128+256+3x3+4x4" -i $(ARCH)-uclibc/ddwrt-R7500v1.bin -o $(ARCH)-uclibc/R7500v1-factory-to-ddwrt.img
 
 	./tools/ubi/ubinize-image.sh --kernel $(ARCH)-uclibc/vmlinux-TEW827.uImage.final \
 		$(ARCH)-uclibc/root.squashfs.new \
@@ -491,7 +492,7 @@ endif
 	
 	./tools/ubi/ubinize-image.sh --kernel $(ARCH)-uclibc/vmlinux-EA8500.uImage.final \
 		$(ARCH)-uclibc/root.squashfs.new \
-		$(ARCH)-uclibc/ddwrt-ipq806x-AP148-squashfs-nand-factory.ubi \
+		$(ARCH)-uclibc/ddwrt-ipq806x-EA8500-squashfs-nand-factory.ubi \
 		-v -p 128KiB -m 2048
 
 #	cd $(ARCH)-uclibc && ../tools/wrt1900ac/ubinize -v -m 2048 -p 128KiB -s 512 -O 2048 -o root.squashfs.ubi ubinize.cfg && cd ..
@@ -499,7 +500,7 @@ endif
 #	dd if=$(ARCH)-uclibc/ddwrt-ipq806x-AP148-squashfs-nand-factory.ubi of=$(ARCH)-uclibc/ddwrt-ipq806x-AP148-squashfs-nand-factory-final.ubi bs=2M conv=sync
 	cp $(ARCH)-uclibc/ddwrt-ipq806x-AP148-squashfs-nand-factory.ubi $(ARCH)-uclibc/ddwrt-tew827-squashfs-nand-factory.ubi
 	
-	cp $(ARCH)-uclibc/ddwrt-ipq806x-AP148-squashfs-nand-factory.ubi $(ARCH)-uclibc/ddwrt-ea8500-squashfs-nand-factory.ubi
+	cp $(ARCH)-uclibc/ddwrt-ipq806x-EA8500-squashfs-nand-factory.ubi $(ARCH)-uclibc/ddwrt-ea8500-squashfs-nand-factory.ubi
 	
 
 	./tools/trx_n -m 50000000 -o $(ARCH)-uclibc/ddwrt-netgear-R7500v1.bin $(ARCH)-uclibc/ddwrt-R7500v1.bin 

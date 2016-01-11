@@ -358,9 +358,7 @@ if (submitcheck(F))
 var update;
 
 addEvent(window, "load", function() {
-<!-- dirty JS hack 
 <% ifdef("HAVE_ATH9K", "initChannelProperties();"); %>
--->
 	var wl0_mode = "<% nvg("wl0_mode"); %>";
 	   if (wl0_mode=="ap" || wl0_mode=="infra")
 	{
@@ -490,12 +488,7 @@ function initChannelProperties() {
 				<div id="help">
 					<div><h2><% tran("share.help"); %></h2></div>
 					<dl>
-						<dt class="term"><% tran("wl_basic.label2"); %>:</dt>
 						<dd class="definition"><% tran("hwl_basic.right2"); %></dd>
-<% ifndef("ACK", "<!--"); %>
-						<dt class="term"><% tran("hwl_basic.right3"); %></dt>
-						<dd class="definition"><% tran("hwl_basic.right4"); %></dd>
-<% ifndef("ACK", "-->"); %>
 					</dl><br />
 					<a href="javascript:openHelpWindow<% ifdef("EXTHELP","Ext"); %>('HWireless.asp')"><% tran("share.more"); %></a>
 				</div>

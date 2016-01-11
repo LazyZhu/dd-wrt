@@ -582,9 +582,12 @@ int wlconf_up(char *name)
 	eval("wl", "-i", name, "txpwr1", "-m", "-o", pwr);
 #endif
 #ifdef HAVE_80211AC
-	if (val == 71)		// if user did not change txpwr set this to radio defaults - DAU Modus
+	val = atoi(nvram_nget("wl%d_txpwrusr", instance));
+	if (val == 1)
 		eval("wl", "-i", name, "txpwr1", "-1");
 #endif
+	eval("wl", "-i", name, "roam_delta", nvram_default_get("roam_delta", "15"));
+
 	/*
 	 * Set txant 
 	 */
@@ -1023,9 +1026,9 @@ void start_lan(void)
 			PORTSETUPWAN("");
 		} else {
 			nvram_setz(lan_ifnames, "eth0 eth1 ath0");
-			PORTSETUPWAN("eth1");
+			PORTSETUPWAN("eth0");
 		}
-		strncpy(ifr.ifr_name, "eth0", IFNAMSIZ);
+		strncpy(ifr.ifr_name, "eth1", IFNAMSIZ);
 		break;
 	}
 	ioctl(s, SIOCGIFHWADDR, &ifr);
@@ -1324,6 +1327,18 @@ void start_lan(void)
 		PORTSETUPWAN("");
 	} else {
 		PORTSETUPWAN("eth1");
+	}
+	strncpy(ifr.ifr_name, "eth0", IFNAMSIZ);
+	ioctl(s, SIOCGIFHWADDR, &ifr);
+	if (nvram_match("et0macaddr", ""))
+		nvram_set("et0macaddr", ether_etoa(ifr.ifr_hwaddr.sa_data, eabuf));
+	strcpy(mac, nvram_safe_get("et0macaddr"));
+#elif HAVE_JWAP606
+	nvram_setz(lan_ifnames, "eth0 ath0 ath1");
+	if (getSTA() || getWET() || CANBRIDGE()) {
+		PORTSETUPWAN("");
+	} else {
+		PORTSETUPWAN("eth0");
 	}
 	strncpy(ifr.ifr_name, "eth0", IFNAMSIZ);
 	ioctl(s, SIOCGIFHWADDR, &ifr);
@@ -3099,6 +3114,9 @@ void start_wan(int status)
 #elif HAVE_WZR450HP2
 	char *pppoe_wan_ifname = nvram_invmatch("pppoe_wan_ifname",
 						"") ? nvram_safe_get("pppoe_wan_ifname") : "eth0";
+#elif HAVE_JWAP606
+	char *pppoe_wan_ifname = nvram_invmatch("pppoe_wan_ifname",
+						"") ? nvram_safe_get("pppoe_wan_ifname") : "eth0";
 #elif HAVE_WASP
 	char *pppoe_wan_ifname = nvram_invmatch("pppoe_wan_ifname",
 						"") ? nvram_safe_get("pppoe_wan_ifname") : "vlan2";
@@ -4729,6 +4747,13 @@ void start_wan_done(char *wan_ifname)
 	start_duallink();
 #endif
 #endif
+	if (nvram_match("ipv6_enable", "1") && nvram_match("ipv6_typ", "ipv6in4")) {
+#ifdef HAVE_CURL
+		eval("/usr/bin/curl", "-s", "-k", nvram_safe_get("ipv6_tun_upd_url"), "-o", "/tmp/tunnelstat");
+#else
+		eval("wget", nvram_safe_get("ipv6_tun_upd_url"), "-O", "/tmp/tunnelstat");
+#endif
+	}
 }
 
 void stop_wan(void)
