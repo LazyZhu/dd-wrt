@@ -1988,13 +1988,13 @@ wl_adv.label10="Максимальное число клиентов";
 wl_adv.label11="Изоляция точки доступа";
 wl_adv.label12="Передающая антенна";
 wl_adv.label13="Приемная антенна";
-wl_adv.label14="Интервал преамбулы";
+wl_adv.label14="Преамбула";
 wl_adv.reference="Эталонный шум";
 wl_adv.label16="Форсаж";
 wl_adv.label17="Беспроводной доступ к GUI";
 wl_adv.label18="Поддержка WMM";
-wl_adv.label19="No-Acknowledgement";
-wl_adv.label20="Интервал Shortslot Override";
+wl_adv.label19="Без подтверждения";
+wl_adv.label20="Задержка при коллизии";
 wl_adv.label21="Макс. скорость передачи";
 wl_adv.label23="Мин. скорость передачи";
 wl_adv.label22="Режим сосуществования с Bluetooth";
@@ -2022,14 +2022,14 @@ wl_adv.txprow2="AC BK TX параметры";
 wl_adv.txprow3="AC VI TX параметры";
 wl_adv.txprow4="AC VO TX параметры";
 
-wl_adv.col6="Admin Forced";
+wl_adv.col6="Принудительно";
 wl_adv.row1="Фоновый";
 wl_adv.row2="Негарантированный класс";
 wl_adv.row3="Видео";
 wl_adv.row4="Голос";
 wl_adv.table2="Параметры EDCA STA (от клиента к точке доступа)";
-wl_adv.lng="Длинный";
-wl_adv.shrt="Короткий";
+wl_adv.lng="Длинная";
+wl_adv.shrt="Короткая";
 wl_adv.mbps="Мбит/с";
 
 //help container
