@@ -147,6 +147,9 @@ endif
 ifeq ($(CONFIG_NVRAM_64K),y)
 CFLAGS += -DHAVE_NVRAM_64K
 endif
+ifeq ($(CONFIG_NVRAM_128K),y)
+CFLAGS += -DHAVE_NVRAM_128
+endif
 
 include $(TOP)/rules/generic.mk
 CFLAGS += $(DD_CFLAGS)
