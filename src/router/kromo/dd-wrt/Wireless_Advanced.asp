@@ -207,7 +207,7 @@ function to_apply(F) {
 }
 
 function setWMM(val) {
-	setElementsActive("%s_wme_no_ack", "%s_wme_txp_vo", val == "on");
+	setElementsActive("%s_wme_no_ack", "wl_wme_txp_vo4", val == "on");
 }
 
 var update;
@@ -290,7 +290,7 @@ addEvent(window, "unload", function() {
 									</script></span>
 								</div>
 								<div id="id%s_nmcsidx" class="setting">
-									<div class="label">MIMO - <%% tran("wl_adv.label3"); %%></div>
+									<div class="label"><%% tran("wl_adv.label3"); %%> - MIMO</div>
 									<select name="%s_nmcsidx">
 									</select>
 									<span class="default"><script type="text/javascript">
