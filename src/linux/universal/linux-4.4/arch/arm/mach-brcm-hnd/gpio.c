@@ -156,6 +156,8 @@ int isac66 = 0;
 int isac68 = 0;
 int isbuffalo = 0;
 int isbuffalowxr = 0;
+int isr1d = 0;
+int isws880 = 0;
 int isdefault = 0;
 static struct class *gpio_class = NULL;
 
@@ -223,35 +225,52 @@ static int __init gpio_init(void)
 	}
 
 	if ((boardnum == 0) && nvram_match("boardtype", "0x0646") && (nvram_match("boardrev", "0x1100"))) {
-		printk(KERN_EMERG "Asus-RT-AC56U init\n");
+		printk(KERN_EMERG "Asus-RT-AC56U GPIO init\n");
 		isac66 = 1;
 	}
 
 	if (nvram_match("model","RT-AC68U")) {
-		printk(KERN_EMERG "Asus-RT-AC68U init\n");
+		printk(KERN_EMERG "Asus-RT-AC68U GPIO init\n");
 		isac68 = 1;
 	} else if ((boardnum != 24) && nvram_match("boardtype", "0x0646") && (nvram_match("boardrev", "0x1100"))) {
-		printk(KERN_EMERG "Asus-RT-AC68U init\n");
+		printk(KERN_EMERG "Asus-RT-AC68U GPIO init\n");
 		isac68 = 1;
 	}
 
+	if (nvram_match("model","WS880") || nvram_match("odmpid","WS880") || nvram_match("productid","WS880") ||
+	    (boardnum == 1234 && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1101"))) {
+		printk(KERN_EMERG "### Huawei WS880 GPIO init\n");
+		isws880 = 1;
+		// ALL
+		// gpios = 0<<0 | 0<<1 | 1<<2 | 1<<3 | 0<<6 | 0<<7 | 1<<12 | 0<<14 | 1<<15 ;
+	}
+
+	// Xiaomi R1D (same as Netgear R7000 IDs fix)
+	if (nvram_match("model","R1D") || nvram_match("odmpid","R1D") || nvram_match("productid","R1D") || 
+	    (nvram_match("boardnum", "32") && nvram_match("boardtype", "0x0665") && nvram_match("boardrev", "0x1301") && nvram_match("gpio0", "usbport1"))) {
+		printk(KERN_EMERG "### Xiaomi R1D GPIO init\n");
+		isr1d = 1;
+		gpio_init_flag = 1;
+		return 0; // exit before R7000
+	}
+
 	if ((boardnum == 24) && nvram_match("boardtype", "0x0646") && nvram_match("boardrev", "0x1110") && !nvram_match("gpio6", "wps_led")) {
-		printk(KERN_EMERG "DLink DIR-868 init\n");
+		printk(KERN_EMERG "DLink DIR-868 GPIO init\n");
 		isac66 = 1;
 	}
 
 	if ((boardnum == 679) && nvram_match("boardtype", "0x0646") && (nvram_match("boardrev", "0x1110"))) {
-		printk(KERN_EMERG "Netgear AC1450/R6250/R6300v2/EX6200 init\n");
+		printk(KERN_EMERG "Netgear AC1450/R6250/R6300v2/EX6200 GPIO init\n");
 		gpios = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<8 | 1<<9 | 1<<10 | 1<<11 | 1<<15;
 	}
 
-	if ((boardnum == 32) && nvram_match("boardtype", "0x0665") && (nvram_match("boardrev", "0x1301"))) {
-		printk(KERN_EMERG "Netgear R7000 init\n");
+	if ((boardnum == 32) && nvram_match("boardtype", "0x0665") && (nvram_match("boardrev", "0x1301")) && !nvram_match("gpio0", "usbport1")) {
+		printk(KERN_EMERG "Netgear R7000 GPIO init\n");
 		gpios = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<8 | 1<<9 | 1<<10 | 1<<11 | 1<<15;
 	}
 	
 	if ((boardnum == 32) && nvram_match("boardtype", "0x0665") && (nvram_match("boardrev", "0x1101"))) {
-		printk(KERN_EMERG "Netgear R8000 init\n");
+		printk(KERN_EMERG "Netgear R8000 GPIO init\n");
 		gpios = 1<<0 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7 | 1<<8 | 1<<9 | 1<<10 | 1<<11 | 1<<15;
 	}
 	
