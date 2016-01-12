@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 lang_charset.set="UTF-8";
 
-// ** COMMON SHARE LABEL **//
+// ** COMON SHARE LABEL **//
 share.annex="Тип Annex";
 share.apn="Имя точки доступа";
 share.pin="PIN";
@@ -130,7 +130,7 @@ share.point2point="Точка-точка";
 share.nat="NAT";
 share.subnet="Маска подсети";
 share.unmask="Показать";
-share.deflt="По умолчанию";  //don't use share.default!!!
+share.deflt="По умолчанию";
 share.all="Все";
 share.auto="Авто";
 share.right="Правая";
@@ -141,7 +141,7 @@ share.srv="Имя службы";
 share.port_range="Диапазон портов";
 share.priority="Приоритет";
 share.gateway="Шлюз";
-share.intrface="Интерфейс";  //don't use share.interface!!!
+share.intrface="Интерфейс";
 share.itf="IF";
 share.ccq="CCQ";
 share.pintrface="Физический интерфейс";
@@ -412,6 +412,7 @@ bmenu.wirelessMac="MAC-фильтр";
 bmenu.wirelessAdvanced="Дополнительно";
 bmenu.wirelessAdvancedwl0="WL0-расш.";
 bmenu.wirelessAdvancedwl1="WL1-расш.";
+bmenu.wirelessAdvancedwl2="WL2-расш.";
 bmenu.wirelessWds="WDS";
 bmenu.wirelessWds0="Ath0-WDS";
 bmenu.wirelessWds1="Ath1-WDS";
@@ -419,6 +420,7 @@ bmenu.wirelessWds2="Ath2-WDS";
 bmenu.wirelessWds3="Ath3-WDS";
 bmenu.wirelessWdswl0="WL0-WDS";
 bmenu.wirelessWdswl1="WL1-WDS";
+bmenu.wirelessWdswl2="WL2-WDS";
 
 bmenu.security="Безопасность";
 bmenu.firwall="Брандмауэр";
@@ -930,7 +932,7 @@ idx.dhcp_type="Тип DHCP";
 idx.dhcp_srv="Сервер DHCP";
 idx.dhcp_fwd="Перенаправление DHCP";
 idx.dhcp_start="Начальный IP-адрес";
-idx.dhcp_end="Конечный IP-адрес";		//used in Status_Lan.asp
+idx.dhcp_end="Конечный IP-адрес";
 idx.dhcp_maxusers="Макс. число пользователей DHCP";
 idx.dhcp_lease="Срок аренды";
 idx.dhcp_dnsmasq="Использование DNSMasq для DHCP";
@@ -1695,7 +1697,6 @@ status_wireless.wds="Узлы WDS";
 hstatus_wireless.right2="Это MAC-адрес роутера в вашей беспроводной локальной сети.";
 hstatus_wireless.right4="Здесь отображается текущий режим работы беспроводной сети (Смешанный, Только G, Только B или Отключено) согласно настройкам на вкладке WiFi.";
 
-
 // ** GPS info **//
 status_gpsi.legend="Информация GPS";
 status_gpsi.status="Статус";
@@ -1942,7 +1943,7 @@ gpio.h2=" GPIO Вводы / Выводы";
 gpio.oplegend=" GPIO Выводы";
 gpio.iplegend=" GPIO Вводы";
 
-// ** FreeRadius.asp **//var freeradius=new Object();
+// ** FreeRadius.asp **//
 freeradius.titl="FreeRadius";
 freeradius.h2="FreeRadius";
 freeradius.certificate="Сертификат сервера";
@@ -2030,7 +2031,7 @@ wl_adv.row4="Голос";
 wl_adv.table2="Параметры EDCA STA (от клиента к точке доступа)";
 wl_adv.lng="Длинная";
 wl_adv.shrt="Короткая";
-wl_adv.mbps="Мбит/с";
+wl_adv.mpbs="Мбит/c";
 
 //help container
 hwl_adv.right2="Вы можете задать режимы Авто и Общий ключ. Аутентификация на основе общего ключа более надежна, но все устройства в вашей сети должны поддерживать данный режим аутентификации.";

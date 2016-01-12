@@ -285,7 +285,6 @@ sbutton.download="Download";
 sbutton.next="Next &raquo;";
 sbutton.prev="&laquo; Previous";
 
-
 // ** COMMON ERROR MESSAGES  **//
 var errmsg=new Object();
 errmsg.err0="You must input a username.";
@@ -438,7 +437,6 @@ bmenu.vpn="VPN Passthrough";
 
 bmenu.accrestriction="Access Restrictions";
 bmenu.webaccess="WAN Access";
-
 
 bmenu.applications="NAT / QoS";
 bmenu.applicationsprforwarding="Port Range Forwarding";
@@ -646,7 +644,6 @@ filterIP.h32="Enter the IP Address of the clients";
 filterIP.h33="Enter the IP Range of the clients";
 filterIP.ip_range="IP Range";
 
-
 // ** Filter.asp **//
 var filter=new Object();
 filter.titl="Access Restrictions";
@@ -684,15 +681,12 @@ hfilter.right16="You can block access to certain website by the keywords contain
 hfilter.page1="<dd>This feature allows you to customize up to ten different Internet Access Policies for particular PCs, which are identified by their IP or MAC addresses. For each policy designated PCs, during the days and time periods specified.<br /><br />To create or edit a policy, follow these instructions:<ol class=\"wide\"><li>Select the policy number (1-10) in the drop-down menu.</li><li>Enter a name in the Enter Profile Name field.</li><li>Click the <i>Edit List of PCs</i> button.</li><li>On the <i>List of PCs</i> screen, specify PCs by IP address or MAC address. Enter the appropriate IP addresses into the <i>IP</i> fields. If you have a range of IP addresses to filter, complete the appropriate <i>IP Range</i> fields. Enter the appropriate MAC addresses into the <i>MAC</i> fields.</li><li>Click the <i>Apply</i> button to save your changes. Click the <i>Cancel</i> button to cancel your unsaved changes. Click the <i>Close</i> button to return to the Filters screen.</li><li>If you want to block the listed PCs from Internet access during the designated days and time, then keep the default setting, <i>Deny</i>. If you want the listed PCs to have Internet filtered during the designated days and time, then click the radio button next to <i>Filter</i>.</li><li>Set the days when access will be filtered. Select <i>Everyday</i> or the appropriate days of the week.</li><li>Set the time when access will be filtered. Select <i>24 Hours</i>, or check the box next to <i>From</i> and use the drop-down boxes to designate a specific time period.</li><li>Click the <i>Add to Policy</i> button to save your changes and active it.</li><li>To create or edit additional policies, repeat steps 1-9.</li></ol><br />To delete an Internet Access Policy, select the policy number, and click the <i>Delete</i> button.</dd>";
 hfilter.page2="<dd>To see a summary of all the policies, click the <i>Summary</i> button. The Internet Policy Summary screen will show each policy's number, Policy Name, Days, and Time of Day. To delete a policy, click its box, and then click the <i>Delete</i> button. Click the <i>Close</i> button to return to the Filters screen.</dd>";
 
-
-
 // ** FilterSummary.asp **//
 var filterSum=new Object();
 filterSum.titl="Access Restrictions Summary";
 filterSum.h2="Internet Policy Summary";
 filterSum.polnum="No.";
 filterSum.polday="Time of Day";
-
 
 // ** Firewall.asp **//
 var firewall=new Object();
@@ -760,11 +754,9 @@ p2p.h2="BitTorrent Client";
 p2p.legend="CTorrent";
 p2p.ctorrent_srv="Ctorrent Service";
 
-
 //help container
 //var hp2p=new Object();
 //hpp2p.right2="Certain applications may require to open specific ports in order for it to function correctly. Examples of these applications include servers and certain online games. When a request for a certain port comes in from the Internet, the router will route the data to the computer you specify. Due to security concerns, you may want to limit port forwarding to only those ports you are using, and uncheck the <em>" + share.enable +"</em> checkbox after you are finished.";
-
 
 // ** ForwardSpec.asp **//
 var pforward=new Object();
@@ -1064,7 +1056,6 @@ hotspotsys.customsplash="Custom Splash Page (Walled Garden)";
 //hanchorfree.right8="Customer support";
 //hanchorfree.right9="Have questions? Contact us at boxhelp@anchorfree.com";
 
-
 // ** Info.htm **//
 var info=new Object();
 info.titl="Info";
@@ -1073,7 +1064,6 @@ info.wlanmac="Wireless MAC";
 info.srv="Services";
 info.ap="Access Point";
 
-
 // ** index_heartbeat.asp **//
 var idx_h=new Object();
 idx_h.srv="Heart Beat Server";
@@ -1081,7 +1071,6 @@ idx_h.con_strgy="Connection Strategy";
 idx_h.max_idle="Connect on Demand: Max Idle Time";
 idx_h.alive="Keep Alive: Redial Period";
 idx_h.reconnect="Force Reconnect";
-
 
 // ** index_l2tp.asp **//
 var idx_l=new Object();
@@ -1094,7 +1083,6 @@ idx_l.iptv="Receive IPTV";
 // ** index_pppoe.asp **//
 var idx_pppoe=new Object();
 idx_pppoe.use_rp="Use RP PPPoE";
-
 
 // ** index_pptp.asp **//
 var idx_pptp=new Object();
@@ -1109,7 +1097,6 @@ idx_pptp.iptv="Receive IPTV";
 // ** index_static.asp **//
 var idx_static=new Object();
 idx_static.dns="Static DNS";
-
 
 // ** index.asp **//
 var idx=new Object();
@@ -1213,14 +1200,12 @@ var join=new Object();
 join.titl="Join";
 join.mess1="Successfully joined the following network as a client: ";
 
-
 // ** Log_incoming.asp **//
 var log_in=new Object();
 log_in.titl="Incoming Log Table";
 log_in.h2="Incoming Log Table";
 log_in.th_ip="Source IP";
 log_in.th_port="Destination Port Number";
-
 
 // ** Log_outgoing.asp **//
 var log_out=new Object();
@@ -1229,7 +1214,6 @@ log_out.h2="Outgoing Log Table";
 log_out.th_lanip="LAN IP";
 log_out.th_wanip="Destination URL/IP";
 log_out.th_port="Service/Port Number";
-
 
 // ** Log.asp **//
 var log=new Object();
@@ -1240,7 +1224,6 @@ log.lvl="Log Level";
 log.drop="Dropped";
 log.reject="Rejected";
 log.accept="Accepted";
-
 
 // ** Management.asp **//
 var management=new Object();
@@ -1371,11 +1354,10 @@ hmanagement.page10="<dd>This feature controls the resetbuttond process. The rese
 hmanagement.page11="<dd>Routing enables the OSPF and RIP routing daemons if you have set up OSPF or RIP routing in the Advanced Routing page.</dd>";
 hmanagement.page12="<dd>If you have any peer-to-peer (P2P) applications running on your network please increase the maximum ports and lower the TCP/UDP timeouts. This is necessary to maintain router stability because peer-to-peer applications open many connections and don't close them properly. Consider using these for old low end routers:<ul><li>Maximum Ports: 4096</li><li>TCP Timeout: 300 sec</li><li>UDP Timeout: 60 sec</li></ul></dd><dd>Check all values and click <em>Save Settings</em> to save your settings. Click <em>Cancel Changes</em> to cancel your unsaved changes. Click <em>Reboot router</em> to reboot your router immediately.</dd>";
 
-// ************ Port_Services.asp (used by Filters.asp and QoS.asp, QOSPort_Services.asp not used anymore) *****************************************//
+// ** Port_Services.asp (used by Filters.asp and QoS.asp, QOSPort_Services.asp not used anymore) **//
 var portserv=new Object();
 portserv.titl="Port Services";
 portserv.h2="Port Services";
-
 
 // ** Networking.asp **//
 var networking=new Object();
@@ -1483,7 +1465,6 @@ routetbl.titl="Routing Table";
 routetbl.h2="Routing Table Entry List";
 routetbl.th1="Destination LAN NET";
 
-
 // ** Routing.asp **//
 var route=new Object();
 route.titl="Routing";
@@ -1550,7 +1531,6 @@ survey.titl="Site Survey";
 survey.h2="Neighbor&#39;s Wireless Networks";
 survey.thjoin="Join Site";
 
-
 // ** Services.asp **//
 var service=new Object();
 service.titl="Services";
@@ -1595,7 +1575,6 @@ service.tor_bridge="Tor Bridge Mode";
 service.tor_transparent="Transparent Proxy";
 service.tor_bwrate="Bandwidth Rate";
 service.tor_bwburst="Bandwidth Burst";
-
 
 //pptp.webservices
 service.pptp_legend="PPTP";
@@ -1932,7 +1911,6 @@ sipath.titl="SiPath Overview";
 sipath.phone_titl="Phonebook";
 sipath.status_titl="Status";
 
-
 // ** Status_Lan.asp **//
 var status_lan=new Object();
 status_lan.titl="LAN Status";
@@ -2039,19 +2017,16 @@ status_inet.next="Next Month";
 status_inet.dataadmin="Data Administration";
 status_inet.delete_confirm="WARNING! This will delete all traffic data. Proceed?";
 
-
 //help container
 var hstatus_inet=new Object();
 hstatus_inet.right2="This shows the information required by your ISP for connection to the Internet. This information was entered on the Setup Tab. You can <em>Connect</em> or <em>Disconnect</em> your connection here by clicking on that button.";
 hstatus_inet.right4="This shows your router's Internet traffic since last reboot.";
 hstatus_inet.right6="This shows your router's Internet traffic by month. Drag the mouse over graph to see daily data. Data is stored in nvram.";
 
-
 // ** Status_Conntrack.asp **//
 var status_conn=new Object();
 status_conn.titl="Active IP Connections Table";
 status_conn.h2="Active IP Connections";
-
 
 // ** Status_SputnikAPD.asp **//
 var status_sputnik=new Object();
@@ -2067,7 +2042,6 @@ hstatus_sputnik.right2="This screen displays the status of the Sputnik Agent pro
 hstatus_sputnik.right4="The Sputnik Control Center that this access point is connected to.";
 hstatus_sputnik.right6="The current Agent status.";
 hstatus_sputnik.right8="The license number of your Sputnik Control Center.";
-
 
 // ** Status_Wireless.asp **//
 var status_wireless=new Object();
@@ -2370,7 +2344,6 @@ wl_active.h3="Enable MAC Filter";
 wl_active.active="Active clients";
 wl_active.inactive="Inactive clients";
 
-
 // ** Wireless_WDS.asp **//
 var wds=new Object();
 wds.titl="WDS";
@@ -2525,8 +2498,6 @@ wl_adv.table1="EDCA AP Parameters (AP to Client)";
 wl_adv.txchainmask="TX Antenna Chains";
 wl_adv.rxchainmask="RX Antenna Chains";
 
-
-
 wl_adv.col1="CWmin";
 wl_adv.col2="CWmax";
 wl_adv.col3="AIFSN";
@@ -2550,8 +2521,8 @@ wl_adv.row2="Best Effort";
 wl_adv.row3="Video";
 wl_adv.row4="Voice";
 wl_adv.table2="EDCA STA Parameters (Client to AP)";
-wl_adv.lng="Long"; 	//************* don't use .long! *************
-wl_adv.shrt="Short"; 	//************* don't use .short! ************
+wl_adv.lng="Long";
+wl_adv.shrt="Short";
 wl_adv.mpbs="Mbps";
 
 //help container
@@ -2723,7 +2694,6 @@ var fail=new Object();
 fail.mess1="The values you entered are invalid. Please try again.";
 fail.mess2="Upgrade failed.";
 
-
 // ** Success*.asp / Reboot.asp  **//
 var success=new Object();
 success.saved="Settings saved.";
@@ -2789,9 +2759,8 @@ ias.hl_client_access="For Client Access";
 ias.hl_for_conf="For Configuration";
 ias.hl_guest_card="Guest Card";
 
-
-// ************		OLD PAGES 		*******************************//
-// *********************** DHCPTable.asp *****************************//
+// ** OLD PAGES **//
+// ** DHCPTable.asp **//
 var dhcp=new Object();
 dhcp.titl="DHCP Active IP Table";
 dhcp.h2="DHCP Active IP Table";
