@@ -559,6 +559,9 @@ static char *s_conditions[] = {
 #ifdef HAVE_ATH9K
 	"HAVE_ATH9K",
 #endif
+#ifdef HAVE_80211AC
+	"80211AC",
+#endif
 #ifdef HAVE_USBIP
 	"USBIP",
 #endif

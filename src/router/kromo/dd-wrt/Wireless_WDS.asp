@@ -4,7 +4,7 @@
 
 function SelSubnet(F,num) {
 	F.change_action.value="gozila_cgi";
-	setElementsActive("%s_br1_nat", "%s_br1_netmask3", num == 1);
+	setElementsActive("%s_br1_nat", "%s_br1_netmask", num == 1);
 	F.submit_type.value = "save";
 	F.submit();
 }
@@ -38,14 +38,14 @@ function to_apply(F) {
 	applytake(F);
 }
 
-function setWDS(val) {
-	if (val == "0") {
-		setElementsActive("%s_wds1_enable", "%s_br1_netmask3", val == "1");
-	} else {
-		setElementsActive("%s_wds1_enable", "%s_br1_enable", val == "1");
-		setElementsActive("%s_br1_nat", "%s_br1_netmask3", "<%% nvg("%s_br1_enable"); %%>" == "1");
-	}
-}
+//function setWDS(val) {
+//	if (val == "0") {
+//		setElementsActive("%s_wds1_enable", "%s_br1_netmask3", val == "1");
+//	} else {
+//		setElementsActive("%s_wds1_enable", "%s_br1_enable", val == "1");
+//		setElementsActive("%s_br1_nat", "%s_br1_netmask3", "<%% nvg("%s_br1_enable"); %%>" == "1");
+//	}
+//}
 
 var update;
 

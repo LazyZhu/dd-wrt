@@ -207,7 +207,7 @@ function to_apply(F) {
 }
 
 function setWMM(val) {
-	setElementsActive("%s_wme_no_ack", "wl_wme_txp_vo4", val == "on");
+	setElementsActive("%s_wme_no_ack", "%s_wme_txp_vo", val == "on");
 }
 
 var update;
