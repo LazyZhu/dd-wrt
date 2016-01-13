@@ -232,6 +232,9 @@ static int __init gpio_init(void)
 	if (nvram_match("model","RT-AC68U")) {
 		printk(KERN_EMERG "Asus-RT-AC68U GPIO init\n");
 		isac68 = 1;
+	} else if ((boardnum != 24) && nvram_match("boardtype", "0x0646") && (nvram_match("boardrev", "0x1100"))) {
+		printk(KERN_EMERG "Asus-RT-AC68U GPIO init\n");
+		isac68 = 1;
 	}
 
 	if (nvram_match("model","WS880") || nvram_match("odmpid","WS880") || nvram_match("productid","WS880") ||
