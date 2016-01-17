@@ -525,8 +525,8 @@ void delete_static_route(webs_t wp)
 	memset(buf_name, 0, 2500);
 	char *cur = buf;
 	char *cur_name = buf_name;
-	static char word[256], *next;
-	static char word_name[256], *next_name;
+	char word[256], *next;
+	char word_name[256], *next_name;
 	char *page = websGetVar(wp, "route_page", NULL);
 	char *value = websGetVar(wp, "action", "");
 	int i = 0;
@@ -2381,7 +2381,7 @@ void remove_vifs(webs_t wp)
 #ifdef HAVE_BONDING
 void add_bond(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	char *next, *wordlist;
 	int count = 0;
 	int realcount = atoi(nvram_safe_get("bonding_count"));
@@ -2404,7 +2404,7 @@ void add_bond(webs_t wp)
 
 void del_bond(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	int realcount = 0;
 	char *next, *wordlist, *newwordlist;
 	char *val = websGetVar(wp, "del_value", NULL);
@@ -2547,7 +2547,10 @@ void save_networking(webs_t wp)
 	int bridgescount = atoi(nvram_safe_get("bridges_count"));
 	int bridgesifcount = atoi(nvram_safe_get("bridgesif_count"));
 	int mdhcpd_count = atoi(nvram_safe_get("mdhcpd_count"));
-
+#ifdef HAVE_IPVS
+	int ipvscount = atoi(nvram_safe_get("ipvs_count"));
+	int ipvstargetcount = atoi(nvram_safe_get("ipvstarget_count"));
+#endif
 #ifdef HAVE_BONDING
 	int bondcount = atoi(nvram_safe_get("bonding_count"));
 #endif
@@ -2564,15 +2567,15 @@ void save_networking(webs_t wp)
 		sprintf(var, "vlanifname%d", i);
 		ifname = websGetVar(wp, var, NULL);
 		if (!ifname)
-			return;
+			break;
 		sprintf(var, "vlantag%d", i);
 		tag = websGetVar(wp, var, NULL);
 		if (!tag)
-			return;
+			break;
 		sprintf(var, "vlanprio%d", i);
 		prio = websGetVar(wp, var, NULL);
 		if (!prio)
-			return;
+			break;
 		strcat(buffer, ifname);
 		strcat(buffer, ">");
 		strcat(buffer, tag);
@@ -2600,11 +2603,11 @@ void save_networking(webs_t wp)
 		sprintf(var, "bondingifname%d", i);
 		ifname = websGetVar(wp, var, NULL);
 		if (!ifname)
-			return;
+			break;
 		sprintf(var, "bondingattach%d", i);
 		tag = websGetVar(wp, var, NULL);
 		if (!tag)
-			return;
+			break;
 		strcat(buffer, ifname);
 		strcat(buffer, ">");
 		strcat(buffer, tag);
@@ -2613,6 +2616,93 @@ void save_networking(webs_t wp)
 	}
 	nvram_set("bondings", buffer);
 	memset(buffer, 0, 1024);
+#endif
+#ifdef HAVE_IPVS
+	for (i = 0; i < ipvscount; i++) {
+		char *ipvsname;
+		char *ipvsip;
+		char *ipvsport;
+		char *ipvsproto;
+		char *ipvsscheduler;
+		char var[32];
+		sprintf(var, "ipvsname%d", i);
+		ipvsname = websGetVar(wp, var, NULL);
+		if (!ipvsname)
+			break;
+
+		sprintf(var, "ipvsip%d", i);
+		ipvsip = websGetVar(wp, var, NULL);
+		if (!ipvsip)
+			break;
+
+		sprintf(var, "ipvsport%d", i);
+		ipvsport = websGetVar(wp, var, NULL);
+		if (!ipvsport)
+			break;
+
+		sprintf(var, "ipvsscheduler%d", i);
+		ipvsscheduler = websGetVar(wp, var, NULL);
+		if (!ipvsscheduler)
+			break;
+
+		sprintf(var, "ipvsproto%d", i);
+		ipvsproto = websGetVar(wp, var, NULL);
+		if (!ipvsproto)
+			break;
+		strcat(buffer, ipvsname);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsip);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsport);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsscheduler);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsproto);
+		if (i < ipvscount - 1)
+			strcat(buffer, " ");
+	}
+	nvram_set("ipvs", buffer);
+	memset(buffer, 0, 1024);
+
+	for (i = 0; i < ipvstargetcount; i++) {
+		char *ipvsname;
+		char *ipvsip;
+		char *ipvsport;
+		char *ipvsweight;
+		char var[32];
+		sprintf(var, "target_ipvsname%d", i);
+		ipvsname = websGetVar(wp, var, NULL);
+		if (!ipvsname)
+			break;
+
+		sprintf(var, "target_ipvsip%d", i);
+		ipvsip = websGetVar(wp, var, NULL);
+		if (!ipvsip)
+			break;
+
+		sprintf(var, "target_ipvsport%d", i);
+		ipvsport = websGetVar(wp, var, NULL);
+		if (!ipvsport)
+			break;
+
+		sprintf(var, "target_ipvsweight%d", i);
+		ipvsweight = websGetVar(wp, var, NULL);
+		if (!ipvsweight)
+			break;
+
+		strcat(buffer, ipvsname);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsip);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsport);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsweight);
+		if (i < ipvstargetcount - 1)
+			strcat(buffer, " ");
+	}
+	nvram_set("ipvstarget", buffer);
+	memset(buffer, 0, 1024);
+
 #endif
 
 	// save bridges
@@ -2629,15 +2719,15 @@ void save_networking(webs_t wp)
 		sprintf(var, "bridgename%d", i);
 		ifname = websGetVar(wp, var, NULL);
 		if (!ifname)
-			return;
+			break;
 		sprintf(var, "bridgestp%d", i);
 		tag = websGetVar(wp, var, NULL);
 		if (!tag)
-			return;
+			break;
 		sprintf(var, "bridgemcastbr%d", i);
 		mcast = websGetVar(wp, var, NULL);
 		if (!mcast) {
-			return;
+			break;
 		} else {
 			sprintf(n, "%s_mcast", ifname);
 			if (!strcmp(mcast, "On"))
@@ -2695,11 +2785,11 @@ void save_networking(webs_t wp)
 		sprintf(var, "bridge%d", i);
 		ifname = websGetVar(wp, var, NULL);
 		if (!ifname)
-			return;
+			break;
 		sprintf(var, "bridgeif%d", i);
 		tag = websGetVar(wp, var, NULL);
 		if (!tag)
-			return;
+			break;
 		sprintf(var, "bridgeifprio%d", i);
 		prio = websGetVar(wp, var, NULL);
 		if (!prio)
@@ -2726,27 +2816,27 @@ void save_networking(webs_t wp)
 		sprintf(var, "mdhcpifname%d", i);
 		mdhcpinterface = websGetVar(wp, var, NULL);
 		if (!mdhcpinterface)
-			return;
+			break;
 
 		sprintf(var, "mdhcpon%d", i);
 		mdhcpon = websGetVar(wp, var, NULL);
 		if (!mdhcpon)
-			return;
+			break;
 
 		sprintf(var, "mdhcpstart%d", i);
 		mdhcpstart = websGetVar(wp, var, NULL);
 		if (!mdhcpstart)
-			return;
+			break;
 
 		sprintf(var, "mdhcpmax%d", i);
 		mdhcpmax = websGetVar(wp, var, NULL);
 		if (!mdhcpmax)
-			return;
+			break;
 
 		sprintf(var, "mdhcpleasetime%d", i);
 		mdhcpleasetime = websGetVar(wp, var, NULL);
 		if (!mdhcpleasetime)
-			return;
+			break;
 
 		strcat(buffer, mdhcpinterface);
 		strcat(buffer, ">");
@@ -2771,7 +2861,7 @@ void save_networking(webs_t wp)
 
 void add_vlan(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	char *next, *wordlist;
 	int count = 0;
 	int realcount = atoi(nvram_safe_get("vlan_tagcount"));
@@ -2794,7 +2884,7 @@ void add_vlan(webs_t wp)
 
 void del_vlan(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	int realcount = 0;
 	char *next, *wordlist, *newwordlist;
 	char *val = websGetVar(wp, "del_value", NULL);
@@ -2841,7 +2931,7 @@ void del_vlan(webs_t wp)
 
 void add_mdhcp(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	char *next, *wordlist;
 	int count = 0;
 	int realcount = atoi(nvram_safe_get("mdhcpd_count"));
@@ -2864,7 +2954,7 @@ void add_mdhcp(webs_t wp)
 
 void del_mdhcp(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	int realcount = 0;
 	char *next, *wordlist, *newwordlist;
 	char *val = websGetVar(wp, "del_value", NULL);
@@ -2900,7 +2990,7 @@ void del_mdhcp(webs_t wp)
 
 void del_bridge(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	int realcount = 0;
 	char *next, *wordlist, *newwordlist;
 	char *val = websGetVar(wp, "del_value", NULL);
@@ -2946,7 +3036,7 @@ void del_bridge(webs_t wp)
 
 void add_bridge(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	char *next, *wordlist;
 	int count = 0;
 	int realcount = atoi(nvram_safe_get("bridges_count"));
@@ -2969,7 +3059,7 @@ void add_bridge(webs_t wp)
 
 void del_bridgeif(webs_t wp)
 {
-	static char word[256];
+	char word[256];
 	int realcount = 0;
 	char *next, *wordlist, *newwordlist;
 	char *val = websGetVar(wp, "del_value", NULL);
@@ -3006,7 +3096,7 @@ void del_bridgeif(webs_t wp)
 void add_bridgeif(webs_t wp)
 {
 
-	static char word[256];
+	char word[256];
 	char *next, *wordlist;
 	int count = 0;
 	int realcount = atoi(nvram_safe_get("bridgesif_count"));
@@ -3028,6 +3118,124 @@ void add_bridgeif(webs_t wp)
 }
 
 #endif
+#ifdef HAVE_IPVS
+void add_ipvs(webs_t wp)
+{
+	char word[256];
+	char *next, *wordlist;
+	int count = 0;
+	int realcount = atoi(nvram_safe_get("ipvs_count"));
+
+	if (realcount == 0) {
+		wordlist = nvram_safe_get("ipvs");
+		foreach(word, wordlist, next) {
+			count++;
+		}
+		realcount = count;
+	}
+	realcount++;
+	char var[32];
+
+	sprintf(var, "%d", realcount);
+	nvram_set("ipvs_count", var);
+	nvram_commit();
+	return;
+}
+
+void del_ipvs(webs_t wp)
+{
+	char word[256];
+	int realcount = 0;
+	char *next, *wordlist, *newwordlist;
+	char *val = websGetVar(wp, "del_value", NULL);
+
+	if (val == NULL)
+		return;
+	int todel = atoi(val);
+
+	wordlist = nvram_safe_get("ipvs");
+	newwordlist = (char *)safe_malloc(strlen(wordlist));
+	memset(newwordlist, 0, strlen(wordlist));
+	int count = 0;
+
+	foreach(word, wordlist, next) {
+		if (count != todel) {
+			strcat(newwordlist, word);
+			strcat(newwordlist, " ");
+		}
+		count++;
+	}
+
+	realcount = atoi(nvram_safe_get("ipvs_count")) - 1;
+	char var[32];
+
+	sprintf(var, "%d", realcount);
+	nvram_set("ipvs_count", var);
+	nvram_set("ipvs", newwordlist);
+	nvram_commit();
+	free(newwordlist);
+	return;
+}
+
+void add_ipvstarget(webs_t wp)
+{
+	char word[256];
+	char *next, *wordlist;
+	int count = 0;
+	int realcount = atoi(nvram_safe_get("ipvstarget_count"));
+
+	if (realcount == 0) {
+		wordlist = nvram_safe_get("ipvstarget");
+		foreach(word, wordlist, next) {
+			count++;
+		}
+		realcount = count;
+	}
+	realcount++;
+	char var[32];
+
+	sprintf(var, "%d", realcount);
+	nvram_set("ipvstarget_count", var);
+	nvram_commit();
+	return;
+}
+
+void del_ipvstarget(webs_t wp)
+{
+	char word[256];
+	int realcount = 0;
+	char *next, *wordlist, *newwordlist;
+	char *val = websGetVar(wp, "del_value", NULL);
+
+	if (val == NULL)
+		return;
+	int todel = atoi(val);
+
+	wordlist = nvram_safe_get("ipvstarget");
+	newwordlist = (char *)safe_malloc(strlen(wordlist));
+	memset(newwordlist, 0, strlen(wordlist));
+	int count = 0;
+
+	foreach(word, wordlist, next) {
+		if (count != todel) {
+			strcat(newwordlist, word);
+			strcat(newwordlist, " ");
+		}
+		count++;
+	}
+
+	realcount = atoi(nvram_safe_get("ipvstarget_count")) - 1;
+	char var[32];
+
+	sprintf(var, "%d", realcount);
+	nvram_set("ipvstarget_count", var);
+	nvram_set("ipvstarget", newwordlist);
+	nvram_commit();
+	free(newwordlist);
+	return;
+}
+
+#endif
 
 static void save_prefix(webs_t wp, char *prefix)
 {
@@ -3040,7 +3248,7 @@ static void save_prefix(webs_t wp, char *prefix)
 #endif
 #ifdef HAVE_IFL
 #ifdef HAVE_NEXTMEDIA
-        copytonv(wp, "%s_label", prefix);
+	copytonv(wp, "%s_label", prefix);
 #endif
 	copytonv(wp, "%s_note", prefix);
 #endif
