@@ -10,7 +10,60 @@ define kernelfeatures
 	if [ "$(CONFIG_IPETH)" = "y" ]; then \
 		sed -i 's/\# CONFIG_USB_IPHETH is not set/CONFIG_USB_IPHETH=m/g' $(LINUXDIR)/.config; \
 	fi
-	
+	if [ "$(CONFIG_USB_AUDIO)" = "y" ]; then \
+		sed -i 's/\# CONFIG_SOUND is not set/CONFIG_SOUND=m/g' $(LINUXDIR)/.config; \
+		echo "CONFIG_SOUND_OSS_CORE=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SOUND_OSS_CORE_PRECLAIM=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_TIMER=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_PCM=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_HWDEP=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_RAWMIDI=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_SEQUENCER=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_SEQ_DUMMY=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_OSSEMUL=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_MIXER_OSS=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_PCM_OSS=m" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_PCM_OSS_PLUGINS=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_PCM_TIMER=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_SEQUENCER_OSS=y" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_HRTIMER is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_DYNAMIC_MINORS is not set" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_SUPPORT_OLD_API=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_PROC_FS=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_VERBOSE_PROCFS=y" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_VERBOSE_PRINTK is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_DEBUG is not set" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_RAWMIDI_SEQ=m" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_OPL3_LIB_SEQ is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_OPL4_LIB_SEQ is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_SBAWE_SEQ is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_EMU10K1_SEQ is not set" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_DRIVERS=y" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_DUMMY is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_ALOOP is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_VIRMIDI is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_MTPAV is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_SERIAL_U16550 is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_MPU401 is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_PCI is not set" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_HDA_PREALLOC_SIZE=64" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_ARM is not set" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_USB=y" >> $(LINUXDIR)/.config; \
+		echo "CONFIG_SND_USB_AUDIO=m" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_UA101 is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_CAIAQ is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_6FIRE is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_HIFACE is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_BCD2000 is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_POD is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_PODHD is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_TONEPORT is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_USB_VARIAX is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SND_SOC is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_SOUND_PRIME is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_LINE6_USB is not set" >> $(LINUXDIR)/.config; \
+	fi
 	if [ "$(CONFIG_USBIP)" = "y" ]; then \
 		sed -i 's/\# CONFIG_USBIP_CORE is not set/CONFIG_USBIP_CORE=m/g' $(LINUXDIR)/.config; \
 		echo "CONFIG_USBIP_VHCI_HCD=m" >> $(LINUXDIR)/.config; \
