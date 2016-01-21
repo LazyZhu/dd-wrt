@@ -1208,6 +1208,8 @@ networking.ipvs_targets="Virtueller Server Zieles";
 networking.ipvs_targetip="Ziel IP";
 networking.ipvs_targetport="Ziel Port";
 networking.ipvs_weight="Wichtung";
+networking.ipvs_role="Rolle";
+networking.ipvs_config="Konfiguration";
 
 
 //help container

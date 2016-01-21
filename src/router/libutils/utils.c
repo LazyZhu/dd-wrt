@@ -1482,7 +1482,7 @@ int internal_getRouterBrand()
 		setRouter("Netgear R8000");
 		return ROUTER_NETGEAR_R8000;
 	}
-	
+
 	if (boardnum == 32 && nvram_match("boardtype", "0x072F")
 	    && nvram_match("boardrev", "0x1101")) {
 		setRouter("Netgear R8500");
@@ -2355,7 +2355,6 @@ int internal_getRouterBrand()
 		int offset;	// frequency offset
 		int poffset;
 	};
-
 	/* these values are guessed and need to be validated */
 #define M900 (- (2427 - 907))
 #define M365 (- (5540 - 3650))
@@ -2458,7 +2457,7 @@ int internal_getRouterBrand()
 		{"UniFi UAP-AC v2", 0xe912, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
 		{"UniFi UAP v2", 0xe572, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
 		{"UniFi UAP-LR v2", 0xe582, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
-		{NULL, 0, NULL, NULL, 0},	//
+		{NULL, 0, 0, 0, 0, 0,0},	//
 	};
 
 #undef M35
@@ -2520,9 +2519,9 @@ int internal_getRouterBrand()
 				sprintf(poff, "%d", dev[devcnt].poffset);
 				nvram_set("ath0_poweroffset", poff);
 			}
-			setRouter(dev[devcnt].devicename);
 			static char devicename[64];
-			sprintf(devicename, "Ubiquiti %s", dev[devcnt].dddev);
+			sprintf(devicename, "Ubiquiti %s", dev[devcnt].devicename);
+			setRouter(devicename);
 			return devicename;
 		}
 		devcnt++;
@@ -7690,4 +7689,26 @@ u_int64_t freediskSpace(char *path)
 	}
 
 	return (u_int64_t)sizefs.f_bsize * (u_int64_t)sizefs.f_bfree;
+}
+
+void getSystemMac(char *newmac)
+{
+	int brand = getRouterBrand();
+	switch (brand) {
+	case ROUTER_ASUS_AC87U:
+	case ROUTER_ASUS_AC88U:
+	case ROUTER_ASUS_AC5300:
+		strcpy(newmac, nvram_safe_get("et1macaddr"));
+		break;
+	case ROUTER_NETGEAR_R8000:
+	case ROUTER_NETGEAR_R8500:
+	case ROUTER_TRENDNET_TEW828:
+	case ROUTER_DLINK_DIR885:
+		strcpy(newmac, nvram_safe_get("et2macaddr"));
+		break;
+	default:
+		strcpy(newmac, nvram_safe_get("et0macaddr"));
+		break;
+	}
+
 }

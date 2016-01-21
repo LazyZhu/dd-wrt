@@ -2540,6 +2540,20 @@ void save_olsrd(webs_t wp)
 
 #ifdef HAVE_VLANTAGGING
 
+static void trunkspaces(char *str)
+{
+	int len = strlen(str);
+	int i;
+	for (i = 0; i < len; i++) {
+		if (str[i] == ' ') {
+			memmove(&str[i], &str[i + 1], len - i);
+			i--;
+			len=strlen(str);
+			continue;
+		}
+	}
+}
+
 void save_networking(webs_t wp)
 {
 	char *value = websGetVar(wp, "action", "");
@@ -2618,6 +2632,18 @@ void save_networking(webs_t wp)
 	memset(buffer, 0, 1024);
 #endif
 #ifdef HAVE_IPVS
+	{
+		char var[32];
+		sprintf(var, "ipvsrole");
+		char *ipvsrole = websGetVar(wp, var, NULL);
+		if (ipvsrole) {
+			if (!strcmp(ipvsrole, "Master"))
+				nvram_set("ipvs_role", "master");
+			else
+				nvram_set("ipvs_role", "backup");
+		}
+
+	}
 	for (i = 0; i < ipvscount; i++) {
 		char *ipvsname;
 		char *ipvsip;
@@ -2629,26 +2655,32 @@ void save_networking(webs_t wp)
 		ipvsname = websGetVar(wp, var, NULL);
 		if (!ipvsname)
 			break;
+		trunkspaces(ipvsname);
 
 		sprintf(var, "ipvsip%d", i);
 		ipvsip = websGetVar(wp, var, NULL);
 		if (!ipvsip)
 			break;
+		trunkspaces(ipvsip);
 
 		sprintf(var, "ipvsport%d", i);
 		ipvsport = websGetVar(wp, var, NULL);
 		if (!ipvsport)
 			break;
+		trunkspaces(ipvsport);
 
 		sprintf(var, "ipvsscheduler%d", i);
 		ipvsscheduler = websGetVar(wp, var, NULL);
 		if (!ipvsscheduler)
 			break;
+		trunkspaces(ipvsscheduler);
 
 		sprintf(var, "ipvsproto%d", i);
 		ipvsproto = websGetVar(wp, var, NULL);
 		if (!ipvsproto)
 			break;
+		trunkspaces(ipvsproto);
+
 		strcat(buffer, ipvsname);
 		strcat(buffer, ">");
 		strcat(buffer, ipvsip);
@@ -2669,26 +2701,36 @@ void save_networking(webs_t wp)
 		char *ipvsip;
 		char *ipvsport;
 		char *ipvsweight;
+		char *ipvsnat;
 		char var[32];
 		sprintf(var, "target_ipvsname%d", i);
 		ipvsname = websGetVar(wp, var, NULL);
 		if (!ipvsname)
 			break;
+		trunkspaces(ipvsname);
 
 		sprintf(var, "target_ipvsip%d", i);
 		ipvsip = websGetVar(wp, var, NULL);
 		if (!ipvsip)
 			break;
+		trunkspaces(ipvsip);
 
 		sprintf(var, "target_ipvsport%d", i);
 		ipvsport = websGetVar(wp, var, NULL);
 		if (!ipvsport)
 			break;
+		trunkspaces(ipvsport);
 
 		sprintf(var, "target_ipvsweight%d", i);
 		ipvsweight = websGetVar(wp, var, NULL);
 		if (!ipvsweight)
 			break;
+		trunkspaces(ipvsweight);
+		sprintf(var, "target_ipvsmasquerade%d", i);
+		ipvsnat = websGetVar(wp, var, "0");
+		if (!ipvsnat)
+			break;
+		trunkspaces(ipvsnat);
 
 		strcat(buffer, ipvsname);
 		strcat(buffer, ">");
@@ -2697,6 +2739,8 @@ void save_networking(webs_t wp)
 		strcat(buffer, ipvsport);
 		strcat(buffer, ">");
 		strcat(buffer, ipvsweight);
+		strcat(buffer, ">");
+		strcat(buffer, ipvsnat);
 		if (i < ipvstargetcount - 1)
 			strcat(buffer, " ");
 	}

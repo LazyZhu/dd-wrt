@@ -27,7 +27,7 @@ void ej_show_ipvsassignments(webs_t wp, int argc, char_t ** argv)
 
 	char tword[256];
 	char *tnext, *twordlist;
-	char *ipvsname, *targetip, *targetport, *targetweight;
+	char *ipvsname, *targetip, *targetport, *targetweight, *targetnat;
 	char ipvs_name[32];
 
 	if (strlen(nvram_safe_get("ipvs"))) {
@@ -40,6 +40,7 @@ void ej_show_ipvsassignments(webs_t wp, int argc, char_t ** argv)
 		websWrite(wp, "<th>%s</th>\n", live_translate("networking.ipvs_targetip"));
 		websWrite(wp, "<th>%s</th>\n", live_translate("networking.ipvs_targetport"));
 		websWrite(wp, "<th>%s</th>\n", live_translate("networking.ipvs_weight"));
+		websWrite(wp, "<th>%s</th>\n", live_translate("wl_basic.masquerade"));
 		websWrite(wp, "<th>&nbsp;</th></tr>\n");
 
 		wordlist = nvram_safe_get("ipvstarget");
@@ -51,9 +52,14 @@ void ej_show_ipvsassignments(webs_t wp, int argc, char_t ** argv)
 			targetip = strsep(&targetport, ">");
 			targetweight = targetport;
 			targetport = strsep(&targetweight, ">");
+			targetnat = targetweight;
+			targetweight = strsep(&targetnat, ">");
+
 			if (!targetweight)
 				targetweight = "5";
-			if (!ipvsname || !targetport || !targetip || !targetweight)
+			if (!targetnat)
+				targetweight = "1";
+			if (!ipvsname || !targetport || !targetip || !targetweight || !targetnat)
 				break;
 
 			sprintf(ipvs_name, "target_ipvsname%d", count);
@@ -76,6 +82,8 @@ void ej_show_ipvsassignments(webs_t wp, int argc, char_t ** argv)
 			websWrite(wp, "<td align=\"center\"><input class=\"num\" name=\"%s\"size=\"5\" value=\"%s\" /></td>\n", ipvs_name, targetport);
 			sprintf(ipvs_name, "target_ipvsweight%d", count);
 			websWrite(wp, "<td align=\"center\"><input class=\"num\" name=\"%s\"size=\"5\" value=\"%s\" /></td>\n", ipvs_name, targetweight);
+			sprintf(ipvs_name, "target_ipvsmasquerade%d", count);
+			websWrite(wp, "<td><input type=\"checkbox\" name=\"%s\" value=\"1\" %s/></td>\n", ipvs_name, !strcmp(targetnat, "1") ? "checked=\"checked\"" : "");
 			websWrite(wp,
 				  "<td><script type=\"text/javascript\">\n//<![CDATA[\n document.write(\"<input class=\\\"button\\\" type=\\\"button\\\" value=\\\"\" + sbutton.del + \"\\\" onclick=\\\"ipvstarget_del_submit(this.form,%d)\\\" />\");\n//]]>\n</script></td></tr>\n",
 				  count);
@@ -105,7 +113,9 @@ void ej_show_ipvsassignments(webs_t wp, int argc, char_t ** argv)
 			sprintf(ipvs_name, "target_ipvsport%d", i);
 			websWrite(wp, "<td align=\"center\"><input class=\"num\" name=\"%s\" size=\"5\" /></td>\n", ipvs_name);
 			sprintf(ipvs_name, "target_ipvsweight%d", i);
-			websWrite(wp, "<td align=\"center\"><input class=\"num\" name=\"%s\" size=\"5\" /></td>\n", ipvs_name);
+			websWrite(wp, "<td align=\"center\"><input class=\"num\" name=\"%s\" size=\"5\" value=\"5\" /></td>\n", ipvs_name);
+			sprintf(ipvs_name, "target_ipvsmasquerade%d", i);
+			websWrite(wp, "<td><input type=\"checkbox\" name=\"%s\" value=\"1\" checked=\"checked\"/></td>\n", ipvs_name);
 
 			websWrite(wp, "<td>");
 			websWrite(wp,
@@ -138,6 +148,10 @@ void ej_show_ipvs(webs_t wp, int argc, char_t ** argv)
 	int realcount = atoi(nvram_default_get("ipvs_count", "0"));
 
 	websWrite(wp, "<h2>%s</h2>\n", live_translate("networking.ipvs"));
+	websWrite(wp, "<fieldset>\n");
+	websWrite(wp, "<legend>%s</legend>\n", live_translate("networking.ipvs_config"));
+	showOptionsLabel(wp, "networking.ipvs_role", "ipvsrole", "Master Backup", nvram_match("ipvs_role", "master") ? "Master" : "Backup");
+	websWrite(wp, "</fieldset>\n");
 	websWrite(wp, "<fieldset>\n");
 	websWrite(wp, "<legend>%s</legend>\n", live_translate("networking.create_ipvs"));
 
@@ -237,7 +251,7 @@ void ej_show_ipvs(webs_t wp, int argc, char_t ** argv)
 
 	websWrite(wp,
 		  "<script type=\"text/javascript\">\n//<![CDATA[\n document.write(\"<input class=\\\"button\\\" type=\\\"button\\\" value=\\\"\" + sbutton.add + \"\\\" onclick=\\\"ipvs_add_submit(this.form)\\\" />\");\n//]]>\n</script>\n");
-	websWrite(wp, "</fieldset>\n");
+	websWrite(wp, "</fieldset><br />\n");
 
 	char var[32];
 	sprintf(var, "%d", totalcount);

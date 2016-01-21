@@ -34,17 +34,16 @@ void start_ipvs(void)
 {
 	char word[256];
 	char *next, *wordlist;
+	int first = 0;
 
 	char tword[256];
 	char *tnext, *twordlist;
-	char *ipvsname, *sourceip, *sourceport, *scheduler, *targetip, *targetport, *matchname, *sourceproto, *targetweight;
+	char *ipvsname, *sourceip, *sourceport, *scheduler, *targetip, *targetport, *matchname, *sourceproto, *targetweight, *targetnat;
 	char *ipvs = nvram_safe_get("ipvs");
 	char *ipvstarget = nvram_safe_get("ipvstarget");
 	if (!strlen(ipvs) || !strlen(ipvstarget))
 		return;
-	insmod("ipv6 ip_vs ip_ftp ip_pe_sip");
 	wordlist = ipvs;
-
 	foreach(word, wordlist, next) {
 		sourceip = word;
 		ipvsname = strsep(&sourceip, ">");
@@ -56,20 +55,36 @@ void start_ipvs(void)
 		scheduler = strsep(&sourceproto, ">");
 		if (!ipvsname || !sourceport || !sourceip || !scheduler || !sourceproto)
 			break;
+		if (!first) {
+			first = 1;
+			insmod("ipv6 ip_vs ip_ftp ip_pe_sip");
+		}
 		char modname[32];
 		sprintf(modname, "ip_vs_%s", scheduler);	//build module name for scheduler implementation
 		insmod(modname);
 		char source[64];
-		if (!strcasecmp(sourceip, "wan"))
+		if (!strcasecmp(sourceip, "wan")) {
 			sourceip = get_wan_ipaddr();
+			if (strcmp(sourceport, "0")) {
+				char net[32];
+				sprintf(net, "%s/32", sourceip);
+				eval("iptables", "-I", "INPUT", "-p", sourceproto, "--dport", sourceport, "-d", net, "-j", "ACCEPT");
+			}
+		}
 		if (!strcasecmp(sourceip, "lan"))
 			sourceip = nvram_safe_get("lan_ipaddr");
 		snprintf(source, sizeof(source), "%s:%s", sourceip, sourceport);
-		if (!strcmp(sourceproto, "tcp"))
-			eval("ipvsadm", "-A", "-t", source, "-s", scheduler);
-		else if (!strcmp(sourceproto, "udp"))
-			eval("ipvsadm", "-A", "-u", source, "-s", scheduler);
-		else if (!strcmp(sourceproto, "sip")) {
+		if (!strcmp(sourceproto, "tcp")) {
+			if (!strcmp(sourceport, "0"))
+				eval("ipvsadm", "-A", "-t", source, "-s", scheduler, "-p");
+			else
+				eval("ipvsadm", "-A", "-t", source, "-s", scheduler);
+		} else if (!strcmp(sourceproto, "udp")) {
+			if (!strcmp(sourceport, "0"))
+				eval("ipvsadm", "-A", "-u", source, "-s", scheduler, "-p");
+			else
+				eval("ipvsadm", "-A", "-u", source, "-s", scheduler);
+		} else if (!strcmp(sourceproto, "sip")) {
 			insmod("nf_conntrack_sip");
 			insmod("ip_vs_pe_sip");
 			eval("ipvsadm", "-A", "-u", source, "-p", "60", "-M", "0.0.0.0", "-o", "--pe", "sip", "-s", scheduler);
@@ -84,7 +99,10 @@ void start_ipvs(void)
 		targetip = strsep(&targetport, ">");
 		targetweight = targetport;
 		targetport = strsep(&targetweight, ">");
-		if (!ipvsname || !targetport || !targetip || !targetweight)
+		targetnat = targetweight;
+		targetweight = strsep(&targetnat, ">");
+
+		if (!ipvsname || !targetport || !targetip || !targetnat)
 			break;
 		twordlist = ipvs;
 		int found = 0;
@@ -116,10 +134,24 @@ void start_ipvs(void)
 			snprintf(source, sizeof(source), "%s:%s", sourceip, sourceport);
 			char target[64];
 			snprintf(target, sizeof(target), "%s:%s", targetip, targetport);
-			eval("ipvsadm", "-a", "-t", source, "-r", target, "-m", "-w", targetweight);
+			if (targetweight) {
+				if (!strcmp(targetnat, "1"))
+					eval("ipvsadm", "-a", "-t", source, "-r", target, "-m", "-w", targetweight);
+				else
+					eval("ipvsadm", "-a", "-t", source, "-r", target, "-g", "-w", targetweight);
+			} else {
+				if (!strcmp(targetnat, "1"))
+					eval("ipvsadm", "-a", "-t", source, "-r", target, "-m");
+				else
+					eval("ipvsadm", "-a", "-t", source, "-r", target, "-g");
+
+			}
 		}
 	}
-	dd_syslog(LOG_INFO, "ipvs : IP Virtual Server successfully started\n");
+	if (first) {
+		eval("ipvsadm", "--start-daemon", nvram_default_get("ipvs_role", "master"), "--mcast-interface", nvram_safe_get("lan_ifname"));
+		dd_syslog(LOG_INFO, "ipvs : IP Virtual Server successfully started\n");
+	}
 	return;
 }
 

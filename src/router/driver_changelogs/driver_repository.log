@@ -1,4 +1,20 @@
 ------------------------------------------------------------------------
+r2782 | BrainSlayer | 2016-01-20 02:17:58 +0100 (Wed, 20 Jan 2016) | 1 line
+
+update laguna toolchain
+------------------------------------------------------------------------
+r2781 | BrainSlayer | 2016-01-18 23:30:41 +0100 (Mon, 18 Jan 2016) | 1 line
+
+fix broken ath9k eeprom code which was introduced in 10-01-2016. this will cause older ar9160 based devices to fail since they dont contain eeprom magics in flash
+------------------------------------------------------------------------
+r2780 | BrainSlayer | 2016-01-18 09:50:32 +0100 (Mon, 18 Jan 2016) | 1 line
+
+trivial fix for broken compat wireless 01-10-2016
+------------------------------------------------------------------------
+r2779 | BrainSlayer | 2016-01-17 13:45:11 +0100 (Sun, 17 Jan 2016) | 1 line
+
+add new compat wireless driver
+------------------------------------------------------------------------
 r2778 | brainslayer | 2016-01-14 00:05:27 +0100 (Thu, 14 Jan 2016) | 1 line
 
 affects dragonfly as well (AR9561)
