@@ -10,8 +10,6 @@ util-linux-configure:
 	--with-ncurses
 	make -C util-linux
 
-
-
 util-linux-clean:
 	make -C util-linux clean
 
@@ -23,16 +21,10 @@ util-linux-install:
 	make -C util-linux clean
 	make -C util-linux
 	make -C util-linux install DESTDIR=$(INSTALLDIR)/util-linux
-	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.so.1.3.0
-	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.so.1
-	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.so
-	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.la
-	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.lai
-	rm -f $(TOP)/util-linux/.libs/libuuid.so.1.3.0
-	rm -f $(TOP)/util-linux/.libs/libuuid.so.1
-	rm -f $(TOP)/util-linux/.libs/libuuid.so
-	rm -f $(TOP)/util-linux/.libs/libuuid.la
-	rm -f $(TOP)/util-linux/.libs/libuuid.lai
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.a
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libblkid.so*
+	rm -f $(TOP)/util-linux/.libs/libuuid.a
+	rm -f $(TOP)/util-linux/.libs/libblkid.a
 
 asterisk-configure: util-linux-configure util-linux-install jansson
 	rm -f asterisk/menuselect.makeopts && \
@@ -210,11 +202,18 @@ asterisk-install:
 	rm -rf $(INSTALLDIR)/util-linux/usr/bin
 	rm -rf $(INSTALLDIR)/util-linux/usr/share
 	rm -rf $(INSTALLDIR)/util-linux/usr/include
-	rm -rf $(INSTALLDIR)/util-linux/usr/lib
+	rm -rf $(INSTALLDIR)/util-linux/usr/lib/pkgconfig
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libmount*
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libfdisk*
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libsmartcols*
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libblkid.a
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libblkid.la
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.a
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libuuid.la
+	rm -f $(INSTALLDIR)/util-linux/usr/lib/libblkid.so*
 	rm -rf $(INSTALLDIR)/util-linux/bin
 	rm -rf $(INSTALLDIR)/util-linux/sbin
 	rm -f $(INSTALLDIR)/util-linux/lib/libmount.so*
-	rm -f $(INSTALLDIR)/util-linux/lib/libblkid.so*
 	rm -f $(INSTALLDIR)/util-linux/lib/libfdisk.so*
 	rm -f $(INSTALLDIR)/util-linux/lib/libsmartcols.so*
 

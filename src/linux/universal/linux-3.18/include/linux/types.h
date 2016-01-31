@@ -213,11 +213,17 @@ struct callback_head {
 };
 #define rcu_head callback_head
 
+#ifdef CONFIG_MACH_AR7100
 struct net_hdr_word {
        u32 words[1];
 } __attribute__((packed, aligned(2)));
 
 #define net_hdr_word(_p) (((struct net_hdr_word *) (_p))->words[0])
+#define MIPS_ENABLED(a) a
+#else
+#define MIPS_ENABLED(a)
+#define net_hdr_word(_p) (*((u32 *)_p))
+#endif
 
 #endif /*  __ASSEMBLY__ */
 #endif /* _LINUX_TYPES_H */

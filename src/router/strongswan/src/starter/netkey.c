@@ -31,7 +31,7 @@ bool starter_netkey_init(void)
 		/* af_key module makes the netkey proc interface visible */
 		if (stat(PROC_MODULES, &stb) == 0)
 		{
-			ignore_result(system("modprobe -qv af_key"));
+			ignore_result(system("modprobe af_key 2>&1 >/dev/null"));
 		}
 
 		/* now test again */
@@ -45,26 +45,13 @@ bool starter_netkey_init(void)
 	/* make sure that all required IPsec modules are loaded */
 	if (stat(PROC_MODULES, &stb) == 0)
 	{
-		ignore_result(system("modprobe -qv ah4"));
-		ignore_result(system("modprobe -qv esp4"));
-		ignore_result(system("modprobe -qv ipcomp"));
-		ignore_result(system("modprobe -qv xfrm4_tunnel"));
-		ignore_result(system("modprobe -qv xfrm_user"));
+		ignore_result(system("modprobe ah4 2>&1 >/dev/null"));
+		ignore_result(system("modprobe esp4 2>&1 >/dev/null"));
+		ignore_result(system("modprobe ipcomp 2>&1 >/dev/null"));
+		ignore_result(system("modprobe xfrm4_tunnel 2>&1 >/dev/null"));
+		ignore_result(system("modprobe xfrm_user 2>&1 >/dev/null"));
 	}
 
 	DBG2(DBG_APP, "found netkey IPsec stack");
 	return TRUE;
-}
-
-void starter_netkey_cleanup(void)
-{
-	if (!lib->plugins->load(lib->plugins, NULL,
-			lib->settings->get_str(lib->settings, "starter.load", PLUGINS)))
-	{
-		DBG1(DBG_APP, "unable to load kernel plugins");
-		return;
-	}
-	hydra->kernel_interface->flush_sas(hydra->kernel_interface);
-	hydra->kernel_interface->flush_policies(hydra->kernel_interface);
-	lib->plugins->unload(lib->plugins);
 }

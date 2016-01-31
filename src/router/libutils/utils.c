@@ -983,11 +983,13 @@ int check_vlan_support(void)
 	return 0;
 #else
 
+
 	int brand = getRouterBrand();
 
 	switch (brand) {
 #ifndef HAVE_BUFFALO
 	case ROUTER_ASUS_WL500GD:
+	case ROUTER_WRT54G1X:
 		return 1;
 		break;
 #endif
@@ -1012,14 +1014,15 @@ int check_vlan_support(void)
 	}
 
 	unsigned long boardflags = strtoul(nvram_safe_get("boardflags"), NULL, 0);
-
 	if (boardflags & BFL_ENETVLAN)
+		return 1;	
+	if (nvram_match("boardtype", "bcm94710dev")) 
+		return 1;
+	if (nvram_match("boardtype", "0x0101")) 
+		return 1;
+	if (boardflags & 0x0100) 
 		return 1;
 
-	if (nvram_match("boardtype", "bcm94710dev")
-	    || nvram_match("boardtype", "0x0101") || (boardflags & 0x0100))
-		return 1;
-	else
 		return 0;
 #endif
 }
@@ -1696,7 +1699,6 @@ int internal_getRouterBrand()
 	int reg2 = data->val_out;
 
 	close(s);
-	fprintf(stderr, "phy id %X:%X\n", reg1, reg2);
 	if (reg1 == 0x2000 && reg2 == 0x5c90) {
 		setRouter("Avila GW2347");
 		return ROUTER_BOARD_GATEWORX_SWAP;
@@ -6772,10 +6774,10 @@ int insmod(char *module)
 {
 	static char word[256];
 	char *next, *wordlist;
-	int ret;
+	int ret = 0;
 	wordlist = module;
 	foreach(word, wordlist, next) {
-		_evalpid((char *[]) {
+		ret |= _evalpid((char *[]) {
 			 "insmod", word, NULL}, ">/dev/null", 0, NULL);
 	}
 	return ret;

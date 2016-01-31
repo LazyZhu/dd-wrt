@@ -87,6 +87,7 @@ define kernelfeatures
 		echo "CONFIG_IP6_NF_MATCH_AH=m" >> $(LINUXDIR)/.config; \
 		echo "# CONFIG_IP6_NF_MATCH_EUI64 is not set" >> $(LINUXDIR)/.config; \
 		echo "CONFIG_IP6_NF_MATCH_FRAG=m" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_IP6_NF_MATCH_OWNER is not set" >> $(LINUXDIR)/.config; \
 		echo "# CONFIG_IP6_NF_MATCH_OPTS is not set" >> $(LINUXDIR)/.config; \
 		echo "# CONFIG_IP6_NF_MATCH_HL is not set" >> $(LINUXDIR)/.config; \
 		echo "CONFIG_IP6_NF_MATCH_IPV6HEADER=m" >> $(LINUXDIR)/.config; \
@@ -97,12 +98,16 @@ define kernelfeatures
 		echo "CONFIG_IP6_NF_FILTER=m" >> $(LINUXDIR)/.config; \
 		echo "CONFIG_IP6_NF_TARGET_REJECT=m" >> $(LINUXDIR)/.config; \
 		echo "# CONFIG_IP6_NF_TARGET_SYNPROXY is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_IP6_NF_TARGET_IMQ is not set" >> $(LINUXDIR)/.config; \
+		echo "# CONFIG_IP6_NF_TARGET_LOG is not set" >> $(LINUXDIR)/.config; \
 		echo "CONFIG_IP6_NF_MANGLE=m" >> $(LINUXDIR)/.config; \
 		echo "# CONFIG_IP6_NF_RAW is not set" >> $(LINUXDIR)/.config; \
 		echo "# CONFIG_IP6_NF_NAT is not set" >> $(LINUXDIR)/.config; \
 	fi
 	if [ "$(CONFIG_JFFS2)" != "y" ]; then \
 		sed -i 's/\CONFIG_JFFS2=m/# CONFIG_JFFS2 is not set/g' $(LINUXDIR)/.config; \
+		sed -i 's/\CONFIG_JFFS2_FS=m/# CONFIG_JFFS2_FS is not set/g' $(LINUXDIR)/.config; \
+		sed -i 's/\CONFIG_JFFS2_FS=y/# CONFIG_JFFS2_FS is not set/g' $(LINUXDIR)/.config; \
 	fi	
 	if [ "$(CONFIG_SAMBA)" != "y" ]; then \
 		sed -i 's/\CONFIG_CIFS=m/# CONFIG_CIFS is not set/g' $(LINUXDIR)/.config; \

@@ -128,11 +128,10 @@ endif
 endif
 obj-$(CONFIG_UTILS) += utils
 obj-$(CONFIG_MTR) += mtr
-
-
-
 obj-$(CONFIG_PCIUTILS) += pciutils
 obj-$(CONFIG_E2FSPROGS) += e2fsprogs
+obj-$(CONFIG_XFSPROGS) += util-linux xfsprogs 
+obj-$(CONFIG_BTRFSPROGS) += util-linux btrfsprogs
 obj-$(CONFIG_HTTPREDIRECT) += http-redirect
 obj-$(CONFIG_SMTPREDIRECT) += smtp-redirect
 obj-$(CONFIG_SPUTNIK_APD) += sputnik
