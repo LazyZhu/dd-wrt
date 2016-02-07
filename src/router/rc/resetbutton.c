@@ -18,8 +18,8 @@
 #define	SES_LED_CHECK_INTERVAL	"1"	/* Wait interval seconds */
 #define RESET_WAIT		3	/* seconds */
 #define RESET_WAIT_COUNT	RESET_WAIT * 10	/* 10 times a second */
-#define SES_WAIT		5	/* seconds */
-#define SES_WAIT_COUNT	SES_WAIT	/* 10 times a second */
+#define SES_WAIT		3	/* seconds */
+#define SES_WAIT_COUNT		SES_WAIT
 #ifdef HAVE_UNFY
 #define UPGRADE_WAIT		1	/* seconds */
 #define UPGRADE_WAIT_COUNT	UPGRADE_WAIT * 10 - 5
@@ -852,7 +852,7 @@ void runStartup(char *folder, char *extension)
 
 void service_restart(void)
 {
-	DEBUG("resetbutton: restart\n");
+	DEBUG("[RESETBUTTON] restart\n");
 	/* 
 	 * Stop the timer alarm 
 	 */
@@ -871,7 +871,7 @@ static void handle_reset(void)
 {
 //////
 	if ((brand & 0x000f) != 0x000f) {
-		fprintf(stderr, "resetbutton: factory default.\n");
+		fprintf(stderr, "[RESETBUTTON] factory default.\n");
 		dd_syslog(LOG_DEBUG, "Reset button: restoring factory defaults now!\n");
 #if !defined(HAVE_XSCALE) && !defined(HAVE_MAGICBOX) && !defined(HAVE_FONERA) && !defined(HAVE_WHRAG108) && !defined(HAVE_GATEWORX) && !defined(HAVE_LS2) && !defined(HAVE_CA8) && !defined(HAVE_TW6600) && !defined(HAVE_LS5) && !defined(HAVE_LSX) && !defined(HAVE_SOLO51)
 		led_control(LED_DIAG, LED_ON);
@@ -951,7 +951,7 @@ static void handle_wifi(void)
 		switch (str_mode) {
 		case 0:
 			dd_syslog(LOG_DEBUG, "Wi-Fi button: turning on LEDS\n");
-			fprintf(stderr, "### Wi-Fi button: set stealthmode = 0\n");
+			//fprintf(stderr, "[RESETBUTTON] Wi-Fi button: set stealthmode = 0\n");
 			nvram_set("stealthmode", "0");
 			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
 			sleep(1);
@@ -1081,7 +1081,7 @@ static void handle_ses(void)
 		switch (str_mode) {
 		case 0:
 			dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning on LEDS\n");
-			fprintf(stderr, "### SES / AOSS / EZ-setup button: set stealthmode = 0\n");
+			//fprintf(stderr, "[RESETBUTTON] SES / AOSS / EZ-setup button: set stealthmode = 0\n");
 			nvram_set("stealthmode", "0");
 			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
 			sleep(1);
@@ -1146,7 +1146,7 @@ void period_check(int sig)
 	// time_t t;
 
 	// time(&t);
-	// DEBUG("resetbutton: now time=%d\n", t);
+	// DEBUG("[RESETBUTTON] now time=%d\n", t);
 
 #if defined(HAVE_IPQ806X) || defined(HAVE_MVEBU) || defined(HAVE_MAGICBOX) || defined(HAVE_FONERA) || defined(HAVE_WHRAG108) || defined(HAVE_GATEWORX) || defined(HAVE_STORM) || defined(HAVE_LS2) || defined(HAVE_CA8) || defined(HAVE_TW6600)  || defined(HAVE_LS5) || defined(HAVE_LSX) || defined(HAVE_WP54G) || defined(HAVE_NP28G) || defined(HAVE_SOLO51) || defined(HAVE_OPENRISC) || defined(HAVE_DANUBE) || defined(HAVE_WDR4900) || defined(HAVE_VENTANA) || defined(HAVE_AC622) || defined(HAVE_AC722) || defined(HAVE_EROUTER)
 	val = getbuttonstate();
@@ -1244,7 +1244,7 @@ void period_check(int sig)
 			perror(GPIO_FILE);
 	}
 #endif
-	DEBUG("resetbutton: GPIO = 0x%x\n", val);
+	DEBUG("[RESETBUTTON] GPIO = 0x%x\n", val);
 
 	int gpio = 0;
 
@@ -1692,7 +1692,7 @@ void period_check(int sig)
 	 * The value is zero during button-pushed. 
 	 */
 	if (state && nvram_match("resetbutton_enable", "1")) {
-		DEBUG("resetbutton: mode=%d, count=%d\n", mode, count);
+		DEBUG("[RESETBUTTON] mode=%d, count=%d\n", mode, count);
 
 		if (mode == 0) {
 			/* 
@@ -1703,7 +1703,7 @@ void period_check(int sig)
 		}
 		if (++count > RESET_WAIT_COUNT) {
 			if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
-				fprintf(stderr, "resetbutton: nothing to do...\n");
+				fprintf(stderr, "[RESETBUTTON] nothing to do...\n");
 				alarmtimer(0, 0);	/* Stop the timer alarm */
 				return;
 			}
@@ -1713,23 +1713,25 @@ void period_check(int sig)
 	} else if ((sesgpio != 0xfff)
 			 && (((sesgpio & 0x100) == 0 && (val & push)) || ((sesgpio & 0x100) == 0x100 && !(val & push)))) {
 		if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
-			fprintf(stderr, "resetbutton: nothing to do...\n");
+			fprintf(stderr, "[RESETBUTTON] nothing to do...\n");
+			dd_syslog(LOG_DEBUG, "SES button - nothing to do...\n");
 			alarmtimer(0, 0);	/* Stop the timer alarm */
 			return;
 		}
-		count = 0;
+		//count = 0;
 		handle_ses();
 ///////// Wi-Fi button
 	} else if ((wifigpio != 0xfff)
 			 && (((wifigpio & 0x100) == 0 && (val & pushwifi)) || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
 		if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
-			fprintf(stderr, "resetbutton: nothing to do...\n");
+			fprintf(stderr, "[RESETBUTTON] nothing to do...\n");
+			dd_syslog(LOG_DEBUG, "Wi-Fi button - nothing to do...\n");
 			alarmtimer(0, 0);	/* Stop the timer alarm */
 			return;
 		}
-		count = 0;
+		//count = 0;
 		handle_wifi();
-
+//////// Upgrade script
 	} else {
 		count = 0;	// reset counter to avoid factory default
 
@@ -1759,7 +1761,7 @@ void period_check(int sig)
 			}
 #else
 			if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
-				fprintf(stderr, "resetbutton: nothing to do...\n");
+				fprintf(stderr, "[RESETBUTTON] nothing to do...\n");
 				alarmtimer(0, 0);	/* Stop the timer alarm */
 				return;
 			}
@@ -1789,14 +1791,14 @@ int main(int argc, char *argv[])
 	 */
 	switch (fork()) {
 	case -1:
-		DEBUG("can't fork\n");
+		DEBUG("[RESETBUTTON] can't fork\n");
 		exit(0);
 		break;
 	case 0:
 		/* 
 		 * child process 
 		 */
-		DEBUG("fork ok\n");
+		DEBUG("[RESETBUTTON] fork ok\n");
 		(void)setsid();
 		break;
 	default:
