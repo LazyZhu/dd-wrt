@@ -18,6 +18,8 @@
 #define	SES_LED_CHECK_INTERVAL	"1"	/* Wait interval seconds */
 #define RESET_WAIT		3	/* seconds */
 #define RESET_WAIT_COUNT	RESET_WAIT * 10	/* 10 times a second */
+#define SES_WAIT		5	/* seconds */
+#define SES_WAIT_COUNT	SES_WAIT	/* 10 times a second */
 #ifdef HAVE_UNFY
 #define UPGRADE_WAIT		1	/* seconds */
 #define UPGRADE_WAIT_COUNT	UPGRADE_WAIT * 10 - 5
@@ -90,9 +92,9 @@ void init_gpio()
 int getbuttonstate()
 {
 	return (*REG(page, GPIO0_IR) & GPIO_BUTTON) == 0;
-
 }
 #endif // ifdef HAVE_MAGICBOX
+
 ////////////////////
 #if defined(HAVE_FONERA) || defined(HAVE_WHRAG108) || defined(HAVE_LS2) || defined(HAVE_CA8) || defined(HAVE_TW6600)  || defined(HAVE_LS5) || defined(HAVE_WP54G) || defined(HAVE_NP28G) || defined(HAVE_SOLO51) || defined(HAVE_OPENRISC)
 int getbuttonstate()
@@ -127,7 +129,7 @@ int getbuttonstate()
 #else
 	int ret = get_gpio(6);
 	return ret;
-#endif // defined(HAVE_EAP3660)
+#endif // defined(HAVE_EAP3660) || ...
 }
 #elif defined(HAVE_VENTANA)
 int getbuttonstate()
@@ -193,7 +195,8 @@ int getbuttonstate()
 		ret = get_gpio(54);
 	else if (getRouterBrand() == ROUTER_LINKSYS_EA8500)
 		ret = get_gpio(68);
-	else return 0;
+	else
+		return 0;
 
 	if (ret == 0)
 		return 1;
@@ -635,7 +638,8 @@ int getbuttonstate()
 
 	return 0;
 }
-#endif // defined(HAVE_FONERA)
+#endif // defined(HAVE_FONERA) || ...
+
 ////////////////////
 #if defined(HAVE_GATEWORX) || defined (HAVE_STORM)
 
@@ -783,13 +787,12 @@ int getbuttonstate()
 	return ret == 0 ? 1 : 0;
 #endif
 }
-#endif // defined(HAVE_GATEWORX)
-////////////////////
+#endif // defined(HAVE_GATEWORX) || defined (HAVE_STORM)
 
-static int mode = 0;	/* mode 1 : pushed */
+////////////////////
+static int mode = 0;		/* mode 1 : pushed */
 static int ses_mode = 0;	/* mode 1 : pushed */
 static int wifi_mode = 0;	/* mode 1 : pushed */
-
 static int count = 0;
 
 #ifdef HAVE_RADIOOFF
@@ -864,6 +867,269 @@ void service_restart(void)
 	eval("rc", "restart");
 }
 
+static void handle_reset(void)
+{
+//////
+	if ((brand & 0x000f) != 0x000f) {
+		fprintf(stderr, "resetbutton: factory default.\n");
+		dd_syslog(LOG_DEBUG, "Reset button: restoring factory defaults now!\n");
+#if !defined(HAVE_XSCALE) && !defined(HAVE_MAGICBOX) && !defined(HAVE_FONERA) && !defined(HAVE_WHRAG108) && !defined(HAVE_GATEWORX) && !defined(HAVE_LS2) && !defined(HAVE_CA8) && !defined(HAVE_TW6600) && !defined(HAVE_LS5) && !defined(HAVE_LSX) && !defined(HAVE_SOLO51)
+		led_control(LED_DIAG, LED_ON);
+#elif defined(HAVE_WHRHPGN)  || defined(HAVE_WZRG300NH) || defined(HAVE_WZRHPAG300NH) || defined(HAVE_WZRG450)
+		led_control(LED_DIAG, LED_ON);
+#endif
+		ACTION("ACT_HW_RESTORE");
+		alarmtimer(0, 0);	/* Stop the timer alarm */
+#ifdef HAVE_X86
+		eval("mount", "/usr/local", "-o", "remount,rw");
+		eval("rm", "-f", "/tmp/nvram/*");	// delete nvram
+		// database
+		unlink("/tmp/nvram/.lock");	// delete
+		// nvram
+		// database
+		eval("rm", "-f", "/usr/local/nvram/*");	// delete
+		// nvram
+		// database
+		eval("mount", "/usr/local", "-o", "remount,ro");
+#elif HAVE_RB500
+		eval("rm", "-f", "/tmp/nvram/*");	// delete nvram
+		// database
+		unlink("/tmp/nvram/.lock");	// delete
+		// nvram
+		// database
+		eval("rm", "-f", "/etc/nvram/*");	// delete nvram
+		// database
+#elif HAVE_MAGICBOX
+		eval("rm", "-f", "/tmp/nvram/*");	// delete nvram
+		// database
+		unlink("/tmp/nvram/.lock");	// delete
+		// nvram
+		// database
+		eval("erase", "nvram");
+#else
+#ifdef HAVE_BUFFALO_SA
+		int region_sa = 0;
+		if (nvram_default_match("region", "SA", ""))
+			region_sa = 1;
+#endif
+		nvram_set("sv_restore_defaults", "1");
+		nvram_commit();
+		eval("killall", "ledtool");	// stop blinking on
+		// nvram_commit
+#if !defined(HAVE_XSCALE) && !defined(HAVE_MAGICBOX) && !defined(HAVE_FONERA) && !defined(HAVE_WHRAG108) && !defined(HAVE_GATEWORX) && !defined(HAVE_LS2) && !defined(HAVE_CA8) && !defined(HAVE_TW6600) && !defined(HAVE_LS5) && !defined(HAVE_LSX) && !defined(HAVE_SOLO51)
+		led_control(LED_DIAG, LED_ON);	// turn diag led on,
+		// so we know reset
+		// was pressed and
+		// we're restoring
+		// defaults.
+#elif defined(HAVE_WHRHPGN) || defined(HAVE_WZRG300NH) || defined(HAVE_WZRHPAG300NH) || defined(HAVE_WZRG450)
+		led_control(LED_DIAG, LED_ON);
+#endif
+#ifdef HAVE_BUFFALO_SA
+		nvram_set("sv_restore_defaults", "1");
+		if (region_sa)
+			nvram_set("region", "SA");
+		nvram_commit();
+#endif
+
+		// nvram_set ("sv_restore_defaults", "1");
+		// nvram_commit ();
+
+		kill(1, SIGTERM);
+#endif
+	}
+
+}
+
+static void handle_wifi(void)
+{
+//////
+	// count = 0;
+	// Stealth Mode ON/OFF by Wi-Fi button (in case WPS button choosen to control Wi-Fi)
+	if (nvram_match("radiooff_button", "1")) {
+		int str_mode = nvram_match("stealthmode", "1") ? 0 : 1; // switch mode on press
+		switch (str_mode) {
+		case 0:
+			dd_syslog(LOG_DEBUG, "Wi-Fi button: turning on LEDS\n");
+			fprintf(stderr, "### Wi-Fi button: set stealthmode = 0\n");
+			nvram_set("stealthmode", "0");
+			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+			sleep(1);
+			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+			if (nvram_match("wanup", "1"))
+				led_control(LED_CONNECTED, LED_ON);	// (INTERNET) led on
+			if (nvram_match("wl_radio", "1"))
+				led_control(LED_WLAN, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("wl0_radio", "1"))
+				led_control(LED_WLAN0, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("wl1_radio", "1"))
+				led_control(LED_WLAN1, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("wl2_radio", "1"))
+				led_control(LED_WLAN2, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("usb_enable", "1")) {
+				led_control(LED_USB, LED_ON);	// (USB) led on
+				led_control(LED_USB1, LED_ON);	// (USB1) led on
+			}
+			break;
+		case 1:
+			dd_syslog(LOG_DEBUG, "Wi-Fi button: turning off LEDS\n");
+			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+			led_control(LED_POWER, LED_OFF);
+			led_control(LED_DIAG, LED_OFF);
+			led_control(LED_DIAG_DISABLED, LED_OFF);
+			led_control(LED_CONNECTED, LED_OFF);
+			led_control(LED_DISCONNECTED, LED_OFF);
+			led_control(LED_BRIDGE, LED_OFF);
+			led_control(LED_DMZ, LED_OFF);
+			led_control(LED_VPN, LED_OFF);
+			led_control(LED_SES, LED_OFF);
+			led_control(LED_SES2, LED_OFF);
+			led_control(LED_USB, LED_OFF);
+			led_control(LED_USB1, LED_OFF);
+			led_control(LED_SEC0, LED_OFF);
+			led_control(LED_SEC1, LED_OFF);
+			led_control(LED_WLAN, LED_OFF);
+			led_control(LED_WLAN0, LED_OFF);
+			led_control(LED_WLAN1, LED_OFF);
+			led_control(LED_WLAN2, LED_OFF);
+			nvram_set("stealthmode", "1");
+			break;
+		}
+	} else { // Wi-Fi ON/OFF by Wi-Fi button
+		led_control(LED_WLAN, LED_FLASH);	// when pressed, blink white
+		switch (wifi_mode) {
+		case 1:
+			// (DIAG) led
+			led_control(LED_DIAG, LED_FLASH);
+			dd_syslog(LOG_DEBUG, "Wi-Fi button: turning radio(s) on\n");
+			sysprintf("startstop radio_on");
+			wifi_mode = 0;
+			break;
+		case 0:
+			// (DIAG) led
+			led_control(LED_DIAG, LED_FLASH);
+			dd_syslog(LOG_DEBUG, "Wi-Fi button: turning radio(s) off\n");
+			sysprintf("startstop radio_off");
+			wifi_mode = 1;
+			break;
+		}
+	}
+
+}
+
+static void handle_ses(void)
+{
+//////
+	runStartup("/etc/config", ".sesbutton");
+	runStartup("/jffs/etc/config", ".sesbutton");	// if available
+	runStartup("/mmc/etc/config", ".sesbutton");	// if available
+	runStartup("/tmp/etc/config", ".sesbutton");	// if available
+	// count = 0;
+	// USB unmount
+	if (nvram_match("usb_ses_umount", "1")) {
+		led_control(LED_DIAG, LED_FLASH);
+		runStartup("/etc/config", ".umount");
+		sleep(5);
+		led_control(LED_DIAG, LED_FLASH);
+		sleep(1);
+		led_control(LED_DIAG, LED_FLASH);
+	}
+	// Radio On/Off
+	if (nvram_match("radiooff_button", "1")) {
+		led_control(LED_SES, LED_FLASH);	// when pressed, blink white
+		switch (ses_mode) {
+		// SES (AOSS) led
+		case 1:
+#ifdef HAVE_RADIOOFF
+#ifndef HAVE_BUFFALO
+			dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning radio(s) on\n");
+#else
+			dd_syslog(LOG_DEBUG, "AOSS button: turning radio(s) on\n");
+#endif
+#ifndef HAVE_ERC
+			sysprintf("startstop radio_on");
+#endif
+#endif
+			ses_mode = 0;
+			break;
+		// SES (AOSS) led
+		case 0:
+#ifdef HAVE_RADIOOFF
+#ifndef HAVE_BUFFALO
+			dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning radio(s) off\n");
+#else
+			dd_syslog(LOG_DEBUG, "AOSS button: turning radio(s) off\n");
+#endif
+#ifndef HAVE_ERC
+			sysprintf("startstop radio_off");
+#endif
+#endif
+			ses_mode = 1;
+			break;
+		}
+	}
+#if defined(HAVE_AOSS) || defined(HAVE_WPS)
+	else if (nvram_match("radiooff_button", "2")) {
+		sysprintf("startstop aoss");
+	}
+#endif
+#ifdef HAVE_RADIOOFF
+	// Stealth Mode
+	else if (nvram_match("radiooff_stealthswitch", "1")) {
+		int str_mode = nvram_match("stealthmode", "1") ? 0 : 1; // switch mode on press
+		led_control(LED_SES, LED_FLASH);		// (SES) led flash
+		switch (str_mode) {
+		case 0:
+			dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning on LEDS\n");
+			fprintf(stderr, "### SES / AOSS / EZ-setup button: set stealthmode = 0\n");
+			nvram_set("stealthmode", "0");
+			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+			sleep(1);
+			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+			if (nvram_match("wanup", "1"))
+				led_control(LED_CONNECTED, LED_ON);	// (INTERNET) led on
+			if (nvram_match("wl_radio", "1"))
+				led_control(LED_WLAN, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("wl0_radio", "1"))
+				led_control(LED_WLAN0, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("wl1_radio", "1"))
+				led_control(LED_WLAN1, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("wl2_radio", "1"))
+				led_control(LED_WLAN2, LED_ON);	// (Wi-Fi) led on
+			if (nvram_match("usb_enable", "1")) {
+				led_control(LED_USB, LED_ON);	// (USB) led on
+				led_control(LED_USB1, LED_ON);	// (USB1) led on
+			}
+			break;
+		case 1:
+			dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning off LEDS\n");
+			led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
+			led_control(LED_POWER, LED_OFF);
+			led_control(LED_DIAG, LED_OFF);
+			led_control(LED_DIAG_DISABLED, LED_OFF);
+			led_control(LED_CONNECTED, LED_OFF);
+			led_control(LED_DISCONNECTED, LED_OFF);
+			led_control(LED_BRIDGE, LED_OFF);
+			led_control(LED_DMZ, LED_OFF);
+			led_control(LED_VPN, LED_OFF);
+			led_control(LED_SES, LED_OFF);
+			led_control(LED_SES2, LED_OFF);
+			led_control(LED_USB, LED_OFF);
+			led_control(LED_USB1, LED_OFF);
+			led_control(LED_SEC0, LED_OFF);
+			led_control(LED_SEC1, LED_OFF);
+			led_control(LED_WLAN, LED_OFF);
+			led_control(LED_WLAN0, LED_OFF);
+			led_control(LED_WLAN1, LED_OFF);
+			led_control(LED_WLAN2, LED_OFF);
+			nvram_set("stealthmode", "1");
+			break;
+		}
+	}
+#endif
+
+}
+
 void period_check(int sig)
 {
 	FILE *fp;
@@ -899,7 +1165,7 @@ void period_check(int sig)
 #endif
 #endif
 
-#else // defined(HAVE_MAGICBOX)
+#else // defined(HAVE_IPQ806X) || ...
 	if (brand == ROUTER_BOARD_WCRGN) {
 		val = (get_gpio(10) << 10) | (get_gpio(0) << 0);
 	} else if (brand == ROUTER_BOARD_WHRG300N) {
@@ -1018,7 +1284,7 @@ void period_check(int sig)
 	sesgpio = 0x105;
 	val |= get_gpio(5) << 5;	//aoss pushbutton
 #elif defined(HAVE_CARAMBOLA)
-	sesgpio = 0xfff;
+//	sesgpio = 0xfff;
 #if defined(HAVE_ERC)
 	wifigpio = 0x117;
 	val |= get_gpio(23) << 23;
@@ -1047,7 +1313,7 @@ void period_check(int sig)
 	sesgpio = 0x101;
 	val |= get_gpio(1) << 1;	//aoss pushbutton
 #elif defined(HAVE_MMS344)
-
+//
 #elif defined(HAVE_DIR825C1)
 	sesgpio = 0x110;
 	val |= get_gpio(16) << 16;	//aoss pushbutton
@@ -1055,7 +1321,7 @@ void period_check(int sig)
 	sesgpio = 0x00b;
 	val |= get_gpio(11) << 11;	//aoss pushbutton
 #elif defined(HAVE_WNR2200)
-	sesgpio = 0x101;		//not yet support
+	sesgpio = 0x101;		//not yet supported
 	val |= get_gpio(37) << 1;	//aoss pushbutton
 #elif defined(HAVE_WNR2000)
 	sesgpio = 0x00b;
@@ -1134,7 +1400,7 @@ void period_check(int sig)
 	sesgpio = 0xfff;
 #endif
 ////////
-#else // defined(HAVE_XSCALE) -- ALL OTHER BRANDS
+#else // ALL OTHER BRANDS
 	if (brand > 0xffff) {
 		if ((brand & 0x000ff) != 0x000ff)
 			gpio = 1 << (brand & 0x000ff);	// calculate gpio value.
@@ -1407,7 +1673,7 @@ void period_check(int sig)
 	case ROUTER_LINKSYS_EA8500:
 		sesgpio = 0x165;
 		break;
-		
+
 #endif
 	default:
 		sesgpio = 0xfff;	// gpio unknown, disabled
@@ -1435,276 +1701,47 @@ void period_check(int sig)
 			alarmtimer(0, URGENT_INTERVAL);
 			mode = 1;
 		}
-		{		/* Whenever it is pushed steady */
-			if (++count > RESET_WAIT_COUNT) {
-				if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
-					fprintf(stderr, "resetbutton: nothing to do...\n");
-					alarmtimer(0, 0);	/* Stop the timer alarm */
-					return;
-				}
-				if ((brand & 0x000f) != 0x000f) {
-					fprintf(stderr, "resetbutton: factory default.\n");
-					dd_syslog(LOG_DEBUG, "Reset button: restoring factory defaults now!\n");
-#if !defined(HAVE_XSCALE) && !defined(HAVE_MAGICBOX) && !defined(HAVE_FONERA) && !defined(HAVE_WHRAG108) && !defined(HAVE_GATEWORX) && !defined(HAVE_LS2) && !defined(HAVE_CA8) && !defined(HAVE_TW6600) && !defined(HAVE_LS5) && !defined(HAVE_LSX) && !defined(HAVE_SOLO51)
-					led_control(LED_DIAG, LED_ON);
-#elif defined(HAVE_WHRHPGN)  || defined(HAVE_WZRG300NH) || defined(HAVE_WZRHPAG300NH) || defined(HAVE_WZRG450)
-					led_control(LED_DIAG, LED_ON);
-#endif
-					ACTION("ACT_HW_RESTORE");
-					alarmtimer(0, 0);	/* Stop the timer alarm */
-#ifdef HAVE_X86
-					eval("mount", "/usr/local", "-o", "remount,rw");
-					eval("rm", "-f", "/tmp/nvram/*");	// delete nvram
-					// database
-					unlink("/tmp/nvram/.lock");	// delete
-					// nvram
-					// database
-					eval("rm", "-f", "/usr/local/nvram/*");	// delete
-					// nvram
-					// database
-					eval("mount", "/usr/local", "-o", "remount,ro");
-#elif HAVE_RB500
-					eval("rm", "-f", "/tmp/nvram/*");	// delete nvram
-					// database
-					unlink("/tmp/nvram/.lock");	// delete
-					// nvram
-					// database
-					eval("rm", "-f", "/etc/nvram/*");	// delete nvram
-					// database
-#elif HAVE_MAGICBOX
-					eval("rm", "-f", "/tmp/nvram/*");	// delete nvram
-					// database
-					unlink("/tmp/nvram/.lock");	// delete
-					// nvram
-					// database
-					eval("erase", "nvram");
-#else
-#ifdef HAVE_BUFFALO_SA
-					int region_sa = 0;
-					if (nvram_default_match("region", "SA", ""))
-						region_sa = 1;
-#endif
-					nvram_set("sv_restore_defaults", "1");
-					nvram_commit();
-					eval("killall", "ledtool");	// stop blinking on
-					// nvram_commit
-#if !defined(HAVE_XSCALE) && !defined(HAVE_MAGICBOX) && !defined(HAVE_FONERA) && !defined(HAVE_WHRAG108) && !defined(HAVE_GATEWORX) && !defined(HAVE_LS2) && !defined(HAVE_CA8) && !defined(HAVE_TW6600) && !defined(HAVE_LS5) && !defined(HAVE_LSX) && !defined(HAVE_SOLO51)
-					led_control(LED_DIAG, LED_ON);	// turn diag led on,
-					// so we know reset
-					// was pressed and
-					// we're restoring
-					// defaults.
-#elif defined(HAVE_WHRHPGN) || defined(HAVE_WZRG300NH) || defined(HAVE_WZRHPAG300NH) || defined(HAVE_WZRG450)
-					led_control(LED_DIAG, LED_ON);
-#endif
-#ifdef HAVE_BUFFALO_SA
-					nvram_set("sv_restore_defaults", "1");
-					if (region_sa)
-						nvram_set("region", "SA");
-					nvram_commit();
-#endif
-
-					// nvram_set ("sv_restore_defaults", "1");
-					// nvram_commit ();
-
-					kill(1, SIGTERM);
-#endif
-				}
+		if (++count > RESET_WAIT_COUNT) {
+			if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
+				fprintf(stderr, "resetbutton: nothing to do...\n");
+				alarmtimer(0, 0);	/* Stop the timer alarm */
+				return;
 			}
+			handle_reset();
 		}
 ///////// SES button
 	} else if ((sesgpio != 0xfff)
 		   && (((sesgpio & 0x100) == 0 && (val & push))
-		       || ((sesgpio & 0x100) == 0x100 && !(val & push)))) {
-		runStartup("/etc/config", ".sesbutton");
-		runStartup("/jffs/etc/config", ".sesbutton");	// if available
-		runStartup("/mmc/etc/config", ".sesbutton");	// if available
-		runStartup("/tmp/etc/config", ".sesbutton");	// if available
-		// USB unmount
-		if (nvram_match("usb_ses_umount", "1")) {
-			led_control(LED_DIAG, LED_FLASH);
-			runStartup("/etc/config", ".umount");
-			sleep(5);
-			led_control(LED_DIAG, LED_FLASH);
-			sleep(1);
-			led_control(LED_DIAG, LED_FLASH);
+		       || ((sesgpio & 0x100) == 0x100 && !(val & push))) && (++count > SES_WAIT)) {
+		if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
+			fprintf(stderr, "resetbutton: nothing to do...\n");
+			alarmtimer(0, 0);	/* Stop the timer alarm */
+			return;
 		}
-		// Radio On/Off
-		if (nvram_match("radiooff_button", "1")) {
-			led_control(LED_SES, LED_FLASH);	// when pressed, blink white
-			switch (ses_mode) {
-
-			case 1:
-				// SES (AOSS) led
-#ifdef HAVE_RADIOOFF
-#ifndef HAVE_BUFFALO
-				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning radio(s) on\n");
-#else
-				dd_syslog(LOG_DEBUG, "AOSS button: turning radio(s) on\n");
-#endif
-#ifndef HAVE_ERC
-				sysprintf("startstop radio_on");
-#endif
-#endif
-				ses_mode = 0;
-				break;
-			case 0:
-
-				// SES (AOSS) led
-#ifdef HAVE_RADIOOFF
-#ifndef HAVE_BUFFALO
-				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning radio(s) off\n");
-#else
-				dd_syslog(LOG_DEBUG, "AOSS button: turning radio(s) off\n");
-#endif
-#ifndef HAVE_ERC
-				sysprintf("startstop radio_off");
-#endif
-#endif
-				ses_mode = 1;
-				break;
-			}
-		}
-#if defined(HAVE_AOSS) || defined(HAVE_WPS)
-		else if (nvram_match("radiooff_button", "2")) {
-			sysprintf("startstop aoss");
-		}
-#endif
-#ifdef HAVE_RADIOOFF
-		// Stealth Mode
-		else if (nvram_match("radiooff_stealthswitch", "1")) {
-			int str_mode = nvram_match("stealthmode", "1") ? 0 : 1; // switch mode on press
-			led_control(LED_SES, LED_FLASH);		// (SES) led flash
-			switch (str_mode) {
-			case 0:
-				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning on LEDS\n");
-				fprintf(stderr, "### SES / AOSS / EZ-setup button: set stealthmode = 0\n");
-				nvram_set("stealthmode", "0");
-				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
-				sleep(1);
-				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
-				if (nvram_match("wanup", "1"))
-					led_control(LED_CONNECTED, LED_ON);	// (INTERNET) led on
-				if (nvram_match("wl_radio", "1"))
-					led_control(LED_WLAN, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("wl0_radio", "1"))
-					led_control(LED_WLAN0, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("wl1_radio", "1"))
-					led_control(LED_WLAN1, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("wl2_radio", "1"))
-					led_control(LED_WLAN2, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("usb_enable", "1")) {
-					led_control(LED_USB, LED_ON);	// (USB) led on
-					led_control(LED_USB1, LED_ON);	// (USB1) led on
-				}
-				break;
-			case 1:
-				dd_syslog(LOG_DEBUG, "SES / AOSS / EZ-setup button: turning off LEDS\n");
-				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
-				led_control(LED_POWER, LED_OFF);
-				led_control(LED_DIAG, LED_OFF);
-				led_control(LED_DIAG_DISABLED, LED_OFF);
-				led_control(LED_CONNECTED, LED_OFF);
-				led_control(LED_DISCONNECTED, LED_OFF);
-				led_control(LED_BRIDGE, LED_OFF);
-				led_control(LED_DMZ, LED_OFF);
-				led_control(LED_VPN, LED_OFF);
-				led_control(LED_SES, LED_OFF);
-				led_control(LED_SES2, LED_OFF);
-				led_control(LED_USB, LED_OFF);
-				led_control(LED_USB1, LED_OFF);
-				led_control(LED_SEC0, LED_OFF);
-				led_control(LED_SEC1, LED_OFF);
-				led_control(LED_WLAN, LED_OFF);
-				led_control(LED_WLAN0, LED_OFF);
-				led_control(LED_WLAN1, LED_OFF);
-				led_control(LED_WLAN2, LED_OFF);
-				nvram_set("stealthmode", "1");
-				break;
-			}
-		}
-#endif
+		count = 0;
+		handle_ses();
+///////// Wi-Fi button
 	} else if ((wifigpio != 0xfff)
 		   && (((wifigpio & 0x100) == 0 && (val & pushwifi))
-		       || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
-
-		// Stealth Mode ON/OFF by Wi-Fi button (in case WPS button choosen to control Wi-Fi)
-		if (nvram_match("radiooff_button", "1")) {
-			int str_mode = nvram_match("stealthmode", "1") ? 0 : 1; // switch mode on press
-			switch (str_mode) {
-			case 0:
-				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning on LEDS\n");
-				fprintf(stderr, "### Wi-Fi button: set stealthmode = 0\n");
-				nvram_set("stealthmode", "0");
-				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
-				sleep(1);
-				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
-				if (nvram_match("wanup", "1"))
-					led_control(LED_CONNECTED, LED_ON);	// (INTERNET) led on
-				if (nvram_match("wl_radio", "1"))
-					led_control(LED_WLAN, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("wl0_radio", "1"))
-					led_control(LED_WLAN0, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("wl1_radio", "1"))
-					led_control(LED_WLAN1, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("wl2_radio", "1"))
-					led_control(LED_WLAN2, LED_ON);	// (Wi-Fi) led on
-				if (nvram_match("usb_enable", "1")) {
-					led_control(LED_USB, LED_ON);	// (USB) led on
-					led_control(LED_USB1, LED_ON);	// (USB1) led on
-				}
-				break;
-			case 1:
-				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning off LEDS\n");
-				led_control(LED_DIAG, LED_FLASH);	// (DIAG) led flash
-				led_control(LED_POWER, LED_OFF);
-				led_control(LED_DIAG, LED_OFF);
-				led_control(LED_DIAG_DISABLED, LED_OFF);
-				led_control(LED_CONNECTED, LED_OFF);
-				led_control(LED_DISCONNECTED, LED_OFF);
-				led_control(LED_BRIDGE, LED_OFF);
-				led_control(LED_DMZ, LED_OFF);
-				led_control(LED_VPN, LED_OFF);
-				led_control(LED_SES, LED_OFF);
-				led_control(LED_SES2, LED_OFF);
-				led_control(LED_USB, LED_OFF);
-				led_control(LED_USB1, LED_OFF);
-				led_control(LED_SEC0, LED_OFF);
-				led_control(LED_SEC1, LED_OFF);
-				led_control(LED_WLAN, LED_OFF);
-				led_control(LED_WLAN0, LED_OFF);
-				led_control(LED_WLAN1, LED_OFF);
-				led_control(LED_WLAN2, LED_OFF);
-				nvram_set("stealthmode", "1");
-				break;
-			}
-		} else { // Wi-Fi ON/OFF by Wi-Fi button
-			led_control(LED_WLAN, LED_FLASH);	// when pressed, blink white
-			switch (wifi_mode) {
-			case 1:
-				// (DIAG) led
-				led_control(LED_DIAG, LED_FLASH);
-				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning radio(s) on\n");
-				sysprintf("startstop radio_on");
-				wifi_mode = 0;
-				break;
-			case 0:
-				// (DIAG) led
-				led_control(LED_DIAG, LED_FLASH);
-				dd_syslog(LOG_DEBUG, "Wi-Fi button: turning radio(s) off\n");
-				sysprintf("startstop radio_off");
-				wifi_mode = 1;
-				break;
-			}
+		       || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi))) && (++count > SES_WAIT)) {
+		if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
+			fprintf(stderr, "resetbutton: nothing to do...\n");
+			alarmtimer(0, 0);	/* Stop the timer alarm */
+			return;
 		}
+		count = 0;
+		handle_wifi();
 
 	} else {
+		count = 0;	// reset counter to avoid factory default
 
 		/* 
 		 * Although it's unpushed now, it had ever been pushed 
 		 */
 		if (mode == 1) {
 //                      fprintf(stderr, "[RESETBUTTON] released %d\n", count);
+			alarmtimer(NORMAL_INTERVAL, 0);
+			mode = 0;
 #ifdef HAVE_UNFY
 			if (count > UPGRADE_WAIT_COUNT) {
 
@@ -1722,8 +1759,6 @@ void period_check(int sig)
 					}
 				}
 			}
-			count = 0;	// reset counter to avoid factory default
-			mode = 0;
 #else
 			if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
 				fprintf(stderr, "resetbutton: nothing to do...\n");

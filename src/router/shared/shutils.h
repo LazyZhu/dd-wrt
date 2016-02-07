@@ -176,12 +176,7 @@ void showmemdebugstat();
 /*
  * Strip trailing CR/NL from string <s> 
  */
-#define chomp(s) ({ \
-	char *c = (s) + strlen((s)) - 1; \
-	while ((c > (s)) && (*c == '\n' || *c == '\r' || *c == ' ')) \
-		*c-- = '\0'; \
-	s; \
-})
+char *chomp(char *s);
 
 /*
  * Simple version of _backtick() 
@@ -209,20 +204,18 @@ void showmemdebugstat();
 #define cprintf(fmt, args...)
 #endif
 
+void strcpyto(char *dest, char *src, char c);
+
 /*
  * Copy each token in wordlist delimited by space into word 
  */
 #define foreach(word, foreachwordlist, next) \
 	for (next = &foreachwordlist[strspn(foreachwordlist, " ")], \
-	     strncpy(word, next, sizeof(word)), \
-	     word[strcspn(word, " ")] = '\0', \
-	     word[sizeof(word) - 1] = '\0', \
+	     strcpyto(word, next, ' '), \
 	     next = strchr(next, ' '); \
 	     strlen(word); \
 	     next = next ? &next[strspn(next, " ")] : "", \
-	     strncpy(word, next, sizeof(word)), \
-	     word[strcspn(word, " ")] = '\0', \
-	     word[sizeof(word) - 1] = '\0', \
+	     strcpyto(word, next, ' '), \
 	     next = strchr(next, ' ')) \
 
 /*

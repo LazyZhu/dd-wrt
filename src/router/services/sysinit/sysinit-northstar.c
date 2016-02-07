@@ -2328,14 +2328,14 @@ void start_sysinit(void)
 				{"swctrlmap4_RXByp2g_fem3to0", "0x0"},
 				{0, 0}
 			};
-			
+
 			nvram_set("devpath0", "pcie/1/1");
 			nvram_set("devpath1", "pcie/2/3");
 			nvram_set("devpath2", "pcie/2/4");
 			nvram_set("wl2_channel", "48");
 			nvram_set("wl0_channel", "161");
 			nvram_set("0:ddwrt", "1");
-			
+
 			extra_params = r8500_0params;
 			while (extra_params->name) {
 				nvram_nset(extra_params->value, "0:%s", extra_params->name);
@@ -2352,7 +2352,7 @@ void start_sysinit(void)
 				nvram_nset(extra_params->value, "2:%s", extra_params->name);
 				extra_params++;
 			}
-			
+
 			nvram_commit();
 		}
 		nvram_unset("et0macaddr");
@@ -2360,14 +2360,14 @@ void start_sysinit(void)
 		set_gpio(6, 1);	//reset button
 		//set_gpio(10, 0);
 		set_gpio(20, 0);
-		break;	
+		break;
 	case ROUTER_ASUS_AC87U:
 		set_gpio(11, 1);	// fixup reset button
 		set_gpio(15, 1);	// fixup wifi button
 		set_gpio(2, 1);	// fixup ses button
 		break;
 	case ROUTER_ASUS_AC88U:
-		nvram_set("wait_time","1"); //otherwise boot time takes very long
+		nvram_set("wait_time", "1");	//otherwise boot time takes very long
 		eval("mknod", "/dev/rtkswitch", "c", "233", "0");
 		insmod("rtl8365mb");
 		fprintf(stderr, "Reset RTL8365MB Switch\n");
@@ -2707,8 +2707,8 @@ void start_sysinit(void)
 		}
 		break;
 	case ROUTER_ASUS_AC67U:
-		nvram_set("wait_time","1"); //otherwise boot time takes very long
-		if (!nvram_match("bl_version", "1.0.1.1") && nvram_match("boardrev","0x1100")) // filter rev 2
+		nvram_set("wait_time", "1");	//otherwise boot time takes very long
+		if (!nvram_match("bl_version", "1.0.1.1") && nvram_match("boardrev", "0x1100"))	// filter rev 2
 			nvram_set("clkfreq", "800,666");
 		if (nvram_get("productid") != NULL || nvram_match("http_username", "admin")) {
 			int deadcount = 10;
@@ -3513,7 +3513,7 @@ void start_sysinit(void)
 		}
 		break;
 	case ROUTER_DLINK_DIR885:
-		if (!strncmp(nvram_safe_get("et2macaddr"), "00:90", 5) || !strncmp(nvram_safe_get("et0macaddr"), "00:90", 5) ||  !strncmp(nvram_safe_get("et2macaddr"), "00:00", 5) || nvram_get("et2macaddr") == NULL) {
+		if (!strncmp(nvram_safe_get("et2macaddr"), "00:90", 5) && !strncmp(nvram_safe_get("et0macaddr"), "00:00", 5)) {
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
 			fread(buf, 1, 24, fp);
@@ -3536,12 +3536,37 @@ void start_sysinit(void)
 			fprintf(stderr, "set 5g mac 1 %s\n", &buf[10]);
 			nvram_set("1:macaddr", &buf[10]);
 			nvram_commit();
+			nvram_unset("et0macaddr");
+			nvram_unset("et1macaddr");
 		}
-		nvram_unset("et0macaddr");
-		nvram_unset("et1macaddr");
+
+		if (!strncmp(nvram_safe_get("et0macaddr"), "00:90", 5)) {
+			char buf[64];
+			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
+			fread(buf, 1, 24, fp);
+			pclose(fp);
+			buf[24] = 0;
+			fprintf(stderr, "set main mac %s\n", &buf[7]);
+			nvram_set("et0macaddr", &buf[7]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan24mac=", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 2.4g mac %s\n", &buf[10]);
+			nvram_set("0:macaddr", &buf[10]);
+
+			fp = popen("cat /dev/mtdblock0|grep wlan5mac=", "r");
+			fread(buf, 1, 27, fp);
+			pclose(fp);
+			buf[27] = 0;
+			fprintf(stderr, "set 5g mac 1 %s\n", &buf[10]);
+			nvram_set("1:macaddr", &buf[10]);
+			nvram_commit();
+		}
 		break;
 	case ROUTER_DLINK_DIR880:
-		if (nvram_get("0:venid") == NULL || nvram_match("0:maxp2ga0","94")) {
+		if (nvram_get("0:venid") == NULL || nvram_match("0:maxp2ga0", "94")) {
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
 			fread(buf, 1, 24, fp);
@@ -3758,7 +3783,7 @@ void start_sysinit(void)
 
 		break;
 	case ROUTER_DLINK_DIR860:
-		if (nvram_get("devpath0") == NULL || nvram_match("0:maxp2ga0","0x50")) {
+		if (nvram_get("devpath0") == NULL || nvram_match("0:maxp2ga0", "0x50")) {
 			nvram_set("devpath0", "pci/1/1/");
 			nvram_set("devpath1", "pci/2/1/");
 
@@ -4047,7 +4072,7 @@ void start_sysinit(void)
 	case ROUTER_DLINK_DIR868:
 	case ROUTER_DLINK_DIR865:
 
-		if (nvram_get("pci/1/1/venid") == NULL || nvram_match("0:maxp2ga0","0x56")) {
+		if (nvram_get("pci/1/1/venid") == NULL || nvram_match("0:maxp2ga0", "0x56")) {
 
 			char buf[64];
 			FILE *fp = popen("cat /dev/mtdblock0|grep lanmac", "r");
@@ -4861,8 +4886,8 @@ void start_sysinit(void)
 		nvram_commit();
 		break;
 	case ROUTER_TPLINK_ARCHERC9:
-		nvram_set("0:xtalfreq","40000");
-		nvram_set("1:xtalfreq","40000");
+		nvram_set("0:xtalfreq", "40000");
+		nvram_set("1:xtalfreq", "40000");
 		nvram_set("0:ledbh4", "7");
 		nvram_set("1:ledbh5", "7");
 		nvram_set("0:ledbh1", "11");

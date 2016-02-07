@@ -186,9 +186,8 @@ const char *getifaddr(char *ifname, int family, int linklocal)
 }
 #endif
 #ifdef HAVE_VLANTAGGING
-char *getBridge(char *ifname)
+char *getBridge(char *ifname, char *word)
 {
-	static char word[256];
 	char *next, *wordlist;
 
 	wordlist = nvram_safe_get("bridgesif");
@@ -206,15 +205,14 @@ char *getBridge(char *ifname)
 	return nvram_safe_get("lan_ifname");
 }
 #else
-char *getBridge(char *ifname)
+char *getBridge(char *ifname, char *word)
 {
 	return nvram_safe_get("lan_ifname");
 }
 #endif
 
-char *getBridgeMTU(char *ifname)
+char *getBridgeMTU(char *ifname, char *word)
 {
-	static char word[256];
 	char *next, *wordlist;
 
 	wordlist = nvram_safe_get("bridges");
@@ -282,7 +280,7 @@ char
 }
 
 char
-*get_mtu_val(void)
+*get_mtu_val(char *buf)
 {
 	if (nvram_match("wshaper_dev", "WAN")
 	    && !strcmp(get_wshaper_dev(), "ppp0"))
@@ -293,7 +291,7 @@ char
 		else
 			return nvram_safe_get("wan_mtu");
 	} else
-		return getBridgeMTU(get_wshaper_dev());
+		return getBridgeMTU(get_wshaper_dev(), buf);
 }
 
 void add_client_dev_srvfilter(char *name, char *type, char *data, char *level, int base, char *chain)
@@ -616,8 +614,9 @@ void add_client_classes(unsigned int base, unsigned int uprate, unsigned int dow
 	unsigned int lanlimit = 1000000;
 	unsigned int prio;
 	unsigned int parent;
+	char buf[256];
 
-	unsigned int quantum = atoi(get_mtu_val()) + 14;
+	unsigned int quantum = atoi(get_mtu_val(buf)) + 14;
 
 	if (lanrate < 1)
 		lanrate = lanlimit;
@@ -632,8 +631,9 @@ void add_client_classes(unsigned int base, unsigned int level)
 	unsigned int lanlimit = 1000000;
 	unsigned int prio;
 	unsigned int parent;
+	char buf[256];
 
-	unsigned int quantum = atoi(get_mtu_val()) + 14;
+	unsigned int quantum = atoi(get_mtu_val(buf)) + 14;
 
 	unsigned int uprate = 0, downrate = 0;
 	int lanrate = lanlimit;
@@ -983,7 +983,6 @@ int check_vlan_support(void)
 	return 0;
 #else
 
-
 	int brand = getRouterBrand();
 
 	switch (brand) {
@@ -1015,15 +1014,15 @@ int check_vlan_support(void)
 
 	unsigned long boardflags = strtoul(nvram_safe_get("boardflags"), NULL, 0);
 	if (boardflags & BFL_ENETVLAN)
-		return 1;	
-	if (nvram_match("boardtype", "bcm94710dev")) 
 		return 1;
-	if (nvram_match("boardtype", "0x0101")) 
+	if (nvram_match("boardtype", "bcm94710dev"))
 		return 1;
-	if (boardflags & 0x0100) 
+	if (nvram_match("boardtype", "0x0101"))
+		return 1;
+	if (boardflags & 0x0100)
 		return 1;
 
-		return 0;
+	return 0;
 #endif
 }
 
@@ -1568,6 +1567,9 @@ int internal_getRouterBrand()
 			return ROUTER_BOARD_GW2380;
 		} else if (!strncmp(gwid, "GW2391", 6)) {
 			setRouter("Gateworks Laguna GW2391");
+			return ROUTER_BOARD_GW2380;
+		} else if (!strncmp(gwid, "GW2393", 6)) {
+			setRouter("Gateworks Laguna GW2393");
 			return ROUTER_BOARD_GW2380;
 		} else if (!strncmp(gwid, "GW2387", 6)) {
 			setRouter("Gateworks Laguna GW2387");
@@ -2459,7 +2461,7 @@ int internal_getRouterBrand()
 		{"UniFi UAP-AC v2", 0xe912, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
 		{"UniFi UAP v2", 0xe572, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
 		{"UniFi UAP-LR v2", 0xe582, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
-		{NULL, 0, 0, 0, 0, 0,0},	//
+		{NULL, 0, 0, 0, 0, 0, 0},	//
 	};
 
 #undef M35
@@ -6778,7 +6780,7 @@ int insmod(char *module)
 	wordlist = module;
 	foreach(word, wordlist, next) {
 		ret |= _evalpid((char *[]) {
-			 "insmod", word, NULL}, ">/dev/null", 0, NULL);
+				"insmod", word, NULL}, ">/dev/null", 0, NULL);
 	}
 	return ret;
 }
@@ -7705,12 +7707,37 @@ void getSystemMac(char *newmac)
 	case ROUTER_NETGEAR_R8000:
 	case ROUTER_NETGEAR_R8500:
 	case ROUTER_TRENDNET_TEW828:
-	case ROUTER_DLINK_DIR885:
 		strcpy(newmac, nvram_safe_get("et2macaddr"));
+		break;
+	case ROUTER_DLINK_DIR885:
+		if (nvram_get("et0macaddr"))
+			strcpy(newmac, nvram_safe_get("et0macaddr"));
+		else
+			strcpy(newmac, nvram_safe_get("et2macaddr"));
 		break;
 	default:
 		strcpy(newmac, nvram_safe_get("et0macaddr"));
 		break;
 	}
 
+}
+
+void strcpyto(char *dest, char *src, char c)
+{
+	int cnt = 0;
+	int len = strlen(src);
+	while (cnt < len && src[cnt] != c) {
+		dest[cnt] = src[cnt];
+		cnt++;
+	}
+	dest[cnt] = '\0';
+	return dest;
+}
+
+char *chomp(char *s)
+{
+	char *c = (s) + strlen((s)) - 1;
+	while ((c > (s)) && (*c == '\n' || *c == '\r' || *c == ' '))
+		*c-- = '\0';
+	return s;
 }

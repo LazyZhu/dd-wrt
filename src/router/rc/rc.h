@@ -130,7 +130,6 @@ extern int roaming_daemon_main(int argc, char *argv[]);
 extern int pptpd_main(int argc, char **argv);
 #endif
 
-
 extern int create_rc_file(char *name);
 extern int wland_main(int argc, char **argv);
 
@@ -165,7 +164,7 @@ extern int write_boot(const char *path, const char *mtd);
 extern void do_mssid(char *wlname);
 extern int init_mtu(char *wan_proto);
 extern int force_to_dial(void);
-extern char *range(char *start, char *end);
+extern char *range(char *start, char *end, char *buf);
 
 // static void start_heartbeat (int status);
 extern void stop_heartbeat(void);

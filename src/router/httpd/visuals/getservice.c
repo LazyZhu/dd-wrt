@@ -70,12 +70,12 @@
 #define	_PATH_SERVICES		"/etc/services"
 #endif
 static FILE *servf = NULL;
-static char line[BUFSIZ + 1];
 static struct servent serv;
 static char *serv_aliases[MAXALIASES];
 static int serv_stayopen;
+static char line[BUFSIZ + 1];
 
-void setservent(int f)
+static void my_setservent(int f)
 {
 	if (servf == NULL)
 		servf = fopen(_PATH_SERVICES, "r");
@@ -84,7 +84,7 @@ void setservent(int f)
 	serv_stayopen |= f;
 }
 
-void endservent(void)
+static void my_endservent(void)
 {
 	if (servf) {
 		fclose(servf);
@@ -93,7 +93,7 @@ void endservent(void)
 	serv_stayopen = 0;
 }
 
-struct servent *getservent(void)
+static struct servent *my_getservent(void)
 {
 	char *p;
 	register char *cp, **q;
@@ -141,40 +141,18 @@ again:
 	return (&serv);
 }
 
-struct servent *getservbyname(const char *name, const char *proto)
-{
-	register struct servent *p;
-	register char **cp;
-
-	setservent(serv_stayopen);
-	while ((p = getservent()) != NULL) {
-		if (strcmp(name, p->s_name) == 0)
-			goto gotname;
-		for (cp = p->s_aliases; *cp; cp++)
-			if (strcmp(name, *cp) == 0)
-				goto gotname;
-		continue;
-	      gotname:
-		if (proto == 0 || strcmp(p->s_proto, proto) == 0)
-			break;
-	}
-	if (!serv_stayopen)
-		endservent();
-	return (p);
-}
-
 struct servent *my_getservbyport(int port, const char *proto)
 {
 	register struct servent *p;
 
-	setservent(serv_stayopen);
-	while ((p = getservent()) != NULL) {
+	my_setservent(serv_stayopen);
+	while ((p = my_getservent()) != NULL) {
 		if (p->s_port != port)
 			continue;
 		if (proto == 0 || strcmp(p->s_proto, proto) == 0)
 			break;
 	}
 	if (!serv_stayopen)
-		endservent();
+		my_endservent();
 	return (p);
 }
