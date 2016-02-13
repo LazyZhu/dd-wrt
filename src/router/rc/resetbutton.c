@@ -21,9 +21,8 @@
 #ifdef HAVE_ERC
 #define SES_WAIT		5	/* seconds */
 #else
-#define SES_WAIT		3	/* seconds */
+#define SES_WAIT		1	/* seconds */
 #endif
-#define SES_WAIT_COUNT	SES_WAIT	/* 10 times a second */
 #ifdef HAVE_UNFY
 #define UPGRADE_WAIT		1	/* seconds */
 #define UPGRADE_WAIT_COUNT	UPGRADE_WAIT * 10 - 5
