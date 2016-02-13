@@ -4,7 +4,7 @@ xl2tpd-configure:
 
 xl2tpd:
 #	$(MAKE) -C xl2tpd CFLAGS="$(COPTS) $(MIPS16_OPT) -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-builtin -Wall -DSANITY -DLINUX -I$(TOP)/kernel_headers/$(KERNELRELEASE)/include -I$(LINUXDIR)/include/ -DUSE_KERNEL -DIP_ALLOCATION -I$(TOP)/libpcap" LDFLAGS+="-L$(TOP)/libpcap"
-	$(MAKE) -C xl2tpd CFLAGS="$(COPTS) $(MIPS16_OPT) -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-builtin -Wall -DNEED_PRINTF -DDEBUG_CLOSE -DSANITY -DLINUX -DDEBUG_PPPD -DTRUST_PPPD_TO_DIE -I$(TOP)/kernel_headers/$(KERNELRELEASE)/include -I$(LINUXDIR)/include/ -DUSE_KERNEL -DIP_ALLOCATION -I$(TOP)/libpcap" LDFLAGS+="-L$(TOP)/libpcap" LDLIBS+=" -lm"
+	$(MAKE) -C xl2tpd CFLAGS="$(COPTS) $(MIPS16_OPT) -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-builtin -Wall -DNEED_PRINTF -DSANITY -DLINUX -DDEBUG_PPPD -DTRUST_PPPD_TO_DIE -I$(TOP)/kernel_headers/$(KERNELRELEASE)/include -I$(LINUXDIR)/include/ -DUSE_KERNEL -DIP_ALLOCATION -I$(TOP)/libpcap" LDFLAGS+="-L$(TOP)/libpcap" LDLIBS+=" -lm"
 
 xl2tpd-clean:
 	$(MAKE) -C xl2tpd clean
