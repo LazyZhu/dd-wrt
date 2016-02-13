@@ -66,6 +66,7 @@
 #include <cy_conf.h>
 #include <cymac.h>
 #include <glob.h>
+#include <revision.h>
 // #include <ledcontrol.h>
 
 #define WL_IOCTL(name, cmd, buf, len) (ret = wl_ioctl((name), (cmd), (buf), (len)))
@@ -2277,8 +2278,9 @@ void start_restore_defaults(void)
 	}
 	free_defaults();
 	if (strlen(nvram_safe_get("http_username")) == 0 || nvram_match("http_username", "admin")) {
-		nvram_set("http_username", zencrypt("root"));
-		nvram_set("http_passwd", zencrypt("admin"));
+		char passout[MD5_OUT_BUFSIZE];
+		nvram_set("http_username", zencrypt("root", passout));
+		nvram_set("http_passwd", zencrypt("admin", passout));
 	}
 	if (restore_defaults) {
 		switch (brand) {
@@ -2837,8 +2839,7 @@ void start_restore_defaults(void)
 	/*
 	 * Always set OS defaults 
 	 */
-	nvram_set("os_name", "linux");
-	nvram_set("os_version", EPI_VERSION_STR);
+	nvram_set("os_version", SVN_REVISION);
 
 #ifdef HAVE_SPUTNIK_APD
 	/*

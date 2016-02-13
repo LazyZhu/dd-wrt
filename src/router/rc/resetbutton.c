@@ -18,8 +18,12 @@
 #define	SES_LED_CHECK_INTERVAL	"1"	/* Wait interval seconds */
 #define RESET_WAIT		3	/* seconds */
 #define RESET_WAIT_COUNT	RESET_WAIT * 10	/* 10 times a second */
+#ifdef HAVE_ERC
+#define SES_WAIT		5	/* seconds */
+#else
 #define SES_WAIT		3	/* seconds */
-#define SES_WAIT_COUNT		SES_WAIT
+#endif
+#define SES_WAIT_COUNT	SES_WAIT	/* 10 times a second */
 #ifdef HAVE_UNFY
 #define UPGRADE_WAIT		1	/* seconds */
 #define UPGRADE_WAIT_COUNT	UPGRADE_WAIT * 10 - 5
@@ -795,6 +799,8 @@ static int ses_mode = 0;	/* mode 1 : pushed */
 static int wifi_mode = 0;	/* mode 1 : pushed */
 static int count = 0;
 
+static int ses_pushed = 0;
+static int wifi_pushed = 0;
 #ifdef HAVE_RADIOOFF
 static int initses = 1;
 #endif
@@ -1710,31 +1716,34 @@ void period_check(int sig)
 			handle_reset();
 		}
 ///////// SES button
-	} else if ((sesgpio != 0xfff)
-			 && (((sesgpio & 0x100) == 0 && (val & push)) || ((sesgpio & 0x100) == 0x100 && !(val & push)))) {
-		if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
-			fprintf(stderr, "[RESETBUTTON] nothing to do...\n");
-			dd_syslog(LOG_DEBUG, "SES button - nothing to do...\n");
-			alarmtimer(0, 0);	/* Stop the timer alarm */
-			return;
+	} else if ((sesgpio != 0xfff) && (((sesgpio & 0x100) == 0 && (val & push)) || ((sesgpio & 0x100) == 0x100 && !(val & push)))) {
+		if (!ses_pushed && (++count > SES_WAIT)) {
+			if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
+				fprintf(stderr, "resetbutton: nothing to do...\n");
+				alarmtimer(0, 0);	/* Stop the timer alarm */
+				return;
+			}
+			//count = 0;
+			ses_pushed = 1;
+			handle_ses();
 		}
-		//count = 0;
-		handle_ses();
 ///////// Wi-Fi button
-	} else if ((wifigpio != 0xfff)
-			 && (((wifigpio & 0x100) == 0 && (val & pushwifi)) || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
-		if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
-			fprintf(stderr, "[RESETBUTTON] nothing to do...\n");
-			dd_syslog(LOG_DEBUG, "Wi-Fi button - nothing to do...\n");
-			alarmtimer(0, 0);	/* Stop the timer alarm */
-			return;
+	} else if ((wifigpio != 0xfff) && (((wifigpio & 0x100) == 0 && (val & pushwifi)) || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
+		if (!wifi_pushed && (++count > SES_WAIT)) {
+			if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
+				fprintf(stderr, "resetbutton: nothing to do...\n");
+				alarmtimer(0, 0);	/* Stop the timer alarm */
+				return;
+			}
+			//count = 0;
+			wifi_pushed = 1;
+			handle_wifi();
 		}
-		//count = 0;
-		handle_wifi();
 //////// Upgrade script
 	} else {
 		count = 0;	// reset counter to avoid factory default
-
+		wifi_pushed = 0;
+		ses_pushed = 0;
 		/* 
 		 * Although it's unpushed now, it had ever been pushed 
 		 */

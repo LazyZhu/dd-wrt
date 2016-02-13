@@ -313,7 +313,7 @@ static void loadWlModule(void)	// set wled params, get boardflags,
 	case ROUTER_WRT600N:
 		fprintf(stderr, "fixing wrt600n\n");
 		wl_hwaddr("eth0", macbuf);
-		ether_etoa((uchar *) macbuf, eaddr);
+		ether_etoa((char *) macbuf, eaddr);
 		nvram_set("wl0_hwaddr", eaddr);
 		MAC_SUB(eaddr);
 		if (!nvram_match("et0macaddr", eaddr)) {
@@ -324,15 +324,15 @@ static void loadWlModule(void)	// set wled params, get boardflags,
 		}
 		eval("/sbin/ifconfig", "eth2", "hw", "ether", eaddr);
 		wl_hwaddr("eth1", macbuf);
-		ether_etoa((uchar *) macbuf, eaddr);
+		ether_etoa((char *) macbuf, eaddr);
 		nvram_set("wl1_hwaddr", eaddr);
 		break;
 	case ROUTER_WRT610N:
 		wl_hwaddr("eth0", macbuf);
-		ether_etoa((uchar *) macbuf, eaddr);
+		ether_etoa((char *) macbuf, eaddr);
 		nvram_set("wl0_hwaddr", eaddr);
 		wl_hwaddr("eth1", macbuf);
-		ether_etoa((uchar *) macbuf, eaddr);
+		ether_etoa((char *) macbuf, eaddr);
 		nvram_set("wl1_hwaddr", eaddr);
 		break;
 
@@ -2939,8 +2939,7 @@ void start_sysinit(void)
 			case ROUTER_MOTOROLA:
 			case ROUTER_BUFFALO_WBR2G54S:
 			case ROUTER_DELL_TRUEMOBILE_2300_V2:
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "switch-core switch-adm";
+				modules = "switch-core switch-adm";
 				break;
 
 			case ROUTER_WRT54G_V8:
@@ -2948,8 +2947,7 @@ void start_sysinit(void)
 			case ROUTER_LINKSYS_WRH54G:
 			case ROUTER_ASUS_WL520G:
 			case ROUTER_ASUS_WL520GUGC:
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "switch-core switch-robo";
+				modules = "switch-core switch-robo";
 				break;
 
 			case ROUTER_WRT54G1X:
@@ -2961,16 +2959,14 @@ void start_sysinit(void)
 
 			case ROUTER_RT480W:
 			case ROUTER_BUFFALO_WLI2_TX1_G54:
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "";
+				modules = "";
 				insmod("switch-core");
 				if (insmod("switch-robo"))
 					insmod("switch-adm");
 				break;
 
 			case ROUTER_WRT54G3G:
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "switch-core switch-robo pcmcia_core yenta_socket ds serial_cs usbcore usb-ohci usbserial sierra";
+				modules = "switch-core switch-robo pcmcia_core yenta_socket ds serial_cs usbcore usb-ohci usbserial sierra";
 				break;
 			case ROUTER_ASUS_RTN10:
 			case ROUTER_ASUS_RTN10PLUSD1:
@@ -2988,8 +2984,7 @@ void start_sysinit(void)
 				modules = "";
 				break;
 			default:
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "switch-core switch-robo";
+				modules = "switch-core switch-robo";
 				break;
 			}
 		} else {
@@ -3029,27 +3024,24 @@ void start_sysinit(void)
 				modules = "et switch-core switch-robo";
 				break;
 			case ROUTER_LINKSYS_WRT55AG:
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "switch-core switch-adm";
+				modules = "switch-core switch-adm";
 
 				break;
 			case ROUTER_ASUS_WL500GD:
 			case ROUTER_ASUS_WL550GE:
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "switch-core switch-robo";
+				modules = "switch-core switch-robo";
 				break;
 			case ROUTER_BUFFALO_WZRRSG54:
 				nvram_set("portprio_support", "0");
-				modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules")
-				    : "";
+				modules = "";
 				break;
 			case ROUTER_WRT54G3G:
 				if (check_vlan_support())
-					modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules") : "switch-core switch-robo pcmcia_core yenta_socket ds";
+					modules = "switch-core switch-robo pcmcia_core yenta_socket ds";
 				else {
 					nvram_set("portprio_support", "0");
 
-					modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules") : "pcmcia_core yenta_socket ds";
+					modules = "pcmcia_core yenta_socket ds";
 				}
 				break;
 			case ROUTER_ASUS_RTN10:
@@ -3071,31 +3063,21 @@ void start_sysinit(void)
 			default:
 #ifndef HAVE_BCMMODERN
 				if (check_vlan_support())
-					modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules") : "switch-core switch-robo";
+					modules = "switch-core switch-robo";
 				else
 #endif
 				{
 					nvram_set("portprio_support", "0");
-					modules = nvram_invmatch("ct_modules", "") ? nvram_safe_get("ct_modules") : "switch-core switch-robo";
+					modules = "switch-core switch-robo";
 				}
 				break;
 			}
 		}
 //      fprintf( "insmod %s\n", modules );
 
-		foreach(module, modules, next) {
-#ifdef HAVE_MACBIND
-			if (nvram_match("et0macaddr", MACBRAND))
-				insmod(module);
-#else
+		insmod(modules);
 
-			fprintf(stderr, "loading %s\n", module);
-			insmod(module);
-			cprintf("done\n");
-#endif
-		}
-
-		if (check_hw_type() == BCM4702_CHIP)
+		    if (check_hw_type() == BCM4702_CHIP)
 			insmod("diag");
 
 		loadWlModule();

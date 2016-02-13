@@ -100,7 +100,7 @@ extern int safe_fwrite(const void *ptr, size_t size, size_t nmemb, FILE * stream
  * @param       e       binary data
  * @return      TRUE if conversion was successful and FALSE otherwise
  */
-extern int ether_atoe(const char *a, unsigned char *e);
+extern int ether_atoe(const char *a, char *e);
 
 int indexof(char *str, char c);
 
@@ -110,7 +110,7 @@ int indexof(char *str, char c);
  * @param       a       string in xx:xx:xx:xx:xx:xx notation
  * @return      a
  */
-extern char *ether_etoa(const unsigned char *e, char *a);
+extern char *ether_etoa(const char *e, char *a);
 
 extern int nvifname_to_osifname(const char *nvifname, char *osifname_buf, int osifname_buf_len);
 extern int osifname_to_nvifname(const char *osifname, char *nvifname_buf, int nvifname_buf_len);
@@ -206,17 +206,19 @@ char *chomp(char *s);
 
 void strcpyto(char *dest, char *src, char c);
 
+
+char *foreach_first(char *foreachwordlist, char *word);
+
+char *foreach_last(char *next, char *word);
+
+
 /*
  * Copy each token in wordlist delimited by space into word 
  */
 #define foreach(word, foreachwordlist, next) \
-	for (next = &foreachwordlist[strspn(foreachwordlist, " ")], \
-	     strcpyto(word, next, ' '), \
-	     next = strchr(next, ' '); \
+	for (next = foreach_first(foreachwordlist, word); \
 	     strlen(word); \
-	     next = next ? &next[strspn(next, " ")] : "", \
-	     strcpyto(word, next, ' '), \
-	     next = strchr(next, ' ')) \
+	     next = foreach_last(next, word)) 
 
 /*
  * Return NUL instead of NULL if undefined 
