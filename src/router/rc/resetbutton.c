@@ -23,6 +23,7 @@
 #else
 #define SES_WAIT		1	/* seconds */
 #endif
+#define WIFI_WAIT		0	/* seconds */
 #ifdef HAVE_UNFY
 #define UPGRADE_WAIT		1	/* seconds */
 #define UPGRADE_WAIT_COUNT	UPGRADE_WAIT * 10 - 5
@@ -1728,7 +1729,7 @@ void period_check(int sig)
 		}
 ///////// Wi-Fi button
 	} else if ((wifigpio != 0xfff) && (((wifigpio & 0x100) == 0 && (val & pushwifi)) || ((wifigpio & 0x100) == 0x100 && !(val & pushwifi)))) {
-		if (!wifi_pushed && (++count > SES_WAIT)) {
+		if (!wifi_pushed && (++count > WIFI_WAIT)) {
 			if (check_action() != ACT_IDLE) {	// Don't execute during upgrading
 				fprintf(stderr, "resetbutton: nothing to do...\n");
 				alarmtimer(0, 0);	/* Stop the timer alarm */
