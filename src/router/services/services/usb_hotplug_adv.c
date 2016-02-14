@@ -418,16 +418,18 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 	/* strategy two: mount by partition label, overrides strategy one */
 	if ((fp = fopen(part_file, "r"))) {
 		while (fgets(line, sizeof(line), fp) != NULL) {
-			if (strstr(line, "Jffs") || strstr(line, "JFFS") || strstr(line, "\"jffs")) {
+			// #define _GNU_SOURCE required
+			if (strcasestr(line, "jffs")) {
 				sprintf(mount_point, "/jffs");
 			}
-			if (strstr(line, "Opt") || strstr(line, "OPT") || strstr(line, "\"opt")) {
+			// #define _GNU_SOURCE required
+			if (strcasestr(line, "opt")) {
 				sprintf(mount_point, "/opt");
 			}
 			/* use labels in mountpath if desired */
 			char label[32] = "usbdisk";
 			sprintf(label, "%s", nvram_safe_get("usb_mntlabel"));
-			// #define _GNU_SOURCE
+			// #define _GNU_SOURCE required
 			if (strcasestr(line, label)) {
 				if (nvram_match("usb_mntbylabel", "1")) {
 					sprintf(mount_point, "/tmp/mnt/%s", label);
@@ -475,6 +477,7 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 	} else if (!strncmp(fs, "ext", 3)) { // add user_xattr to Ext3/4
 		ret = eval("/bin/mount", "-t", fs, "-o", "noatime,user_xattr", path, mount_point);
 	} else if (!strncmp(fs, "hfs", 3)) { // force rw mode for hfs/hfsplus with noatime
+		eval("fsck_hfs", "-p", "-y", path);
 		ret = eval("/bin/mount", "-t", fs, "--force", "-o", "noatime", path, mount_point);
 	} else {
 		ret = eval("/bin/mount", "-t", fs, path, mount_point);
