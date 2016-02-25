@@ -2733,6 +2733,11 @@ int internal_getRouterBrand()
 	nvram_default_get("ath0_txantenna", "3");
 	setRouter("Dlink DAP-2230");
 	return ROUTER_BOARD_PB42;
+#elif HAVE_WR841V11
+	nvram_default_get("ath0_rxantenna", "3");
+	nvram_default_get("ath0_txantenna", "3");
+	setRouter("TP-Link TL-WR841ND v11");
+	return ROUTER_BOARD_PB42;
 #elif HAVE_WR841V10
 	nvram_default_get("ath0_rxantenna", "3");
 	nvram_default_get("ath0_txantenna", "3");
@@ -2840,6 +2845,11 @@ int internal_getRouterBrand()
 	nvram_default_get("ath0_rxantenna", "1");
 	nvram_default_get("ath0_txantenna", "1");
 	setRouter("TP-Link TL-MR3020");
+	return ROUTER_BOARD_PB42;
+#elif HAVE_WR71021
+	nvram_default_get("ath0_rxantenna", "1");
+	nvram_default_get("ath0_txantenna", "1");
+	setRouter("TP-Link TL-WR710N v2.1");
 	return ROUTER_BOARD_PB42;
 #elif HAVE_WR710V1
 	nvram_default_get("ath0_rxantenna", "1");

@@ -5078,6 +5078,10 @@ void start_sysinit(void)
 		eval("watchdog");
 	}
 
+	if (check_vlan_support()) {
+		start_config_vlan();
+	}
+
 	return;
 }
 

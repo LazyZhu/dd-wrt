@@ -313,7 +313,7 @@ static void loadWlModule(void)	// set wled params, get boardflags,
 	case ROUTER_WRT600N:
 		fprintf(stderr, "fixing wrt600n\n");
 		wl_hwaddr("eth0", macbuf);
-		ether_etoa((char *) macbuf, eaddr);
+		ether_etoa((char *)macbuf, eaddr);
 		nvram_set("wl0_hwaddr", eaddr);
 		MAC_SUB(eaddr);
 		if (!nvram_match("et0macaddr", eaddr)) {
@@ -324,15 +324,15 @@ static void loadWlModule(void)	// set wled params, get boardflags,
 		}
 		eval("/sbin/ifconfig", "eth2", "hw", "ether", eaddr);
 		wl_hwaddr("eth1", macbuf);
-		ether_etoa((char *) macbuf, eaddr);
+		ether_etoa((char *)macbuf, eaddr);
 		nvram_set("wl1_hwaddr", eaddr);
 		break;
 	case ROUTER_WRT610N:
 		wl_hwaddr("eth0", macbuf);
-		ether_etoa((char *) macbuf, eaddr);
+		ether_etoa((char *)macbuf, eaddr);
 		nvram_set("wl0_hwaddr", eaddr);
 		wl_hwaddr("eth1", macbuf);
-		ether_etoa((char *) macbuf, eaddr);
+		ether_etoa((char *)macbuf, eaddr);
 		nvram_set("wl1_hwaddr", eaddr);
 		break;
 
@@ -3077,7 +3077,7 @@ void start_sysinit(void)
 
 		insmod(modules);
 
-		    if (check_hw_type() == BCM4702_CHIP)
+		if (check_hw_type() == BCM4702_CHIP)
 			insmod("diag");
 
 		loadWlModule();
@@ -3090,6 +3090,32 @@ void start_sysinit(void)
 
 	if (brand == ROUTER_WRT54G3G) {
 		eval("cardmgr");
+	}
+
+	switch (brand) {
+	case ROUTER_WRT600N:
+	case ROUTER_WRT610N:
+	case ROUTER_ASUS_WL500GD:
+	case ROUTER_ASUS_WL550GE:
+	case ROUTER_MOTOROLA:
+	case ROUTER_RT480W:
+	case ROUTER_WRT350N:
+	case ROUTER_BUFFALO_WZRG144NH:
+	case ROUTER_DELL_TRUEMOBILE_2300_V2:
+	case ROUTER_WRT54G1X:
+		start_config_vlan();
+		break;
+	case ROUTER_UBNT_UNIFIAC:
+		nvram_set("vlan1ports", "0 8*");
+		nvram_set("vlan2ports", "1 8");
+		start_config_vlan();
+		break;
+	default:
+		if (check_vlan_support()) {
+			start_config_vlan();
+		}
+		break;
+
 	}
 
 	cprintf("done\n");

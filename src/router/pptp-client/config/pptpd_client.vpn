@@ -21,7 +21,7 @@ case $1 in
 
  "go" )
 
-  echo "Waiting......."
+  echo "Waiting..."
   startservice pppmodules
   sleep 10
   PIDFILE="/var/run/vpn.pid"
@@ -61,7 +61,7 @@ case $1 in
 
  "debug" )
 
-  echo "Waiting......."
+  echo "Waiting..."
   sleep 10
   PIDFILE="/var/run/vpn.pid"
   if [ -f "${PIDFILE}" ];

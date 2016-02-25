@@ -21,6 +21,24 @@ TCMODULES += f_tcindex.o
 TCMODULES += q_ingress.o
 TCMODULES += q_hfsc.o
 TCMODULES += q_htb.o
+ifeq ($(KERNELVERSION),3.10)
+TCMODULES += q_multiq.o
+endif
+ifeq ($(KERNELVERSION),3.18)
+TCMODULES += q_multiq.o
+TCMODULES += q_fq_codel.o
+TCMODULES += q_fq.o
+TCMODULES += q_pie.o
+endif
+
+ifeq ($(KERNELVERSION),4.4)
+TCMODULES += q_multiq.o
+TCMODULES += q_fq_codel.o
+TCMODULES += q_fq.o
+TCMODULES += q_pie.o
+endif
+
+
 TCMODULES += m_gact.o
 TCMODULES += m_mirred.o
 TCMODULES += m_ipt.o
@@ -68,7 +86,7 @@ install: all
 	done
 
 clean:
-	rm -f $(TCOBJ) $(TCLIB) libtc.a tc *.so
+	rm -f $(TCOBJ) $(TCLIB) libtc.a tc *.so *.o
 
 q_atm.so: q_atm.c
 	$(CC) $(CFLAGS) -shared -fpic -o q_atm.so q_atm.c -latm

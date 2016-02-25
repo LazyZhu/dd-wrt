@@ -31,6 +31,7 @@ ifeq ($(ARCH),powerpc)
 ASM_INCLUDE=-I$(LINUXDIR)/arch/powerpc/include 
 endif
 
+
 # Path to db_185.h include
 DBM_INCLUDE:=/usr/include
 
@@ -52,8 +53,8 @@ HOSTCC = $(CC)
 #ipsel-linux-uclibc-gcc
 CCOPTS = -D_GNU_SOURCE $(COPTS) -Wstrict-prototypes -Wall
 CFLAGS = -I$(TOP)/kernel_headers/$(KERNELRELEASE)/include
-
-ifeq ($(ARCH),arm)
+include ../.config
+ifneq ($(CONFIG_NOMESSAGE),y)
 CFLAGS += -DNEED_PRINTF
 endif
 

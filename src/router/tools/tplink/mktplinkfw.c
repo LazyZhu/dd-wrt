@@ -69,6 +69,7 @@
 #define HWID_TL_WR841ND_V8	0x08410008
 #define HWID_TL_WR841ND_V9	0x08410009
 #define HWID_TL_WR841ND_V10	0x08410010
+#define HWID_TL_WR841ND_V11	0x08410011
 #define HWID_TL_WR941ND_V2	0x09410002
 #define HWID_TL_WR941ND_V4	0x09410004
 #define HWID_TL_WR1043ND_V1	0x10430001
@@ -395,6 +396,14 @@ static struct board_info boards[] = {
 		.kernel_ep	= 0x80060000,
 		.rootfs_ofs	= 0xf0000,
 	}, {
+		.id		= "TL-WR841NDv11",
+		.hw_id		= HWID_TL_WR841ND_V11,
+		.hw_rev		= 1,
+		.fw_max_len	= 0x3c0000,
+		.kernel_la	= 0x80060000,
+		.kernel_ep	= 0x80060000,
+		.rootfs_ofs	= 0xf0000,
+	}, {
 		.id		= "RNX-N300RT",
 		.hw_id		= HWID_TL_WR841ND_V7,
 		.hw_rev		= 0x00420001,
@@ -451,15 +460,6 @@ static struct board_info boards[] = {
 		.kernel_ep	= 0x80060000,
 		.rootfs_ofs	= 0xf0000,
 	}, {
-		.id		= "ARCHER-C7v1US",
-		.hw_id		= HWID_ARCHERC7_V1,
-		.area_code	= 1,
-		.hw_rev		= 1,
-		.fw_max_len	= 0x7b0000,
-		.kernel_la	= 0x80060000,
-		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0xf0000,
-	}, {
 		.id		= "ARCHER-C7v1",
 		.hw_id		= HWID_ARCHERC7_V1,
 		.hw_rev		= 1,
@@ -484,6 +484,14 @@ static struct board_info boards[] = {
 		.kernel_ep	= 0x80060000,
 		.rootfs_ofs	= 0xf0000,
 	}, {
+		.id		= "TL-WR710Nv2.1",
+		.hw_id		= HWID_TL_WR710N_V2,
+		.hw_rev		= 2,
+		.fw_max_len	= 0x7b0000,
+		.kernel_la	= 0x80060000,
+		.kernel_ep	= 0x80060000,
+		.rootfs_ofs	= 0x100000,
+	}, {
 		.id		= "ARCHER-C7v2",
 		.hw_id		= HWID_ARCHERC7_V2,
 		.hw_rev		= 1,
@@ -495,15 +503,6 @@ static struct board_info boards[] = {
 		.id		= "ARCHER-C7v2Israel",
 		.hw_id		= HWID_ARCHERC7_V2,
 		.hw_rev		= 0x494C0001,
-		.fw_max_len	= 0xfb0000,
-		.kernel_la	= 0x80060000,
-		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0xf0000,
-	}, {
-		.id		= "ARCHER-C7v2US",
-		.hw_id		= HWID_ARCHERC7_V2,
-		.hw_rev		= 1,
-		.area_code	= 1,
 		.fw_max_len	= 0xfb0000,
 		.kernel_la	= 0x80060000,
 		.kernel_ep	= 0x80060000,
@@ -525,27 +524,9 @@ static struct board_info boards[] = {
 		.kernel_ep	= 0x80060000,
 		.rootfs_ofs	= 0xf0000,
 	}, {
-		.id		= "ARCHER-C5v1US",
-		.hw_id		= HWID_ARCHERC5_V1,
-		.area_code	= 1,
-		.hw_rev		= 1,
-		.fw_max_len	= 0xfb0000,
-		.kernel_la	= 0x80060000,
-		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0xf0000,
-	}, {
 		.id		= "TL-WDR4300",
 		.hw_id		= HWID_TL_WDR4300_V1,
 		.hw_rev		= 1,
-		.fw_max_len	= 0x7b0000,
-		.kernel_la	= 0x80060000,
-		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0x100000,
-	}, {
-		.id		= "TL-WDR4300_US",
-		.hw_id		= HWID_TL_WDR4300_V1,
-		.hw_rev		= 1,
-		.area_code	= 1,
 		.fw_max_len	= 0x7b0000,
 		.kernel_la	= 0x80060000,
 		.kernel_ep	= 0x80060000,
@@ -578,24 +559,6 @@ static struct board_info boards[] = {
 		.id		= "TL-WDR3600",
 		.hw_id		= HWID_TL_WDR3600_V1,
 		.hw_rev		= 1,
-		.fw_max_len	= 0x7b0000,
-		.kernel_la	= 0x80060000,
-		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0x100000,
-	}, {
-		.id		= "TL-WDR3600_US",
-		.hw_id		= HWID_TL_WDR3600_V1,
-		.hw_rev		= 1,
-		.area_code	= 1,
-		.fw_max_len	= 0x7b0000,
-		.kernel_la	= 0x80060000,
-		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0x100000,
-	}, {
-		.id		= "TL-WDR3500_US",
-		.hw_id		= HWID_TL_WDR3500_V1,
-		.hw_rev		= 1,
-		.area_code	= 1,
 		.fw_max_len	= 0x7b0000,
 		.kernel_la	= 0x80060000,
 		.kernel_ep	= 0x80060000,
@@ -800,6 +763,7 @@ static int check_options(void)
 	return 0;
 }
 static int trunkfile=0;
+unsigned int area_code = 0;
 
 static void fill_header(char *buf, int len)
 {
@@ -813,6 +777,8 @@ static void fill_header(char *buf, int len)
 	hdr->hw_id = HOST_TO_BE32(board->hw_id);
 	hdr->hw_rev = HOST_TO_BE32(board->hw_rev);
 	hdr->area_code = HOST_TO_BE32(board->area_code);
+	if (area_code)
+	    hdr->area_code = HOST_TO_BE32(area_code);
 	
 	if (boot_info.file_size == 0)
 		memcpy(hdr->md5sum1, md5salt_normal, sizeof(hdr->md5sum1));
@@ -929,7 +895,7 @@ int main(int argc, char *argv[])
 	while ( 1 ) {
 		int c;
 
-		c = getopt(argc, argv, "B:V:N:ck:r:o:v:h:t::");
+		c = getopt(argc, argv, "B:V:N:uck:r:o:v:h:t::");
 		if (c == -1)
 			break;
 
@@ -954,6 +920,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'o':
 			ofname = optarg;
+			break;
+		case 'u':
+			area_code = 1;
 			break;
 		case 'v':
 			fw_ver = optarg;
