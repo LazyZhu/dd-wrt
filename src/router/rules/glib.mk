@@ -49,7 +49,9 @@ glib20-configure: libffi
 	echo ############################################################
 	echo # CONFIGURE LIBGLIB                                        #
 	echo ############################################################
-	cd glib20/libglib && ./autogen.sh
+	cd glib20/libglib && ./autogen.sh --host=$(ARCH)-linux \
+	LIBFFI_CFLAGS="-I$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include" \
+	LIBFFI_LIBS="-L$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/.libs -lffi"
 	cd glib20/libglib && ./configure --enable-shared --disable-static --disable-fam --enable-debug=no --disable-selinux --disable-man --host=$(ARCH)-linux --with-libiconv=gnu --disable-modular-tests \
 	CC="ccache $(CC)" CFLAGS="$(COPTS) -std=gnu89  $(MIPS16_OPT) -D_GNU_SOURCE=1  -I$(TOP)/zlib -fPIC -Drpl_malloc=malloc -I$(TOP)/glib20/gettext/gettext-runtime/intl  -I$(TOP)/glib20/libiconv/include -I$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include  -L$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/.libs -lffi -L$(TOP)/glib20/libiconv/lib/.libs -liconv -L$(TOP)/glib20/gettext/gettext-runtime/intl/.libs -L$(TOP)/zlib -lz -pthread -lpthread" \
 	LIBFFI_CFLAGS="-I$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include" \
