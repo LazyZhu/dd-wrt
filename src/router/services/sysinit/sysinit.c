@@ -2949,7 +2949,7 @@ void start_drivers(void)
 		led_control(LED_USB, LED_ON);
 		led_control(LED_USB1, LED_ON);
 
-		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx dwc3 dwc3-qcom phy-qcom-hsusb phy-qcom-ssusb");
+		insmod("nls_base usb-common usbcore ehci-hcd ehci-platform ehci-pci usb-uhci uhci-hcd usb-ohci ohci-hcd xhci-hcd xhci-pci xhci-plat-hcd dwc_otg usb-libusual fsl-mph-dr-of phy-mxs-usb extcon ci_hdrc ci13xxx_imx usbmisc_imx ci_hdrc_imx dwc3 dwc3-qcom phy-qcom-hsusb phy-qcom-ssusb");
 
 #ifdef HAVE_IPQ806X
 		sleep(5);
@@ -3002,7 +3002,7 @@ void start_drivers(void)
 		// storage
 		rmmod("usb-storage sr_mod cdrom sd_mod scsi_wait_scan scsi_mod");
 		// common
-		rmmod("usbmisc_imx ci13xxx_imx ci_hdrc phy-mxs-usb fsl-mph-dr-of");
+		rmmod("usbmisc_imx ci13xxx_imx ci_hdrc extcon phy-mxs-usb fsl-mph-dr-of");
 		rmmod("usb-libusual dwc_otg");
 		// core
 		rmmod("xhci-pci xhci-plat-hcd xhci-hcd");

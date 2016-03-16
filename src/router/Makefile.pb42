@@ -105,7 +105,7 @@ ifeq ($(ARCH),armeb)
 export COPTS:=$(BASEOPT) -pipe -mtune=xscale -march=armv5te -Wa,-mcpu=xscale -mno-thumb-interwork -mno-thumb -funit-at-a-time 
 endif
 ifeq ($(ARCH),mips)
-export COPTS:=$(BASEOPT) -pipe -mips32r2 -mtune=mips32r2 -msoft-float  -fno-caller-saves  -mno-branch-likely
+export COPTS:=$(BASEOPT) -pipe -mips32r2 -mtune=mips32r2 -msoft-float  -fno-caller-saves  -mno-branch-likely -fno-plt
 endif
 ifeq ($(ARCH),powerpc)
 export COPTS:=$(BASEOPT) -pipe -funit-at-a-time -mcpu=405fp -mtune=405fp -mmultiple -mstring -mno-bit-align 
@@ -353,6 +353,11 @@ ifeq ($(CONFIG_ALFANX),y)
 	echo CONFIG_ALFANX=y >> $(LINUXDIR)/.config
 else
 	echo "# CONFIG_ALFANX is not set" >> $(LINUXDIR)/.config
+endif
+ifeq ($(CONFIG_LOCOXW),y)
+	echo CONFIG_XWLOCO=y >> $(LINUXDIR)/.config
+else
+	echo "# CONFIG_XWLOCO is not set" >> $(LINUXDIR)/.config
 endif
 ifeq ($(CONFIG_DIR859),y)
 	echo CONFIG_DIR859=y >> $(LINUXDIR)/.config
@@ -1805,6 +1810,9 @@ ifeq ($(CONFIG_WR841V9),y)
 
 	-./tools/tplink/mktplinkfw -B TL-WR841NDv11 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR841NDv11-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR841NDv11-firmware.bin mips-uclibc/tplink-WR841NDv11-firmware.bin
+
+	-./tools/tplink/mktplinkfw -B TL-WR841NDv11 -u -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR841NDv11-firmwareUS.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/WR841NDv11-firmwareUS.bin mips-uclibc/tplink-WR841NDv11-firmwareUS.bin
 endif
 ifeq ($(CONFIG_WR842V2),y)
 	-./tools/tplink/mktplinkfw -B TL-WR842NDv2 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-WR842NDv2-firmware.bin
@@ -1838,6 +1846,13 @@ endif
 ifeq ($(CONFIG_WR1043V2),y)
 	-./tools/tplink/mktplinkfw -B TL-WR1043NDv2 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-TL-WR1043V2-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/TL-WR1043V2-firmware.bin mips-uclibc/tplink-TL-WR1043V2-firmware.bin
+
+	-./tools/tplink/mktplinkfw -B TL-WR1043NDv3 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-TL-WR1043V3-firmware.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/TL-WR1043V3-firmware.bin mips-uclibc/tplink-TL-WR1043V3-firmware.bin
+
+	-./tools/tplink/mktplinkfw -B TL-WR1043NDv3 -u -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-TL-WR1043V3-firmwareUS.bin
+	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/TL-WR1043V3-firmwareUS.bin mips-uclibc/tplink-TL-WR1043V3-firmwareUS.bin
+
 	-./tools/tplink/mktplinkfw -B ARCHER-C7v1 -N DD-WRT -V 24 -k $(ARCH)-uclibc/vmlinux.tpl -r $(ARCH)-uclibc/root.fs -o mips-uclibc/tplink-ARCHER-C7v1-firmware.bin
 	-./tools/trx_n -m 40000000 -o $(ARCH)-uclibc/ARCHER-C7v1-firmware.bin mips-uclibc/tplink-ARCHER-C7v1-firmware.bin
 

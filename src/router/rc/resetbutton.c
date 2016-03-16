@@ -182,6 +182,9 @@ int getbuttonstate()
 #elif defined(HAVE_UBNTM)
 int getbuttonstate()
 {
+	int brand = getRouterBrand();
+	if (brand == ROUTER_UBNT_UAPAC)
+		return !get_gpio(2);
 	return !get_gpio(12);
 }
 #elif defined(HAVE_RB2011)

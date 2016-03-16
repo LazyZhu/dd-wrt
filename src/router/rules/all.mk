@@ -272,6 +272,7 @@ include rules/nmap.mk
 include rules/arpalert.mk
 include rules/unbound.mk
 include rules/ubi-utils.mk
+include rules/libffi.mk
 
 #
 # Generic rules

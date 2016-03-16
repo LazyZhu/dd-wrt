@@ -8,20 +8,20 @@ else
 endif
 endif
 
-
-glib20-configure:
+glib20-configure: libffi
 ### jump for fast debug
 #ifeq (1,0)
-	echo 
-	echo ############################################################
-	echo # CONFIGURE LIBFFI                                         #
-	echo ############################################################
-	cd glib20/libffi && ./configure --enable-static --disable-shared --host=$(ARCH)-linux CC="ccache $(CC)" CFLAGS="$(COPTS) -std=gnu89 -D_GNU_SOURCE -fPIC -Drpl_malloc=malloc"
-	echo 
-	echo ############################################################
-	echo # BUILD LIBFFI                                             #
-	echo ############################################################
-	$(MAKE) -C glib20/libffi clean all
+
+#	echo 
+#	echo ############################################################
+#	echo # CONFIGURE LIBFFI                                         #
+#	echo ############################################################
+#	cd glib20/libffi && ./configure --enable-static --disable-shared --host=$(ARCH)-linux CC="ccache $(CC)" CFLAGS="$(COPTS) -std=gnu89 -D_GNU_SOURCE -fPIC -Drpl_malloc=malloc"
+#	echo 
+#	echo ############################################################
+#	echo # BUILD LIBFFI                                             #
+#	echo ############################################################
+#	$(MAKE) -C glib20/libffi clean all
 
 	echo 
 	echo ############################################################
@@ -49,13 +49,11 @@ glib20-configure:
 	echo ############################################################
 	echo # CONFIGURE LIBGLIB                                        #
 	echo ############################################################
-	cd glib20/libglib && ./autogen.sh --host=$(ARCH)-linux \
-	LIBFFI_CFLAGS="-I$(TOP)/glib20/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include" \
-	LIBFFI_LIBS="-L$(TOP)/glib20/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/.libs -lffi"
-	cd glib20/libglib && ./configure --enable-shared --enable-static --disable-fam --enable-debug=no --disable-selinux --disable-man --host=$(ARCH)-linux --with-libiconv=gnu --disable-modular-tests \
-	CC="ccache $(CC)" CFLAGS="$(COPTS) -std=gnu89  $(MIPS16_OPT) -D_GNU_SOURCE=1  -I$(TOP)/zlib -fPIC -Drpl_malloc=malloc -I$(TOP)/glib20/gettext/gettext-runtime/intl  -I$(TOP)/glib20/libiconv/include -I$(TOP)/glib20/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include  -L$(TOP)/glib20/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/.libs -lffi -L$(TOP)/glib20/libiconv/lib/.libs -liconv -L$(TOP)/glib20/gettext/gettext-runtime/intl/.libs -L$(TOP)/zlib -lz -pthread -lpthread" \
-	LIBFFI_CFLAGS="-I$(TOP)/glib20/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include" \
-	LIBFFI_LIBS="-L$(TOP)/glib20/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/.libs -lffi" \
+	cd glib20/libglib && ./autogen.sh
+	cd glib20/libglib && ./configure --enable-shared --disable-static --disable-fam --enable-debug=no --disable-selinux --disable-man --host=$(ARCH)-linux --with-libiconv=gnu --disable-modular-tests \
+	CC="ccache $(CC)" CFLAGS="$(COPTS) -std=gnu89  $(MIPS16_OPT) -D_GNU_SOURCE=1  -I$(TOP)/zlib -fPIC -Drpl_malloc=malloc -I$(TOP)/glib20/gettext/gettext-runtime/intl  -I$(TOP)/glib20/libiconv/include -I$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include  -L$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/.libs -lffi -L$(TOP)/glib20/libiconv/lib/.libs -liconv -L$(TOP)/glib20/gettext/gettext-runtime/intl/.libs -L$(TOP)/zlib -lz -pthread -lpthread" \
+	LIBFFI_CFLAGS="-I$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/include" \
+	LIBFFI_LIBS="-L$(TOP)/libffi/$(ARCH)-$(SUBARCH)-linux-gnu/.libs -lffi" \
 	ZLIB_CFLAGS="-I$(TOP)/zlib" \
 	ZLIB_LIBS="-L$(TOP)/zlib -lz" \
 	glib_cv_stack_grows=no glib_cv_uscore=no ac_cv_func_mmap_fixed_mapped=yes ac_cv_func_posix_getpwuid_r=yes ac_cv_func_posix_getgrgid_r=yes
@@ -65,14 +63,12 @@ glib20-configure:
 	echo ############################################################
 	$(MAKE) -C glib20/libglib clean all
 
-glib20:
-	$(MAKE) -C glib20/libffi all
+glib20: libffi
 	$(MAKE) -C glib20/libiconv all
 	$(MAKE) -C glib20/gettext all
 	$(MAKE) -C glib20/libglib all
 
 glib20-clean:
-	$(MAKE) -C glib20/libffi clean
 	$(MAKE) -C glib20/libiconv clean
 	$(MAKE) -C glib20/gettext clean
 	$(MAKE) -C glib20/libglib clean

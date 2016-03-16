@@ -2235,6 +2235,11 @@ int internal_getRouterBrand()
 	nvram_default_get("ath1_rxantenna", "7");
 	nvram_default_get("ath1_txantenna", "7");
 	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_WR1043V3
+	setRouter("TPLINK WR1043ND V3");
+	nvram_default_get("ath0_rxantenna", "7");
+	nvram_default_get("ath0_txantenna", "7");
+	return ROUTER_BOARD_WHRHPGN;
 #elif HAVE_WR1043V2
 	setRouter("TPLINK WR1043ND V2");
 	nvram_default_get("ath0_rxantenna", "7");
@@ -2461,6 +2466,12 @@ int internal_getRouterBrand()
 		{"UniFi UAP-AC v2", 0xe912, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
 		{"UniFi UAP v2", 0xe572, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
 		{"UniFi UAP-LR v2", 0xe582, 3, 3, ROUTER_BOARD_UNIFI, 0, 10},	//
+		{"UniFi UAP-AC-LR", 0xe527, 3, 3, ROUTER_UBNT_UAPAC, 0, 10},	//
+		{"UniFi UAP-AC-Pro-Gen2", 0xe537, 3, 3, ROUTER_UBNT_UAPAC, 0, 10},	//
+		{"UniFi UAP-AC-Lite", 0xe517, 3, 3, ROUTER_UBNT_UAPAC, 0, 10},	//
+		{"UniFi UAP-AC-EDU", 0xe547, 3, 3, ROUTER_UBNT_UAPAC, 0, 10},	//
+		{"UniFi UAP-AC-PICO", 0xe557, 3, 3, ROUTER_UBNT_UAPAC, 0, 10},	//
+		{"UniFi UAP-AC-LR-OUTDOOR", 0xe567, 3, 3, ROUTER_UBNT_UAPAC, 0, 10},	//
 		{NULL, 0, 0, 0, 0, 0, 0},	//
 	};
 
@@ -2526,7 +2537,7 @@ int internal_getRouterBrand()
 			static char devicename[64];
 			sprintf(devicename, "Ubiquiti %s", dev[devcnt].devicename);
 			setRouter(devicename);
-			return devicename;
+			return dev[devcnt].dddev;
 		}
 		devcnt++;
 	}
@@ -5266,6 +5277,10 @@ int led_control(int type, int act)
 	case ROUTER_BOARD_UNIFI:
 		ses_gpio = 0x001;
 		sec0_gpio = 0x001;
+		break;
+	case ROUTER_UBNT_UAPAC:
+		ses_gpio = 0x007;
+		sec0_gpio = 0x007;
 		break;
 	case ROUTER_BOARD_AIRROUTER:
 		power_gpio = 0x10b;
