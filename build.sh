@@ -3,9 +3,10 @@
 ### This must be properly setup on build host
 ### #########################################
 DEVDIR=/home/dd-wrt/dd-wrt
-GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-4.8-linaro_musl-1.1.5_eabi/bin
+#GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-4.8-linaro_musl-1.1.5_eabi/bin
+GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-5.2.0_musl-1.1.11_eabi/bin
 REVISION="28000M" # redefined, just default value
-KERNELVERSION="3.10" # 3.10 stable, 3.18 experimental
+KERNELVERSION="3.10" # 3.10 stable, 4.4 experimental
 export PATH=$GCCARM:$PATH
 export ARCH=arm
 
@@ -35,9 +36,17 @@ cp -f $DEVDIR/src/router/configs/northstar/.config_ws880 $DEVDIR/src/router/.con
 echo "CONFIG_BUILD_HUAWEI=y" >> $DEVDIR/src/router/.config
 echo "CONFIG_USB_AUDIO=y" >> $DEVDIR/src/router/.config
 echo "CONFIG_PPTP_PLUGIN=y" >> $DEVDIR/src/router/.config
+
 if [ $KERNELVERSION = "3.18" ]; then
 sed -i 's/KERNELVERSION=3.10/KERNELVERSION=3.18/g' $DEVDIR/src/router/.config
 fi
+if [ $KERNELVERSION = "4.4" ]; then
+sed -i 's/KERNELVERSION=3.10/KERNELVERSION=4.4/g' $DEVDIR/src/router/.config
+fi
+# v.1337
+cd $DEVDIR/src/linux/universal/linux-$KERNELVERSION
+echo "1336" > .version
+
 # Make fw for other brands too
 # (uncomment desired and check src/router/Makefile.northstar)
 #echo "CONFIG_BUILD_XIAOMI=y" >> $DEVDIR/src/router/.config
