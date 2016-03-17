@@ -67,6 +67,13 @@ echo -n $REVISION >> revision.h
 echo -n $EXTENDNO >> revision.h
 echo '"' >> revision.h
 
+cd $DEVDIR/src/router/services
+echo -n '#define SVN_REVISION "' > revision.h
+# svnversion -n . >> revision.h
+echo -n $REVISION >> revision.h
+echo -n $EXTENDNO >> revision.h
+echo '"' >> revision.h
+
 cd $DEVDIR/src/router/httpd/visuals
 echo -n '#define SVN_REVISION "' > revision.h
 # svnversion -n . >> revision.h
