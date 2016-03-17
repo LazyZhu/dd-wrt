@@ -11,7 +11,7 @@ svn://svn.dd-wrt.com/DD-WRT
 
 and more...
 
-FW for WS880 adailable in **[downloads](https://github.com/tsynik/dd-wrt/tree/master/downloads)** directory
+FW for WS880 available in **[downloads](https://github.com/tsynik/dd-wrt/tree/master/downloads)** directory
 
 Also possible to build for other Northstar routers:
 Asus AC-56/68/87U, Netgear R6300v2/R7000/R8000 etc
