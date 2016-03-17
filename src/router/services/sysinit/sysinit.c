@@ -88,7 +88,6 @@ extern void free_defaults(void);
 
 extern int f_exists(const char *path);
 
-
 #ifdef HAVE_MACBIND
 #include "../../../opt/mac.h"
 #endif
@@ -1090,15 +1089,12 @@ void start_restore_defaults(void)
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
 #ifdef HAVE_NOWIFI
-		{"lan_ifnames",
-		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10"},
+		{"lan_ifnames", "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10"},
 #else
 #ifdef HAVE_GW700
-		{"lan_ifnames",
-		 "eth0 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8"},
+		{"lan_ifnames", "eth0 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8"},
 #else
-		{"lan_ifnames",
-		 "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8"},
+		{"lan_ifnames", "eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 eth9 eth10 ath0 ath1 ath2 ath3 ath5 ath6 ath7 ath8"},
 #endif
 #endif
 #ifdef HAVE_GW700
@@ -1115,8 +1111,7 @@ void start_restore_defaults(void)
 #elif HAVE_XSCALE
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames",
-		 "ixp0.1 ixp0.2 ath0 ath1"},
+		{"lan_ifnames", "ixp0.1 ixp0.2 ath0 ath1"},
 		{"wan_ifname", "ixp1"},
 		{"wan_ifname2", "ixp1"},
 		{"wan_ifnames", "ixp1"},
@@ -1126,8 +1121,7 @@ void start_restore_defaults(void)
 #elif HAVE_LAGUNA
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames",
-		 "eth0 eth1 ath0 ath1 ath2 ath3"},
+		{"lan_ifnames", "eth0 eth1 ath0 ath1 ath2 ath3"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1137,8 +1131,7 @@ void start_restore_defaults(void)
 #elif HAVE_VENTANA
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames",
-		 "eth0 eth1 ath0 ath1 ath2 ath3"},
+		{"lan_ifnames", "eth0 eth1 ath0 ath1 ath2 ath3"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1148,8 +1141,7 @@ void start_restore_defaults(void)
 #elif HAVE_NORTHSTAR
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames",
-		 "vlan1 vlan2 eth1 eth2"},
+		{"lan_ifnames", "vlan1 vlan2 eth1 eth2"},
 		{"wan_ifname", "vlan2"},
 		{"wan_ifname2", "vlan2"},
 		{"wan_ifnames", "vlan2"},
@@ -1169,8 +1161,7 @@ void start_restore_defaults(void)
 #elif HAVE_UNIWIP
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames",
-		 "eth0 ath0 ath1"},
+		{"lan_ifnames", "eth0 ath0 ath1"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1207,7 +1198,7 @@ void start_restore_defaults(void)
 #elif HAVE_IPQ806X
 	struct nvram_param ipq806x[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "eth0 eth1 ath0 ath1",},
+		{"lan_ifnames", "eth0 eth1 ath0 ath1"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
@@ -1216,7 +1207,7 @@ void start_restore_defaults(void)
 	};
 	struct nvram_param ea8500[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames", "van1 vlan2 ath0 ath1",},
+		{"lan_ifnames", "van1 vlan2 ath0 ath1"},
 		{"wan_ifname", "vlan2"},
 		{"wan_ifname2", "vlan2"},
 		{"wan_ifnames", "vlan2"},
@@ -1235,8 +1226,7 @@ void start_restore_defaults(void)
 #elif HAVE_WDR4900
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames",
-		 "vlan1 vlan2 ath0 ath1"},
+		{"lan_ifnames", "vlan1 vlan2 ath0 ath1"},
 		{"wan_ifname", "vlan2"},
 		{"wan_ifname2", "vlan2"},
 		{"wan_ifnames", "vlan2"},
@@ -1246,8 +1236,7 @@ void start_restore_defaults(void)
 #elif HAVE_RB600
 	struct nvram_param generic[] = {
 		{"lan_ifname", "br0"},
-		{"lan_ifnames",
-		 "eth0 eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 ath0 ath1 ath2 ath3 ath4 ath5 ath6 ath7"},
+		{"lan_ifnames", "eth0 eth1 eth2 eth3 eth4 eth5 eth6 eth7 eth8 ath0 ath1 ath2 ath3 ath4 ath5 ath6 ath7"},
 		{"wan_ifname", "eth0"},
 		{"wan_ifname2", "eth0"},
 		{"wan_ifnames", "eth0"},
