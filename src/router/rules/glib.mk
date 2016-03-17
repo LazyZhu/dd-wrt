@@ -44,7 +44,7 @@ glib20-configure: libffi
 	echo # BUILD GETTEXT                                            #
 	echo ############################################################
 	$(MAKE) -C glib20/gettext clean all
-#endif
+#endif	# end jump
 	echo 
 	echo ############################################################
 	echo # CONFIGURE LIBGLIB                                        #
