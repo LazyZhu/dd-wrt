@@ -178,7 +178,6 @@ chmod +x /jffs/etc/config/post-mount
 /usr/sbin/nvram commit
 
 echo -e "$INFO Starting Entware-ng deployment....\n"
-wget http://entware.zyxmon.org/binaries/armv7/installer/entware_install.sh
-sh ./entware_install.sh
+wget -O - http://pkg.entware.net/binaries/armv7/installer/entware_install.sh | sh
 sync
 
