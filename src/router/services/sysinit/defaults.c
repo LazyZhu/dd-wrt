@@ -3346,6 +3346,7 @@ struct nvram_param srouter_defaults[] = {
 	{"usb_ses_umount", "0"},
 	{"usb_mntpoint", "mnt"},
 	{"usb_runonmount", ""},
+	{"usb_mntbylabel", "1"},
 #endif
 #ifdef HAVE_UNFY
 	{"ttraff_enable", "0"},
