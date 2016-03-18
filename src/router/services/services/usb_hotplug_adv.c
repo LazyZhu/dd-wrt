@@ -427,13 +427,38 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 				sprintf(mount_point, "/opt");
 			}
 			/* use labels in mountpath if desired */
-			char label[32] = "usbdisk";
-			sprintf(label, "%s", nvram_safe_get("usb_mntlabel"));
-			// #define _GNU_SOURCE required
-			if (strcasestr(line, label)) {
-				if (nvram_match("usb_mntbylabel", "1")) {
-					sprintf(mount_point, "/tmp/mnt/%s", label);
+			char label[256];
+			if (strstr(line, "Volume name")) {
+				char buf[256];
+				char *name; // the "result"
+				strcpy(buf, line);
+				name = strtok(buf,"\""); // find the first double quote
+				name = strtok(NULL,"\"");   // find the second double quote
+				sprintf(label, "%s", name); // store label name
+				// sanitize a bit [^a-zA-Z0-9_.]
+				int idx = 0;
+				for (int i = 0; i < strlen(label); i++) {
+					if (label[i] >= '0' && label[i] <= 'z' && 
+						(label[i] >= 'a' || label[i] <= '9' ||  (label[i] >= 'A' && label[i] <= 'Z') || 
+						label[i] == '_') || label[i] == '.') {
+							buf[idx] = label[i];
+							idx++;
+						}
+					if (label[i] == ' ') { // no spaces
+							buf[idx] = '_';
+							idx++;
+						}
 				}
+				snprintf(label, idx+1, "%s", buf); // overwrite
+
+				//sysprintf("echo \"### search line: %s\n### name: %s\n### label: %s\n\n\"  >> /tmp/xxx", line, name, label);
+			}
+			else if (strlen(nvram_safe_get("usb_mntlabel")) != 0) { // allow override BUGGY! Only 1 partition possible!
+				sprintf(label, "%s", nvram_safe_get("usb_mntlabel"));
+			}
+
+			if (nvram_match("usb_mntbylabel", "1") && strlen(label) !=0 ) {
+				sprintf(mount_point, "/tmp/mnt/%s", label);
 			}
 		}
 		fclose(fp);
