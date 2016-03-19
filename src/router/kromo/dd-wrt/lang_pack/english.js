@@ -796,6 +796,7 @@ usb.usb_ip="USB Over IP";
 usb.usb_printer="USB Printer Support";
 usb.usb_audio="USB Audio Support";
 usb.usb_automnt="Automatic Drive Mount";
+usb.usb_mntbylabel="Mount by Label";
 usb.usb_mntpoint="Disk Mount Point";
 usb.usb_runonmount="Run-on-mount Script Name";
 usb.usb_diskinfo="Disk Info";

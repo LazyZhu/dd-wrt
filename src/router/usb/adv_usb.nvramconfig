@@ -10,3 +10,5 @@
 "usb_runonmount"  "Script name" "NULL" "TRUE" "0"
 "usb_mntopt" "UUID for opt" "NULL" "TRUE" "0"
 "usb_mntjffs" "UUID for jffs" "NULL" "TRUE" "0"
+"usb_mntbylabel"  "Mount by Label" "CHOICE" "2" "0" "1" "FALSE" "0"
+

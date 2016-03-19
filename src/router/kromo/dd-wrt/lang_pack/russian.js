@@ -677,6 +677,7 @@ usb.usb_ip="USB поверх IP";
 usb.usb_printer="Поддержка USB принтера";
 usb.usb_audio="Поддержка USB аудиокарт";
 usb.usb_automnt="Авто-монтирование диска";
+usb.usb_mntbylabel="Исп. имя раздела";
 usb.usb_mntpoint="Точка монтирования диска";
 usb.usb_runonmount="Скрипт при монтировании";
 usb.usb_diskinfo="Информация о диске";
