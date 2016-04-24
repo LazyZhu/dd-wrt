@@ -129,6 +129,10 @@ define kernelfeatures
 		sed -i 's/\CONFIG_EXT3_FS=y/# CONFIG_EXT3_FS is not set/g' $(LINUXDIR)/.config; \
 		sed -i 's/\CONFIG_XFS_FS=m/# CONFIG_XFS_FS is not set/g' $(LINUXDIR)/.config; \
 		sed -i 's/\CONFIG_XFS_FS=y/# CONFIG_XFS_FS is not set/g' $(LINUXDIR)/.config; \
+		sed -i 's/\CONFIG_HFS_FS=m/# CONFIG_HFS_FS is not set/g' $(LINUXDIR)/.config; \
+		sed -i 's/\CONFIG_HFS_FS=y/# CONFIG_HFS_FS is not set/g' $(LINUXDIR)/.config; \
+		sed -i 's/\CONFIG_HFSPLUS_FS=m/# CONFIG_HFSPLUS_FS is not set/g' $(LINUXDIR)/.config; \
+		sed -i 's/\CONFIG_HFSPLUS_FS=y/# CONFIG_HFSPLUS_FS is not set/g' $(LINUXDIR)/.config; \
 		sed -i 's/\CONFIG_BTRFS_FS=m/# CONFIG_BTRFS_FS is not set/g' $(LINUXDIR)/.config; \
 		sed -i 's/\CONFIG_BTRFS_FS=y/# CONFIG_BTRFS_FS is not set/g' $(LINUXDIR)/.config; \
 		echo "# CONFIG_USER_NS is not set" >> $(LINUXDIR)/.config; \
