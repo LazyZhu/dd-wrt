@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/mips 4.4.4 Kernel Configuration
+# Linux/mips 4.4.7 Kernel Configuration
 #
 CONFIG_MIPS=y
 
@@ -2021,7 +2021,7 @@ CONFIG_HAVE_DEBUG_STACKOVERFLOW=y
 #
 CONFIG_PANIC_ON_OOPS=y
 CONFIG_PANIC_ON_OOPS_VALUE=1
-CONFIG_PANIC_TIMEOUT=0
+CONFIG_PANIC_TIMEOUT=1
 # CONFIG_SCHED_INFO is not set
 # CONFIG_DEBUG_TIMEKEEPING is not set
 

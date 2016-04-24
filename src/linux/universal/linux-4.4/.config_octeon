@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/mips 4.4.4 Kernel Configuration
+# Linux/mips 4.4.7 Kernel Configuration
 #
 CONFIG_MIPS=y
 
@@ -1874,20 +1874,17 @@ CONFIG_RAS=y
 #
 # CONFIG_EXT2_FS is not set
 # CONFIG_EXT3_FS is not set
-CONFIG_EXT4_FS=m
-CONFIG_EXT4_USE_FOR_EXT2=y
-# CONFIG_EXT4_FS_POSIX_ACL is not set
-# CONFIG_EXT4_FS_SECURITY is not set
-# CONFIG_EXT4_ENCRYPTION is not set
-# CONFIG_EXT4_DEBUG is not set
-CONFIG_JBD2=m
-# CONFIG_JBD2_DEBUG is not set
-CONFIG_FS_MBCACHE=m
+# CONFIG_EXT4_FS is not set
 # CONFIG_REISERFS_FS is not set
 # CONFIG_JFS_FS is not set
 # CONFIG_XFS_FS is not set
 # CONFIG_GFS2_FS is not set
-# CONFIG_BTRFS_FS is not set
+CONFIG_BTRFS_FS=m
+# CONFIG_BTRFS_FS_POSIX_ACL is not set
+# CONFIG_BTRFS_FS_CHECK_INTEGRITY is not set
+# CONFIG_BTRFS_FS_RUN_SANITY_TESTS is not set
+# CONFIG_BTRFS_DEBUG is not set
+# CONFIG_BTRFS_ASSERT is not set
 # CONFIG_NILFS2_FS is not set
 # CONFIG_F2FS_FS is not set
 # CONFIG_FS_POSIX_ACL is not set
@@ -2099,7 +2096,7 @@ CONFIG_HAVE_DEBUG_STACKOVERFLOW=y
 #
 CONFIG_PANIC_ON_OOPS=y
 CONFIG_PANIC_ON_OOPS_VALUE=1
-CONFIG_PANIC_TIMEOUT=0
+CONFIG_PANIC_TIMEOUT=1
 # CONFIG_SCHED_INFO is not set
 # CONFIG_DEBUG_TIMEKEEPING is not set
 
@@ -2145,7 +2142,7 @@ CONFIG_TRACING_SUPPORT=y
 CONFIG_HAVE_ARCH_KGDB=y
 # CONFIG_EARLY_PRINTK is not set
 CONFIG_CMDLINE_BOOL=y
-CONFIG_CMDLINE="console=ttyS0,115200 root=/dev/sda2 rootfstype=squashfs rootdelay=5 mtdparts=phys_mapped_flash:512k(boot0),512k(boot1),64k(nvram),64k@3072k(eeprom) noinitrd init=/sbin/init"
+CONFIG_CMDLINE="console=ttyS0,115200 root=/dev/sda2 rootfstype=squashfs rootdelay=5 mtdparts=phys_mapped_flash:512k(boot0),512k(boot1),64k(nvram),64k@3072k(eeprom),64k@4032k(env),4096k(fullflash) noinitrd init=/sbin/init"
 CONFIG_CMDLINE_OVERRIDE=y
 # CONFIG_SPINLOCK_TEST is not set
 # CONFIG_SCACHE_DEBUGFS is not set
@@ -2162,6 +2159,7 @@ CONFIG_ENCRYPTED_KEYS=y
 # CONFIG_SECURITYFS is not set
 CONFIG_DEFAULT_SECURITY_DAC=y
 CONFIG_DEFAULT_SECURITY=""
+CONFIG_XOR_BLOCKS=m
 CONFIG_CRYPTO=y
 
 #
@@ -2325,6 +2323,7 @@ CONFIG_OCF_BENCH=m
 #
 # Library routines
 #
+CONFIG_RAID6_PQ=m
 CONFIG_BITREVERSE=y
 # CONFIG_HAVE_ARCH_BITREVERSE is not set
 CONFIG_GENERIC_NET_UTILS=y
@@ -2349,6 +2348,8 @@ CONFIG_LIBCRC32C=y
 # CONFIG_RANDOM32_SELFTEST is not set
 CONFIG_ZLIB_INFLATE=y
 CONFIG_ZLIB_DEFLATE=y
+CONFIG_LZO_COMPRESS=m
+CONFIG_LZO_DECOMPRESS=m
 # CONFIG_XZ_DEC is not set
 # CONFIG_XZ_DEC_BCJ is not set
 CONFIG_LZMA_COMPRESS=m

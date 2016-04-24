@@ -1377,7 +1377,7 @@ void ej_show_bandwidth(webs_t wp, int argc, char_t ** argv)
 	sprintf(eths, "%s %s", eths, eths2);
 
 	memset(bufferif, 0, 256);
-	getIfList(bufferif, "br");
+	getIfListB(bufferif, NULL, 1);
 
 #ifndef HAVE_MADWIFI
 	int cnt = get_wl_instances();
@@ -2092,7 +2092,7 @@ void ej_show_wanipinfo(webs_t wp, int argc, char_t ** argv)	// Eko
 #endif
 		websWrite(wp, "&nbsp;IP: %s", wan_ipaddr);
 #ifdef HAVE_IPV6
-	char *ipv6addr = NULL;
+	const char *ipv6addr = NULL;
 	if (nvram_match("ipv6_typ", "ipv6native"))
 		ipv6addr = getifaddr(get_wan_face(), AF_INET6, 0);
 	if (nvram_match("ipv6_typ", "ipv6in4"))
@@ -2283,7 +2283,7 @@ static void show_temp(webs_t wp, char *fmt)
 {
 	char sysfs[64];
 	int mon;
-	float temperature = 0.0f;
+	int temperature = 0;
 	for (mon = 0; mon < 11; mon++) {
 		snprintf(sysfs, 64, "/sys/class/hwmon/hwmon%d/temp1_input", mon);
 		FILE *tempfp = fopen(sysfs, "rb");
@@ -2291,16 +2291,17 @@ static void show_temp(webs_t wp, char *fmt)
 			int cpu;
 			fscanf(tempfp, "%d", &cpu);
 			fclose(tempfp);
-			temperature += cpu;
+			temperature += (cpu * 100);
 		}
 	}
 	temperature /= mon;
-	websWrite(wp, fmt, temperature);
+	websWrite(wp, fmt, temperature / 100, temperature % 100);
 }
 #endif
 
 void ej_get_cputemp(webs_t wp, int argc, char_t ** argv)
 {
+	int i;
 #ifdef HAVE_MVEBU
 	if (getRouterBrand() == ROUTER_WRT_1900AC) {
 		show_temp(wp, 1, 1, "CPU %d.%d &#176;C");
@@ -2314,88 +2315,58 @@ void ej_get_cputemp(webs_t wp, int argc, char_t ** argv)
 	return;
 #endif
 #ifdef HAVE_IPQ806X
-	show_temp(wp, "CPU %4.2f &#176;C");
+	show_temp(wp, "CPU %d.%d &#176;C");
 	return;
 #endif
 #ifdef HAVE_BCMMODERN
 
-	static int tempcount = 0;
+	static int tempcount = -2;
 	char buf[WLC_IOCTL_SMLEN];
-	char buf2[WLC_IOCTL_SMLEN];
-	char buf3[WLC_IOCTL_SMLEN];
 	int ret;
-	unsigned int *ret_int = NULL;
-	unsigned int *ret_int2 = NULL;
-	unsigned int *ret_int3 = NULL;
-	static double tempavg_24 = 0.000;
-	static double tempavg_50 = 0.000;
-	static double tempavg_502 = 0.000;
-	static double tempavg_max = 0.000;
-	int no2 = 0, no5 = 0, no52 = 0;
-	strcpy(buf, "phy_tempsense");
-	strcpy(buf2, "phy_tempsense");
-	strcpy(buf3, "phy_tempsense");
+	unsigned int ret_int[3] = { 0, 0, 0 };
+	unsigned int present[3] = { 0, 0, 0 };
+	unsigned int result[3] = { 0, 0, 0 };
+	static int tempavg[3] = { 0, 0, 0 };
+	static unsigned int tempavg_max = 0;
 
-	if (nvram_match("wl0_net_mode", "disabled") || (ret = wl_ioctl("eth1", WLC_GET_VAR, buf, sizeof(buf)))) {
-		no2 = 1;
-	}
-#ifndef HAVE_QTN
-	if (nvram_match("wl1_net_mode", "disabled") || (ret = wl_ioctl("eth2", WLC_GET_VAR, buf2, sizeof(buf2)))) {
-		no5 = 1;
-	}
-	if (nvram_match("wl2_net_mode", "disabled") || (ret = wl_ioctl("eth3", WLC_GET_VAR, buf3, sizeof(buf3)))) {
-		no52 = 1;
-	}
-	ret_int = (unsigned int *)buf;
-	ret_int2 = (unsigned int *)buf2;
-	ret_int3 = (unsigned int *)buf3;
-	if (tempcount == -3) {
-		tempcount++;
-		tempavg_24 = *ret_int;
-		tempavg_50 = *ret_int2;
-		tempavg_502 = *ret_int3;
-		if (tempavg_24 < 0.0)
-			tempavg_24 = 0.0;
-		if (tempavg_50 < 0.0)
-			tempavg_50 = 0.0;
-		if (tempavg_502 < 0.0)
-			tempavg_502 = 0.0;
-	} else {
-		if (tempavg_24 < 10.0 && *ret_int > 0.0)
-			tempavg_24 = *ret_int;
-		if (tempavg_50 < 10.0 && *ret_int2 > 0.0)
-			tempavg_50 = *ret_int2;
-		if (tempavg_502 < 10.0 && *ret_int3 > 0.0)
-			tempavg_502 = *ret_int3;
-		if (tempavg_24 > 200.0 && *ret_int > 0.0)
-			tempavg_24 = *ret_int;
-		if (tempavg_50 > 200.0 && *ret_int2 > 0.0)
-			tempavg_50 = *ret_int2;
-		if (tempavg_502 > 200.0 && *ret_int3 > 0.0)
-			tempavg_502 = *ret_int3;
+	int ttcount = 0;
+	for (i = 0; i < 3; i++) {
 
-		tempavg_24 = (tempavg_24 * 4 + *ret_int) / 5;
-		tempavg_50 = (tempavg_50 * 4 + *ret_int2) / 5;
-	}
-#else
-	ret_int = (unsigned int *)buf;
+		strcpy(buf, "phy_tempsense");
+		char ifname[16];
+		sprintf(ifname, "eth%d", i + 1);
+		if (nvram_nmatch("disabled", "wl%d_net_mode", i) || (ret = wl_ioctl(ifname, WLC_GET_VAR, buf, sizeof(buf)))) {
+			present[i] = 0;
+			continue;
+		}
+		ret_int[i] = *(unsigned int *)buf;
+		present[i] = 1;
 
-	if (tempcount == -2) {
-		tempcount++;
-		tempavg_24 = *ret_int;
-		if (tempavg_24 < 0.0)
-			tempavg_24 = 0.0;
-	} else {
-		if (tempavg_24 < 10.0 && *ret_int > 0.0)
-			tempavg_24 = *ret_int;
-		if (tempavg_24 > 200.0 && *ret_int > 0.0)
-			tempavg_24 = *ret_int;
-		tempavg_24 = (tempavg_24 * 4 + *ret_int) / 5;
+		ret_int[i] *= 10;
+		if (tempcount == -2) {
+			if (!ttcount)
+				ttcount = tempcount + 1;
+			tempavg[i] = ret_int[i];
+			if (tempavg[i] < 0)
+				tempavg[i] = 0;
+		} else {
+			if (tempavg[i] < 100 && ret_int[i] > 0)
+				tempavg[i] = ret_int[i];
+			if (tempavg[i] > 2000 && ret_int[i] > 0)
+				tempavg[i] = ret_int[i];
+			tempavg[i] = (tempavg[i] * 4 + ret_int[i]) / 5;
+		}
 	}
-	int t50 = rpc_get_temperature();
-	tempavg_50 = t50 / 1000000.0f;
+	if (ttcount)
+		tempcount = ttcount;
+	for (i = 0; i < 3; i++) {
+		result[i] = (tempavg[i] / 2) + 200;
+	}
+
+#ifdef HAVE_QTN
+	result[1] = rpc_get_temperature() / 100000;
+	present[1] = 1;
 #endif
-
 	int cputemp = 1;
 #ifdef HAVE_NORTHSTAR
 	cputemp = 0;
@@ -2406,25 +2377,17 @@ void ej_get_cputemp(webs_t wp, int argc, char_t ** argv)
 		websWrite(wp, "CPU %d.%d &#176;C / ", cputemp / 10, cputemp % 10);
 	}
 #endif
-	if (no2 && no5 && cputemp)
+	if (!present[0] && !present[1] && !present[2] && cputemp)
 		websWrite(wp, "%s", live_translate("status_router.notavail"));	// no 
-	else if (no2) {
-#ifdef HAVE_QTN
-		websWrite(wp, "WL1 %4.2f &#176;C", tempavg_50);
-#else
-		websWrite(wp, "WL1 %4.2f &#176;C", tempavg_50 * 0.5 + 20.0);
-#endif
-	} else if (no5)
-		websWrite(wp, "WL0 %4.2f &#176;C", tempavg_24 * 0.5 + 20.0);
-	else
-#ifdef HAVE_QTN
-		websWrite(wp, "WL0 %4.2f &#176;C / WL1 %4.2f &#176;C", tempavg_24 * 0.5 + 20.0, tempavg_50);
-#else
-		websWrite(wp, "WL0 %4.2f &#176;C / WL1 %4.2f &#176;C", tempavg_24 * 0.5 + 20.0, tempavg_50 * 0.5 + 20.0);
-#endif
-	if (!no52)
-		websWrite(wp, " / WL2 %4.2f &#176;C", tempavg_502 * 0.5 + 20.0);
-
+	else {
+		for (i = 0; i < 3; i++) {
+			if (present[i]) {
+				if (i && present[i - 1])
+					websWrite(wp, " / ");
+				websWrite(wp, "WL%d %d.%d &#176;C", i, result[i] / 10, result[i] % 10);
+			}
+		}
+	}
 #else
 #ifdef HAVE_GATEWORX
 	int TEMP_MUL = 100;
@@ -2458,7 +2421,6 @@ void ej_get_cputemp(webs_t wp, int argc, char_t ** argv)
 			fscanf(fp, "%s", &temp[0]);
 			fclose(fp);
 			int l = strlen(temp);
-			int i;
 			if (l > 2) {
 				TEMP_MUL = 1;
 				for (i = 0; i < (l - 2); i++)
@@ -2489,8 +2451,11 @@ void ej_get_cputemp(webs_t wp, int argc, char_t ** argv)
 	FILE *fp2 = NULL;
 #ifdef HAVE_ATH10K
 	int c = getdevicecount();
-	int i, found = 0;
+	int found = 0;
 	for (i = 0; i < c; i++) {
+		if (nvram_nmatch("disabled", "ath%d_net_mode", i)) {
+		    continue;
+		}
 		char path[64];
 		sprintf(path, "/sys/class/ieee80211/phy%d/device/hwmon/hwmon0/temp1_input", i);
 		fp2 = fopen(path, "rb");
@@ -2505,6 +2470,8 @@ void ej_get_cputemp(webs_t wp, int argc, char_t ** argv)
 			websWrite(wp, "ath%d %d &#176;C", i, temp / 1000);
 		}
 	}
+	if (!found && !fp)
+		websWrite(wp, "%s", live_translate("status_router.notavail"));
 #endif
 	if (fp == NULL && fp2 == NULL)
 		websWrite(wp, "%s", live_translate("status_router.notavail"));	// no 
@@ -2949,6 +2916,7 @@ void ej_dumparptable(webs_t wp, int argc, char_t ** argv)
 	char mac[18];
 	char landev[16];
 	int count = 0;
+	int i, len;
 	int conn_count = 0;
 
 	if ((f = fopen("/proc/net/arp", "r")) != NULL) {
@@ -3051,7 +3019,9 @@ void ej_dumparptable(webs_t wp, int argc, char_t ** argv)
 			/*
 			 * end nvram check 
 			 */
-
+			len = strlen(mac);
+			for (i = 0; i < len; i++)
+				mac[i] = toupper(mac[i]);
 			websWrite(wp, "%c'%s','%s','%s','%d'", (count ? ',' : ' '), hostname, ip, mac, conn_count);
 			++count;
 			conn_count = 0;

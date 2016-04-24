@@ -168,6 +168,11 @@ static void save2file(const char *fmt, ...)
 	fclose(fp);
 }
 
+static int isstandalone(char *name)
+{
+	return (nvram_nmatch("0", "%s_bridged", name) || isbridge(name)) ? 1 : 0;
+}
+
 #if 0
 #define DEBUG printf
 #else
@@ -845,7 +850,7 @@ static void nat_postrouting(void)
 		foreach(var, vifs, next) {
 			if (strcmp(get_wan_face(), var)
 			    && strcmp(nvram_safe_get("lan_ifname"), var)) {
-				if (nvram_nmatch("0", "%s_bridged", var)) {
+				if (isstandalone(var)) {
 
 					char nat[32];
 					sprintf(nat, "%s_nat", var);
@@ -2006,11 +2011,12 @@ static void filter_input(void)
 	/*
 	 * ICMP request from WAN interface 
 	 */
-	if (nvram_invmatch("filter", "off") && wanactive())
-		save2file("-A INPUT -i %s -p icmp -j %s\n", wanface, nvram_match("block_wan", "1") ? log_drop : log_accept);
-	else
-		save2file("-A INPUT -i %s -p icmp -j %s\n", wanface, log_accept);
-
+	if (wanactive()) {
+		if (nvram_invmatch("filter", "off"))
+			save2file("-A INPUT -i %s -p icmp -j %s\n", wanface, nvram_match("block_wan", "1") ? log_drop : log_accept);
+		else
+			save2file("-A INPUT -i %s -p icmp -j %s\n", wanface, log_accept);
+	}
 	/*
 	 * IGMP query from WAN interface 
 	 */
@@ -2097,7 +2103,7 @@ static void filter_input(void)
 				save2file("-A INPUT -i %s -p tcp --dport 53 -j %s\n", var, log_accept);
 				save2file("-A INPUT -i %s -m state --state NEW -j %s\n", var, log_drop);
 			}
-			if (nvram_nmatch("0", "%s_bridged", var)) {
+			if (isstandalone(var)) {
 				save2file("-A INPUT -i %s -j %s\n", var, log_accept);
 			}
 
@@ -2170,8 +2176,7 @@ static void filter_forward(void)
 	foreach(var, vifs, next) {
 		if (strcmp(get_wan_face(), var)
 		    && strcmp(nvram_safe_get("lan_ifname"), var)) {
-			if (nvram_nmatch("0", "%s_bridged", var)
-			    && nvram_nmatch("1", "%s_nat", var)) {
+			if (isstandalone(var) && nvram_nmatch("1", "%s_nat", var)) {
 				save2file("-A FORWARD -i %s -j %s\n", var, log_accept);
 			}
 		}
@@ -2526,13 +2531,13 @@ static void filter_table(void)
 					save2file("-A INPUT -i %s -p tcp --dport 53 -j %s\n", var, log_accept);
 					save2file("-A INPUT -i %s -m state --state NEW -j %s\n", var, log_drop);
 				}
-				if (nvram_nmatch("0", "%s_bridged", var)) {
+				if (isstandalone(var)) {
 					save2file("-A INPUT -i %s -j %s\n", var, log_accept);
 				}
 
 			}
 		}
-	  
+
 	}
 
 	/*

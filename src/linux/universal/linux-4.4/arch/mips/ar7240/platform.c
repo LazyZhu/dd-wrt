@@ -551,10 +551,11 @@ static struct mdio_board_info wdr4300_mdio0_info[] = {
 
 static struct ar8327_pad_cfg ap152_ar8337_pad0_cfg = {
 	.mode = AR8327_PAD_MAC_SGMII,
-	.txclk_delay_en = true,
-	.rxclk_delay_en = true,
-	.txclk_delay_sel = AR8327_CLK_DELAY_SEL1,
-	.rxclk_delay_sel = AR8327_CLK_DELAY_SEL2,
+	.sgmii_delay_en = true,
+//	.txclk_delay_en = true,
+//	.rxclk_delay_en = true,
+//	.txclk_delay_sel = AR8327_CLK_DELAY_SEL1,
+//	.rxclk_delay_sel = AR8327_CLK_DELAY_SEL2,
 };
 
 static struct ar8327_platform_data ap152_ar8337_data = {
@@ -1126,12 +1127,18 @@ int __init ar7240_platform_init(void)
 	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 1);
 	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, mac, 0);
 
+	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_GMII;
+	ar71xx_eth1_data.duplex = DUPLEX_FULL;
+	ar71xx_switch_data.phy_poll_mask |= BIT(4);
 	/* LAN */
 	ar71xx_add_device_eth(1);
 
 	/* WAN */
 	ar71xx_switch_data.phy4_mii_en = 1;
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
+	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+	ar71xx_eth0_data.speed = SPEED_100;
+	ar71xx_eth0_data.phy_mask = BIT(4);
 	ar71xx_add_device_eth(0);
     #elif CONFIG_WR841V8
 	ar71xx_add_device_mdio(1, 0x0);
@@ -1311,7 +1318,7 @@ int __init ar7240_platform_init(void)
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 	ar71xx_eth0_data.force_link = 1;
 	ar71xx_eth0_data.mii_bus_dev = &ar71xx_mdio0_device.dev;
-	ar71xx_eth0_pll_data.pll_1000 = 0x06000000;
+//	ar71xx_eth0_pll_data.pll_1000 = 0x06000000;
 	ar71xx_add_device_eth(0);
 	#else		
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;

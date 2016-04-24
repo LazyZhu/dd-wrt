@@ -1200,7 +1200,7 @@ void ej_show_usb_diskinfo(webs_t wp, int argc, char_t ** argv)
 	if (!nvram_match("usb_automnt", "1"))
 		return;
 	//exclude proftpd bind mount points and don't display the first 3 lines which are header and rootfs
-	sysprintf("df -h | grep -v proftpd | awk '{ print $3 \" \" $4 \" \" $5 \" \" $6}' | tail -n +4 > /tmp/df");
+	sysprintf("df -P -h | grep -v proftpd | awk '{ print $3 \" \" $4 \" \" $5 \" \" $6}' | tail -n +4 > /tmp/df");
 
 	if ((fp = fopen("/tmp/df", "r"))) {
 
@@ -1489,15 +1489,15 @@ static void show_channel(webs_t wp, char *dev, char *prefix, int type)
 
 			websWrite(wp, "document.write(\"<option value=\\\"0\\\" %s>\" + share.auto + \"</option>\");\n", nvram_nmatch("0", "%s_channel", prefix) ? "selected=\\\"selected\\\"" : "");
 			for (i = 0; i < chancount; i++) {
-				float ofs;
+				int ofs;
 
 				if (chanlist[i] < 25)
-					ofs = 2.407f;
+					ofs = 2407;
 				else
-					ofs = 5.000f;
-				ofs += (float)(chanlist[i] * 0.005f);
-				if (ofs == 2.477f)
-					ofs = 2.484f;	// fix: ch 14 is 2.484, not 2.477 GHz
+					ofs = 5000;
+				ofs += (chanlist[i] * 5);
+				if (ofs == 2477)
+					ofs = 2484;	// fix: ch 14 is 2.484, not 2.477 GHz
 //              websWrite( wp, ", \"%0.3f\"", ofs );
 				char channelstring[32];
 
@@ -1561,8 +1561,8 @@ static void show_channel(webs_t wp, char *dev, char *prefix, int type)
 				sprintf(channelstring, "%d", chanlist[i]);
 				if (showit) {
 					websWrite(wp,
-						  "document.write(\"<option value=\\\"%d\\\" %s>%d - %0.3f \"+wl_basic.ghz+\"</option>\");\n",
-						  chanlist[i], nvram_nmatch(channelstring, "%s_channel", prefix) ? "selected=\\\"selected\\\"" : "", chanlist[i], ofs);
+						  "document.write(\"<option value=\\\"%d\\\" %s>%d - %d.%d \"+wl_basic.ghz+\"</option>\");\n",
+						  chanlist[i], nvram_nmatch(channelstring, "%s_channel", prefix) ? "selected=\\\"selected\\\"" : "", chanlist[i], ofs / 1000, ofs % 1000);
 				}
 			}
 //          websWrite( wp, ");\n" );
@@ -5064,8 +5064,8 @@ void ej_get_uptime(webs_t wp, int argc, char_t ** argv)
 
 void ej_get_wan_uptime(webs_t wp, int argc, char_t ** argv)
 {
-	float sys_uptime;
-	float uptime;
+	unsigned sys_uptime;
+	unsigned uptime;
 	int days, minutes;
 	FILE *fp, *fp2;
 
@@ -5079,10 +5079,10 @@ void ej_get_wan_uptime(webs_t wp, int argc, char_t ** argv)
 		websWrite(wp, "%s", live_translate("status_router.notavail"));
 		return;
 	}
-	if (!feof(fp) && fscanf(fp, "%f", &uptime) == 1) {
-		fp2 = fopen("/proc/uptime", "r");
-		fscanf(fp2, "%f", &sys_uptime);
-		fclose(fp2);
+	if (!feof(fp) && fscanf(fp, "%u", &uptime) == 1) {
+		struct sysinfo info;
+		sysinfo(&info);
+		sys_uptime = info.uptime;
 		uptime = sys_uptime - uptime;
 		days = (int)uptime / (60 * 60 * 24);
 		if (days)
@@ -5392,7 +5392,7 @@ void ej_statnv(webs_t wp, int argc, char_t ** argv)
 	int space = 0;
 	int used = nvram_used(&space);
 
-	websWrite(wp, "%.2f KB / %d KB", (float)used / 1024, space / 1024);
+	websWrite(wp, "%d KB / %d KB", used / 1024, space / 1024);
 
 }
 
@@ -5496,7 +5496,7 @@ void ej_show_ifselect(webs_t wp, int argc, char_t ** argv)
 		if (!strcmp(nvram_safe_get("lan_ifname"), var))
 			continue;
 		if (!nvram_nmatch("0", "%s_bridged", var)
-		    && strncmp(var, "br", 2))
+		    && !isbridge(var))
 			continue;
 		websWrite(wp, "<option value=\"%s\" %s >%s</option>\n", var, nvram_match(ifname, var) ? "selected" : "", getNetworkLabel(var));
 	}

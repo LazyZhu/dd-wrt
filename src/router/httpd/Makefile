@@ -72,6 +72,14 @@ LDFLAGS	+= -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram -L$(TOP)/shared 
 
 BCFLAGS += -DLINUX -ffunction-sections -fdata-sections -Wl,--gc-sections
 
+ifeq ($(CONFIG_DIST),"micro")
+BCFLAGS += -DNEED_NOPRINTF
+endif
+ifneq ($(CONFIG_DIST),"micro-special")
+BCFLAGS += -DNEED_NOPRINTF
+endif
+
+
 CFLAGS = $(BCFLAGS) -I$(LINUXDIR)/brcm/shared/bcmwifi/include -I$(LINUXDIR)/brcm/$(ARCH)/shared/bcmwifi/include
 
 ifeq ($(CONFIG_SPECIALEDITION),y)
@@ -175,6 +183,9 @@ endif
 ifeq ($(CONFIG_DIR859),y)
 CFLAGS += -DHAVE_DIR859
 endif
+ifeq ($(CONFIG_DIR869),y)
+CFLAGS += -DHAVE_DIR869
+endif
 ifeq ($(CONFIG_IPVS),y)
 CFLAGS += -DHAVE_IPVS
 endif
@@ -248,6 +259,9 @@ CFLAGS += -DHAVE_CPUTEMP
 endif
 ifeq ($(CONFIG_IPQ806X),y)
 CFLAGS += -DHAVE_IPQ806X
+CFLAGS += -DHAVE_CPUTEMP
+endif
+ifeq ($(CONFIG_ATH10K),y)
 CFLAGS += -DHAVE_CPUTEMP
 endif
 include $(TOP)/rules/generic.mk

@@ -27,38 +27,36 @@
 #include <glob.h>
 #endif
 
-struct nvram_param router_defaults[] = {
-	{0, 0}
-};
 
 /*
  * DD-WRT addition (loaned from radauth) 
  */
 
-#ifndef HAVE_MADWIFI
 u_int ieee80211_mhz2ieee(u_int freq)
 {
 	if (freq == 2484)
 		return 14;
+	if (freq == 2407)
+		return 0;
 	if (freq < 2484 && freq > 2407)
 		return (freq - 2407) / 5;
 	if (freq < 2412) {
-		int d = ((((int)freq) - 2412) / 5) + 256;
-		return d;
+		return ((freq - 2407) / 5) + 256;
 	}
-	if (freq < 2502)
-		return 14;
-	if (freq < 2512)
-		return 15;
+	if (freq > 2484 && freq < 4000)
+		return (freq - 2414) / 5;
 	if (freq < 4990 && freq > 4940)
 		return ((freq * 10) + (((freq % 5) == 2) ? 5 : 0) - 49400) / 5;
-	else if (freq >= 4800 && freq < 5005)
+	// 5000 will become  channel 200
+	if (freq > 4910 && freq < 5005)
 		return (freq - 4000) / 5;
 	if (freq < 5000)
-		return 15 + ((freq - (2512)) / 20);
+		return 15 + ((freq - 2512) / 20);
 
-	return (freq - (5000)) / 5;
+	return (freq - 5000) / 5;
 }
+
+#ifndef HAVE_MADWIFI
 
 unsigned int ieee80211_ieee2mhz(unsigned int chan)
 {
@@ -218,61 +216,50 @@ int getchannels(unsigned int *list, char *ifname)
 #define __user
 #include "wireless.h"
 
-int wifi_getchannel(char *ifname)
+static int wrqfreq_to_int(struct iwreq *wrq)
 {
-	struct iwreq wrq;
-	double freq;
-	int channel;
-
-	(void)memset(&wrq, 0, sizeof(struct iwreq));
-	strncpy(wrq.ifr_name, ifname, IFNAMSIZ);
-	ioctl(getsocket(), SIOCGIWFREQ, &wrq);
-	closesocket();
-	int i;
-
-	freq = (float)wrq.u.freq.m;
-	if (freq < 1000.0f) {
-		return (int)freq;
+	int freq,i;
+	freq = wrq->u.freq.m;
+	if (freq < 1000) {
+		return freq;
 	}
-
-	freq = (double)wrq.u.freq.m;
-	for (i = 0; i < wrq.u.freq.e; i++)
-		freq *= 10.0;
-	freq /= 1000000.0;
-	cprintf("wifi channel %f\n", freq);
-	channel = ieee80211_mhz2ieee(freq);
-
-	return channel;
+	int divisor = 1000000;
+	int e = wrq->u.freq.e;
+	for (i = 0; i < e; i++)
+		divisor /= 10;
+	if (divisor)
+		freq /= divisor;
+	return freq;
 }
 
 struct wifi_interface *wifi_getfreq(char *ifname)
 {
 	struct iwreq wrq;
-	double freq;
+	int freq;
 
 	(void)memset(&wrq, 0, sizeof(struct iwreq));
 	strncpy(wrq.ifr_name, ifname, IFNAMSIZ);
 	ioctl(getsocket(), SIOCGIWFREQ, &wrq);
 	closesocket();
-
-	int i;
-
-	freq = (float)wrq.u.freq.m;
+	freq = wrq.u.freq.m;
 	struct wifi_interface *interface = (struct wifi_interface *)malloc(sizeof(struct wifi_interface));
-	if (freq < 1000.0f) {
-		interface->freq = ieee80211_ieee2mhz((unsigned int)freq);
+	if (freq < 1000) {
+		interface->freq = ieee80211_ieee2mhz(freq);
 		return interface;
 	}
-	freq = (double)wrq.u.freq.m;
-	for (i = 0; i < wrq.u.freq.e; i++)
-		freq *= 10.0;
-	freq /= 1000000.0;
-	interface->freq = (int)freq;
-	cprintf("wifi channel %f\n", freq);
+	interface->freq = wrqfreq_to_int(&wrq);
 	return interface;
 }
 
-float wifi_getrate(char *ifname)
+int wifi_getchannel(char *ifname)
+{
+	struct wifi_interface *interface = wifi_getfreq(ifname);
+	int channel = ieee80211_mhz2ieee(interface->freq);
+	free(interface);
+	return channel;
+}
+
+int wifi_getrate(char *ifname)
 {
 	struct iwreq wrq;
 
@@ -1056,6 +1043,22 @@ int getUptime(char *ifname, unsigned char *mac)
 #include "../madwifi.dev/madwifi.dev/net80211/ieee80211_crypto.h"
 #include "../madwifi.dev/madwifi.dev/net80211/ieee80211_ioctl.h"
 
+static int wrqfreq_to_int(struct iwreq *wrq)
+{
+	int freq,i;
+	freq = wrq->u.freq.m;
+	if (freq < 1000) {
+		return freq;
+	}
+	int divisor = 1000000;
+	int e = wrq->u.freq.e;
+	for (i = 0; i < e; i++)
+		divisor /= 10;
+	if (divisor)
+		freq /= divisor;
+	return freq;
+}
+
 /*
  * Atheros 
  */
@@ -1124,49 +1127,63 @@ int do80211priv(const char *ifname, int op, void *data, size_t len)
 	return iwr.u.data.length;
 }
 
-#define MEGA	1e6
+#define KILO	1000
 
-float wifi_getrate(char *ifname)
+int wifi_getrate(char *ifname)
 {
 #if defined(HAVE_ATH9K) && !defined(HAVE_MVEBU)
 	if (is_ath9k(ifname)) {
 		if (nvram_nmatch("b-only", "%s_net_mode", ifname))
-			return 11.0 * MEGA;
+			return 11000 * KILO;
 		if (nvram_nmatch("g-only", "%s_net_mode", ifname))
-			return 54.0 * MEGA;
+			return 54000 * KILO;
 		if (nvram_nmatch("a-only", "%s_net_mode", ifname))
-			return 54.0 * MEGA;
+			return 54000 * KILO;
 		if (nvram_nmatch("bg-mixed", "%s_net_mode", ifname))
-			return 54.0 * MEGA;
+			return 54000 * KILO;
 		struct wifi_interface *interface = mac80211_get_interface(ifname);
 		if (!interface)
 			return -1;
-		float rate;
+		int rate;
+		int sgi = has_shortgi(ifname);
 		switch (interface->width) {
 		case 2:
-			rate = 54.0 * MEGA;
+			rate = 54000 * KILO;
 			break;
 		case 5:
-			rate = 54.0 * MEGA / 4;
+			rate = 54000 * KILO / 4;
 			break;
 		case 10:
-			rate = 54.0 * MEGA / 2;
+			rate = 54000 * KILO / 2;
 			break;
 		case 20:
-			rate = (float)(HTTxRate20_400(mac80211_get_maxmcs(ifname))) * MEGA;
+			if (sgi)
+				rate = (HTTxRate20_400(mac80211_get_maxmcs(ifname))) * KILO;
+			else
+				rate = (HTTxRate20_800(mac80211_get_maxmcs(ifname))) * KILO;
 			break;
 		case 40:
-			rate = (float)(HTTxRate40_400(mac80211_get_maxmcs(ifname))) * MEGA;
+			if (sgi)
+				rate = (HTTxRate40_400(mac80211_get_maxmcs(ifname))) * KILO;
+			else
+				rate = (HTTxRate40_800(mac80211_get_maxmcs(ifname))) * KILO;
+
 			break;
 		case 80:
-			rate = (float)(HTTxRate80_400(mac80211_get_maxmcs(ifname))) * MEGA;
+			if (sgi)
+				rate = (HTTxRate80_400(mac80211_get_maxmcs(ifname))) * KILO;
+			else
+				rate = (HTTxRate80_800(mac80211_get_maxmcs(ifname))) * KILO;
 			break;
 		case 8080:
 		case 160:
-			rate = (float)(HTTxRate40_400(mac80211_get_maxmcs(ifname))) * MEGA;	// dummy, no qam256 info yet available
+			if (sgi)
+				rate = (HTTxRate40_400(mac80211_get_maxmcs(ifname))) * KILO;	// dummy, no qam256 info yet available
+			else
+				rate = (HTTxRate40_800(mac80211_get_maxmcs(ifname))) * KILO;	// dummy, no qam256 info yet available
 			break;
 		default:
-			rate = 54.0 * MEGA;
+			rate = 54000 * KILO;
 		}
 		free(interface);
 		return rate;
@@ -1566,63 +1583,6 @@ int get_wififreq(char *ifname, int freq)
 	return freq;
 }
 
-u_int ieee80211_mhz2ieee(u_int freq)
-{
-	if (freq == 2484)
-		return 14;
-	if (freq == 2407)
-		return 0;
-	if (freq < 2484 && freq > 2407)
-		return (freq - 2407) / 5;
-	if (freq < 2412) {
-		int d = ((((int)freq) - 2407) / 5) + 256;
-		return d;
-	}
-	if (freq > 2484 && freq < 4000)
-		return (freq - 2414) / 5;
-	if (freq < 4990 && freq > 4940)
-		return ((freq * 10) + (((freq % 5) == 2) ? 5 : 0) - 49400) / 5;
-	// 5000 will become  channel 200
-	if (freq > 4910 && freq < 5005)
-		return (freq - 4000) / 5;
-	if (freq < 5000)
-		return 15 + ((freq - 2512) / 20);
-
-	return (freq - 5000) / 5;
-}
-
-int wifi_getchannel(char *ifname)
-{
-	int channel;
-#ifdef HAVE_ATH9K
-	if (is_ath9k(ifname)) {
-		struct wifi_interface *interface = mac80211_get_interface(ifname);
-		if (!interface)
-			return -1;
-		int f = interface->freq;
-		free(interface);
-		return ieee80211_mhz2ieee(f);
-	}
-#endif
-
-	struct iwreq wrq;
-
-	(void)memset(&wrq, 0, sizeof(struct iwreq));
-	strncpy(wrq.ifr_name, ifname, IFNAMSIZ);
-	ioctl(getsocket(), SIOCGIWFREQ, &wrq);
-	closesocket();
-	int i;
-
-	double freq = (double)wrq.u.freq.m;
-	for (i = 0; i < wrq.u.freq.e; i++)
-		freq *= 10.0;
-	freq /= 1000000.0;
-	cprintf("wifi channel %f\n", freq);
-	channel = ieee80211_mhz2ieee(freq);
-
-	return channel;
-}
-
 struct wifi_interface *wifi_getfreq(char *ifname)
 {
 	struct iwreq wrq;
@@ -1637,17 +1597,19 @@ struct wifi_interface *wifi_getfreq(char *ifname)
 	strncpy(wrq.ifr_name, ifname, IFNAMSIZ);
 	ioctl(getsocket(), SIOCGIWFREQ, &wrq);
 	closesocket();
-
-	int i;
-	double freq = (double)wrq.u.freq.m;
-	for (i = 0; i < wrq.u.freq.e; i++)
-		freq *= 10.0;
-	freq /= 1000000.0;
-	struct wifi_interface *interface;
-	interface = (struct wifi_interface *)malloc(sizeof(struct wifi_interface));
-	interface->freq = (int)freq;
-	cprintf("wifi channel %f\n", freq);
+	struct wifi_interface *interface = (struct wifi_interface *)malloc(sizeof(struct wifi_interface));
+	interface->freq = wrqfreq_to_int(&wrq);
 	return interface;
+}
+
+int wifi_getchannel(char *ifname)
+{
+	struct wifi_interface *interface = wifi_getfreq(ifname);
+	if (!interface)
+		return 0;
+	int channel = ieee80211_mhz2ieee(interface->freq);
+	free(interface);
+	return channel;
 }
 
 int get_radiostate(char *ifname)

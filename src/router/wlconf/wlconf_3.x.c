@@ -299,7 +299,7 @@ extern struct nvram_tuple router_defaults[];
 /* Keep this table in order */
 
 /* validate/restore all per-interface related variables */
-static void
+/*static void
 wlconf_validate_all(char *prefix, bool restore)
 {
 	struct nvram_tuple *t;
@@ -314,10 +314,10 @@ wlconf_validate_all(char *prefix, bool restore)
 			nvram_set(tmp, v ? v : t->value);
 		}
 	}
-}
+}*/
 
 /* restore specific per-interface variable */
-static void
+/*static void
 wlconf_restore_var(char *prefix, char *name)
 {
 	struct nvram_tuple *t;
@@ -328,7 +328,7 @@ wlconf_restore_var(char *prefix, char *name)
 			break;
 		}
 	}
-}
+}*/
 static int
 wlconf_akm_options(char *prefix)
 {
@@ -944,11 +944,11 @@ wlconf_security_options(char *name, char *prefix, int bsscfg_idx, bool wet, bool
 cprintf("set security settings %s, idx %d\n",name, bsscfg_idx);
 	if (wlconf_set_wsec(name, prefix, bsscfg_idx)) {
 		/* change nvram only, code below will pass them on */
-		wlconf_restore_var(prefix, "auth_mode");
-		wlconf_restore_var(prefix, "auth");
+//		wlconf_restore_var(prefix, "auth_mode");
+//		wlconf_restore_var(prefix, "auth");
 		/* reset wep to default */
-		wlconf_restore_var(prefix, "crypto");
-		wlconf_restore_var(prefix, "wep");
+//		wlconf_restore_var(prefix, "crypto");
+//		wlconf_restore_var(prefix, "wep");
 		wlconf_set_wsec(name, prefix, bsscfg_idx);
 	}
 cprintf("akm\n");
@@ -1698,7 +1698,7 @@ cprintf("get instance\n");
 
 	/* Restore defaults if per-interface parameters do not exist */
 	restore_defaults = !nvram_get(strcat_r(prefix, "ifname", tmp));
-	wlconf_validate_all(prefix, restore_defaults);
+//	wlconf_validate_all(prefix, restore_defaults);
 	nvram_set(strcat_r(prefix, "ifname", tmp), name);
 	nvram_set(strcat_r(prefix, "hwaddr", tmp), ether_etoa((uchar *)buf, eaddr));
 	snprintf(buf, sizeof(buf), "%d", unit);

@@ -56,18 +56,15 @@ static void run_on_mount(void)
 /* TODO improvement: use procfs to identify pids that have openfiles on externel discs and then stop them before umount*/
 static bool usb_stop_services()
 {
-	eval("stopservice", "cron");
-	eval("stopservice", "samba3");
-	eval("stopservice", "dlna");
-	eval("stopservice", "ftpsrv");
+	eval("stopservice", "cron", "-f");
+	eval("stopservice", "samba3", "-f");
+	eval("stopservice", "dlna", "-f");
+	eval("stopservice", "ftpsrv", "-f");
 #ifdef HAVE_WEBSERVER
-	eval("stopservice", "lighttpd");
+	eval("stopservice", "lighttpd", "-f");
 #endif
 #ifdef HAVE_TRANSMISSION
-	eval("stopservice", "transmission");
-#endif
-#ifdef HAVE_FREERADIUS
-	eval("stopservice", "freeradius");
+	eval("stopservice", "transmission", "-f");
 #endif
 	return 0;
 }
@@ -75,18 +72,15 @@ static bool usb_stop_services()
 /* when adding external media some services should be restarted, e.g. minidlna in order to scan for media files*/
 static bool usb_start_services()
 {
-	eval("startservice_f", "cron");
-	eval("startservice_f", "samba3");
-	eval("startservice_f", "dlna");
-	eval("startservice_f", "ftpsrv");
+	eval("startservice_f", "cron", "-f");
+	eval("startservice_f", "samba3", "-f");
+	eval("startservice_f", "dlna", "-f");
+	eval("startservice_f", "ftpsrv", "-f");
 #ifdef HAVE_WEBSERVER
-	eval("startservice_f", "lighttpd");
+	eval("startservice_f", "lighttpd", "-f");
 #endif
 #ifdef HAVE_TRANSMISSION
-	eval("startservice_f", "transmission");
-#endif
-#ifdef HAVE_FREERADIUS
-	eval("startservice_f", "freeradius");
+	eval("startservice_f", "transmission", "-f");
 #endif
 	return 0;
 }
@@ -349,8 +343,10 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 	/* determine fs */
 	fs = "";
 	if ((fp = fopen(part_file, "r"))) {
+		int linenr = 0;
 		while (fgets(line, sizeof(line), fp) != NULL) {
-
+			if (linenr++ == 5)
+				break;
 			if (strstr(line, "Linux swap")) {
 				fs = "swap";
 				ret = eval("/sbin/swapon", path);
@@ -362,7 +358,7 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 					fs = "vfat";
 					usb_load_modules(fs);
 				} else if (strstr(line, "Ext2")) {
-					fs = "ext2";
+					fs = "ext4";
 					usb_load_modules(fs);
 				} else if (strstr(line, "XFS")) {
 					fs = "xfs";
@@ -374,7 +370,7 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 					fs = "iso9660";
 					usb_load_modules(fs);
 				} else if (strstr(line, "Ext3")) {
-					fs = "ext3";
+					fs = "ext4";
 					usb_load_modules(fs);
 				} else if (strstr(line, "Ext4")) {
 					fs = "ext4";
@@ -524,7 +520,7 @@ static int usb_process_path(char *path, int host, char *part, char *devpath)
 	}
 
 	// now we will get a nice ordered dump of all partitions
-	sysprintf("cat /tmp/disk/sd*[1-6] > %s", DUMPFILE);
+	sysprintf("cat /tmp/disk/sd* > %s", DUMPFILE);
 
 	/* avoid out of memory problems which could lead to broken wireless, so we limit the minimum free ram everything else can be used for fs cache */
 #ifdef HAVE_80211AC

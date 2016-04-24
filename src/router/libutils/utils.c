@@ -1232,6 +1232,12 @@ int internal_getRouterBrand()
 		return ROUTER_LINKSYS_EA6350;
 	}
 
+	if (nvram_match("boardtype", "0xE646") && nvram_match("boardrev", "0x1100") && nvram_match("boardnum", "20130125")) {
+		setRouter("Linksys EA6200");
+
+		return ROUTER_LINKSYS_EA6350;
+	}
+
 	if (nvram_match("boardtype", "0xF646") && nvram_match("boardrev", "0x1100")) {
 		setRouter("Linksys EA6500 V2");
 
@@ -2258,6 +2264,11 @@ int internal_getRouterBrand()
 	setRouter("Dlink DHP1565-A1");
 	nvram_default_get("ath0_rxantenna", "3");
 	nvram_default_get("ath0_txantenna", "3");
+	return ROUTER_BOARD_WHRHPGN;
+#elif HAVE_DIR869
+	setRouter("Dlink DIR869");
+	nvram_default_get("ath0_rxantenna", "7");
+	nvram_default_get("ath0_txantenna", "7");
 	return ROUTER_BOARD_WHRHPGN;
 #elif HAVE_DIR859
 	setRouter("Dlink DIR859");
@@ -4969,9 +4980,14 @@ static int gstrcmp(char *str1, char *str2)
 	return 0;
 }
 
+int getIfList(char *buffer, const char *ifprefix)
+{
+	getIfListB(buffer, ifprefix, 0);
+}
+
 // returns a physical interfacelist filtered by ifprefix. if ifprefix is
 // NULL, all valid interfaces will be returned
-int getIfList(char *buffer, const char *ifprefix)
+int getIfListB(char *buffer, const char *ifprefix, int bridgesonly)
 {
 	FILE *in = fopen("/proc/net/dev", "rb");
 	char ifname[32];
@@ -4994,7 +5010,8 @@ int getIfList(char *buffer, const char *ifprefix)
 		if (c == ':' || ifcount == 30) {
 			ifname[ifcount++] = 0;
 			int skip = 0;
-
+			if (bridgesonly && !isbridge(ifname))
+				skip = 1;
 			if (ifprefix) {
 				if (strncmp(ifname, ifprefix, strlen(ifprefix))) {
 					skip = 1;
@@ -5065,6 +5082,7 @@ int getIfList(char *buffer, const char *ifprefix)
 		buffer[strlen(buffer) - 1] = 0;	// fixup last space
 	return count;
 }
+
 
 /*
  * Example: legal_hwaddr("00:11:22:33:44:aB"); return true;
@@ -5325,6 +5343,7 @@ int led_control(int type, int act)
 		diag_gpio = 0x000;
 		usb_gpio = 0x001;
 		usb_gpio1 = 0x002;
+		usb_power = 0x003;
 		break;
 #endif
 #ifdef HAVE_WRT1900AC
@@ -5871,11 +5890,16 @@ int led_control(int type, int act)
 		usb_gpio = 0x10b;
 		ses_gpio = 0x10f;
 		break;
+#elif HAVE_DIR869
+	case ROUTER_BOARD_WHRHPGN:
+		disconnected_gpio = 0x10f;
+		connected_gpio = 0x110;
+		diag_gpio = 0x00f;
+		break;
 #elif HAVE_DIR859
 	case ROUTER_BOARD_WHRHPGN:
 		power_gpio = 0x10f;
 		connected_gpio = 0x110;
-
 		diag_gpio = 0x00f;
 		break;
 #elif HAVE_JWAP606
@@ -6800,7 +6824,12 @@ int getMTD(char *name)
 		return -1;
 	while (!feof(fp) && fscanf(fp, "%s %s %s %s", dev, size, esize, n) == 4) {
 		if (!strcmp(n, buf)) {
-			device = dev[3] - '0';
+			if(dev[4] == ':'){
+				device = dev[3] - '0';
+			} else {
+				device = 10 + (dev[4] - '0');
+			}
+
 			break;
 		}
 	}
@@ -7231,90 +7260,107 @@ int is_ath10k(const char *prefix)
 
 #endif
 
-double HTTxRate20_800(unsigned int index)
+int HTTxRate20_800(unsigned int index)
 {
-	static const double vHTTxRate20_800[32] = {
-		6.5, 13.0, 19.5, 26.0, 39.0, 52.0, 58.5, 65.0,	// MCS 0 -8 
-		13.0, 26.0, 39.0, 52.0, 78.0, 104.0, 117.0, 130.0,	// MCS 8 - 15
-		19.5, 39.0, 58.5, 78.0, 117.0, 156.0, 175.5, 195.0,	// MCS 16 - 23
-		26.0, 52.0, 78.0, 104.0, 156.0, 208.0, 234.0, 260.0	// MCS 24 - 31
+	static const int vHTTxRate20_800[32] = {
+		6500, 13000, 19500, 26000, 39000, 52000, 58500, 65000,	// MCS 0 -8 
+		13000, 26000, 39000, 52000, 78000, 104000, 117000, 130000,	// MCS 8 - 15
+		19500, 39000, 58500, 78000, 117000, 156000, 175500, 195000,	// MCS 16 - 23
+		26000, 52000, 78000, 104000, 156000, 208000, 234000, 260000	// MCS 24 - 31
 	};
-	if (index > sizeof(HTTxRate20_800) / sizeof(double) - 1) {
+	if (index > sizeof(HTTxRate20_800) / sizeof(int) - 1) {
 		fprintf(stderr, "utils.c HTTxRate20_800() index overflow\n");
-		return 0.0;
+		return 0;
 	}
 	return vHTTxRate20_800[index];
 }
 
-double HTTxRate20_400(unsigned int index)
+int HTTxRate20_400(unsigned int index)
 {
-	static const double vHTTxRate20_400[32] = { 7.2, 14.4, 21.7, 28.9, 43.3, 57.8, 65.0, 72.2,	//
-		14.444, 28.889, 43.333, 57.778, 86.667, 115.556, 130.000, 144.444,	//
-		21.7, 43.3, 65.0, 86.7, 130.0, 173.3, 195.0, 216.7,	//
-		28.9, 57.8, 86.7, 115.6, 173.3, 231.1, 260.0, 288.9	//
+	static const int vHTTxRate20_400[32] = { 7200, 14400, 21700, 28900, 43300, 57800, 65000, 72200,	//
+		14444, 28889, 43333, 57778, 86667, 115556, 130000, 144444,	//
+		21700, 43300, 65000, 86700, 130000, 173300, 195000, 216700,	//
+		28900, 57800, 86700, 115600, 173300, 231100, 260000, 288900	//
 	};
-	if (index > sizeof(vHTTxRate20_400) / sizeof(double) - 1) {
+	if (index > sizeof(vHTTxRate20_400) / sizeof(int) - 1) {
 		fprintf(stderr, "utils.c HTTxRate20_400() index overflow\n");
-		return 0.0;
+		return 0;
 	}
 	return vHTTxRate20_400[index];
 }
 
-double HTTxRate40_800(unsigned int index)
+int HTTxRate40_800(unsigned int index)
 {
-	static const double vHTTxRate40_800[32] = { 13.5, 27.0, 40.5, 54.0, 81.0, 108.0, 121.5, 135.0,	//
-		27.0, 54.0, 81.0, 108.0, 162.0, 216.0, 243.0, 270.0,	//
-		40.5, 81.0, 121.5, 162.0, 243.0, 324.0, 364.5, 405.0,	//
-		54.0, 108.0, 162.0, 216.0, 324.0, 432.0, 486.0, 540.0	//
+	static const int vHTTxRate40_800[32] = { 13500, 27000, 40500, 54000, 81000, 108000, 121500, 135000,	//
+		27000, 54000, 81000, 108000, 162000, 216000, 243000, 270000,	//
+		40500, 81000, 121500, 162000, 243000, 324000, 364500, 405000,	//
+		54000, 108000, 162000, 216000, 324000, 432000, 486000, 540000	//
 	};
-	if (index > sizeof(vHTTxRate40_800) / sizeof(double) - 1) {
+	if (index > sizeof(vHTTxRate40_800) / sizeof(int) - 1) {
 		fprintf(stderr, "utils.c HTTxRate40_800() index overflow\n");
-		return 0.0;
+		return 0;
 	}
 	return vHTTxRate40_800[index];
 }
 
-double HTTxRate40_400(unsigned int index)
+int HTTxRate40_400(unsigned int index)
 {
-	static const double vHTTxRate40_400[32] = { 15.0, 30.0, 45.0, 60.0, 90.0, 120.0, 135.0, 150.0,	//
-		30.0, 60.0, 90.0, 120.0, 180.0, 240.0, 270.0, 300.0,	//
-		45.0, 90.0, 135.0, 180.0, 270.0, 360.0, 405.0, 450.0,	//
-		60.0, 120.0, 180.0, 240.0, 360.0, 480.0, 540.0, 600.0	//
+	static const int vHTTxRate40_400[32] = { 15000, 30000, 45000, 60000, 90000, 120000, 135000, 150000,	//
+		30000, 60000, 90000, 120000, 180000, 240000, 270000, 300000,	//
+		45000, 90000, 135000, 180000, 270000, 360000, 405000, 450000,	//
+		60000, 120000, 180000, 240000, 360000, 480000, 540000, 600000	//
 	};
-	if (index > sizeof(vHTTxRate40_400) / sizeof(double) - 1) {
+	if (index > sizeof(vHTTxRate40_400) / sizeof(int) - 1) {
 		fprintf(stderr, "utils.c HTTxRate40_400() index overflow\n");
-		return 0.0;
+		return 0;
 	}
 	return vHTTxRate40_400[index];
 }
 
-double HTTxRate80_800(unsigned int index)
+int HTTxRate80_800(unsigned int index)
 {
-	static const double vHTTxRate80_800[32] = {
-		29.3, 58.5, 87.8, 117.0, 175.5, 234.0, 263.3, 292.5,	//
-		58.5, 117.0, 175.5, 234.0, 351.0, 468.0, 526.5, 585.0,
-		87.8, 175.5, 263.3, 351.0, 526.5, 702.0, 0.0, 877.5,	//
-		117.0, 234.0, 351.0, 468.0, 702.0, 936.0, 1053.0, 1170.0
+	static const int vHTTxRate80_800[32] = {
+		29300, 58500, 87800, 117000, 175500, 234000, 263300, 292500,	//
+		58500, 117000, 175500, 234000, 351000, 468000, 526500, 585000,
+		87800, 175500, 263300, 351000, 526500, 702000, 0, 877500,	//
+		117000, 234000, 351000, 468000, 702000, 936000, 1053000, 1170000
 	};
-	if (index > sizeof(vHTTxRate80_800) / sizeof(double) - 1) {
+	if (index > sizeof(vHTTxRate80_800) / sizeof(int) - 1) {
 		fprintf(stderr, "utils.c HTTxRate80_800() index overflow\n");
-		return 0.0;
+		return 0;
 	}
+	if (index == 7)
+		return 390000;
+	if (index == 15)
+		return 780000;
+	if (index == 23)
+		return 1170000;
+	if (index == 31)
+		return 1560000;
 	return vHTTxRate80_800[index];
 }
 
-double HTTxRate80_400(unsigned int index)
+int HTTxRate80_400(unsigned int index)
 {
-	static const double vHTTxRate80_400[32] = {
-		32.5, 65.0, 97.5, 130.0, 195.0, 260.0, 292.5, 325.0,	//
-		65.0, 130.0, 195.0, 260.0, 390.0, 520.0, 585.0, 650.0,	//
-		97.5, 195.0, 292.5, 390.0, 585.0, 780.0, 0.0, 975.0,	//
-		130.0, 260.0, 390.0, 520.0, 780.0, 1040.0, 1170.0, 1300.0
+	static const int vHTTxRate80_400[32] = {
+		32500, 65000, 97500, 130000, 195000, 260000, 292500, 325000,	//
+		65000, 130000, 195000, 260000, 390000, 520000, 585000, 650000,	//
+		97500, 195000, 292500, 390000, 585000, 780000, 0, 975000,	//
+		130000, 260000, 390000, 520000, 780000, 1040000, 1170000, 1300000
 	};
-	if (index > sizeof(vHTTxRate80_400) / sizeof(double) - 1) {
+	if (index > sizeof(vHTTxRate80_400) / sizeof(int) - 1) {
 		fprintf(stderr, "utils.c HTTxRate80_400() index overflow\n");
-		return 0.0;
+		return 0;
 	}
+	if (index == 7)
+		return 433300;
+	if (index == 15)
+		return 866700;
+	if (index == 23)
+		return 1300000;
+	if (index == 31)
+		return 1733300;
+
 	return vHTTxRate80_400[index];
 }
 
@@ -7785,3 +7831,47 @@ char *foreach_last(char *next, char *word)
 	next = strchr(next, ' ');
 	return next;
 }
+#define MAX_BRIDGES	1024
+
+#include <linux/if_bridge.h>
+int isbridge(char *name)
+{
+	int i, ret=0, num;
+	char ifname[IFNAMSIZ];
+	int ifindices[MAX_BRIDGES];
+	int br_socket_fd = -1;
+	unsigned long args[3] = { BRCTL_GET_BRIDGES, 
+				 (unsigned long)ifindices, MAX_BRIDGES };
+
+	if ((br_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		return 0;
+
+	num = ioctl(br_socket_fd, SIOCGIFBR, args);
+    	close(br_socket_fd);
+	if (num < 0) {
+		return 0;
+	}
+
+	for (i = 0; i < num; i++) {
+		if (!if_indextoname(ifindices[i], ifname)) {
+			return 0;
+		}
+
+		if (!strcmp(ifname,name))
+		    return 1;
+	}
+	return 0;
+
+}
+
+#if 0
+int isbridge(char *name)
+{
+	char path[64];
+	struct stat st;
+	memset(&st, 0, sizeof(struct stat));
+	sprintf(path, "/sys/class/net/%s/bridge", name);
+	return (stat(path, &st) == 0) && (S_ISDIR(st.st_mode));
+
+}
+#endif

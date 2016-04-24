@@ -31,6 +31,7 @@ CONFIG_DAP2230=
 CONFIG_DAP2662=
 CONFIG_DAP2330=
 CONFIG_DIR859=
+CONFIG_DIR869=
 
 
 #
@@ -89,6 +90,13 @@ endif
 ifeq ($(CONFIG_RB600),y)
 CFLAGS += -fpic
 endif
+ifeq ($(CONFIG_DIST),"micro")
+CFLAGS += -DNEED_NOPRINTF
+endif
+ifneq ($(CONFIG_DIST),"micro-special")
+CFLAGS += -DNEED_NOPRINTF
+endif
+
 ifeq ($(CONFIG_SUPERCHANNEL),y)
 CFLAGS += -DHAVE_SUPERCHANNEL
 ATH9KCFLAGS += -DHAVE_SUPERCHANNEL
@@ -349,6 +357,9 @@ ifeq ($(CONFIG_E200),y)
 endif
 ifeq ($(CONFIG_DIR859),y)
   CFLAGS += -DHAVE_DIR859
+endif
+ifeq ($(CONFIG_DIR869),y)
+  CFLAGS += -DHAVE_DIR869
 endif
 ifeq ($(CONFIG_DIR866),y)
   CFLAGS += -DHAVE_DIR866

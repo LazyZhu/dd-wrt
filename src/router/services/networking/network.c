@@ -1022,10 +1022,10 @@ void start_lan(void)
 		break;
 	default:
 		if (getSTA() || getWET() || CANBRIDGE()) {
-			nvram_setz(lan_ifnames, "eth0 eth1 ath0");
+			nvram_setz(lan_ifnames, "eth0 eth1 ath0 ath1");
 			PORTSETUPWAN("");
 		} else {
-			nvram_setz(lan_ifnames, "eth0 eth1 ath0");
+			nvram_setz(lan_ifnames, "eth0 eth1 ath0 ath1");
 			PORTSETUPWAN("eth0");
 		}
 		strncpy(ifr.ifr_name, "eth1", IFNAMSIZ);
@@ -1762,7 +1762,11 @@ void start_lan(void)
 	strcpy(mac, nvram_safe_get("et0macaddr"));
 #endif
 #ifdef HAVE_NORTHSTAR
+#ifdef HAVE_DHDAP
 	nvram_setz(lan_ifnames, "vlan1 vlan2 eth1 eth2 eth3");
+#else
+	nvram_setz(lan_ifnames, "vlan1 vlan2 eth1 eth2");
+#endif
 	if (getSTA() || getWET() || CANBRIDGE()) {
 		PORTSETUPWAN("");
 	} else {
@@ -4537,6 +4541,10 @@ void start_wan_done(char *wan_ifname)
 	stop_udhcpd();
 	start_udhcpd();
 #endif
+#ifdef HAVE_UNBOUND
+	stop_unbound();
+	start_unbound();
+#endif
 #ifdef HAVE_IPV6
 	start_wan6_done(wan_ifname);
 #endif
@@ -4677,15 +4685,14 @@ void start_wan_done(char *wan_ifname)
 		dd_syslog(LOG_INFO, "WAN is up. IP: %s\n", get_wan_ipaddr());
 	}
 
-	float sys_uptime;
+	unsigned sys_uptime;
+	struct sysinfo info;
+	sysinfo(&info);
+	sys_uptime = info.uptime;
 	FILE *up;
 
-	up = fopen("/proc/uptime", "r");
-	fscanf(up, "%f", &sys_uptime);
-	fclose(up);
-
 	up = fopen("/tmp/.wanuptime", "w");
-	fprintf(up, "%f", sys_uptime);
+	fprintf(up, "%u", sys_uptime);
 	fclose(up);
 
 	cprintf("done\n");
@@ -4761,6 +4768,12 @@ void start_wan_done(char *wan_ifname)
 		eval("/usr/bin/curl", "-s", "-k", nvram_safe_get("ipv6_tun_upd_url"), "-o", "/tmp/tunnelstat");
 #else
 		eval("wget", nvram_safe_get("ipv6_tun_upd_url"), "-O", "/tmp/tunnelstat");
+#endif
+#ifdef HAVE_IPV6
+		if (nvram_match("wshaper_enable", "1")){
+			stop_ipv6_tunnel(wan_ifname);
+			start_ipv6_tunnel(wan_ifname);
+		}
 #endif
 	}
 }
