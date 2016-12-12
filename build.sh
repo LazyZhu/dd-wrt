@@ -4,7 +4,8 @@
 ### #########################################
 DEVDIR=/home/dd-wrt/dd-wrt
 #GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-4.8-linaro_musl-1.1.5_eabi/bin
-GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-5.2.0_musl-1.1.11_eabi/bin
+#GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-5.2.0_musl-1.1.11_eabi/bin
+GCCARM=/home/dd-wrt/toolchains/toolchain-arm_cortex-a9_gcc-6.1.0_musl-1.1.15_eabi/bin
 REVISION="28000M" # redefined, just default value
 KERNELVERSION="3.10" # 3.10 stable, 4.4 experimental
 export PATH=$GCCARM:$PATH
