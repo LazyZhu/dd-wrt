@@ -218,6 +218,11 @@ uint8 nvram_calc_crc(struct nvram_header * nvh);
 #undef NVRAM_SPACE
 #define NVRAM_SPACE		0x10000
 
+#if defined(HAVE_NVRAM_128)
+#undef NVRAM_SPACE
+#define NVRAM_SPACE		0x20000
+#endif
+
 #if !defined(CONFIG_ARM) && !defined(HAVE_NORTHSTAR)
 #undef NVRAM_SPACE_256
 #define NVRAM_SPACE_256		0x40000
