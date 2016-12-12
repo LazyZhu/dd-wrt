@@ -45,7 +45,6 @@ transmission-clean:
 	$(MAKE) -C transmission clean
 
 transmission-configure: libevent-configure curl-configure
-	cd transmission && ./autogen.sh
 	cd transmission && ./configure \
 		ac_cv_host=$(ARCH)-uclibc-linux \
 		--prefix=/usr \
