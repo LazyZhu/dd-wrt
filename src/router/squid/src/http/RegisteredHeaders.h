@@ -11,6 +11,7 @@
 
 #include "base/LookupTable.h"
 #include <iosfwd>
+#include <vector>
 
 namespace Http
 {
