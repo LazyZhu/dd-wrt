@@ -18,10 +18,10 @@ Asus AC-56/68/87U, Netgear R6300v2/R7000/R8000 etc
 
 Look at build.sh for some info and initial configuration.
 
-You also need musl-1.1.11 toolchain, which can be obtained from dd-wrt ftp:
+You also need musl-1.1.15 toolchain, which can be obtained from dd-wrt ftp:
 
 ftp://ftp.dd-wrt.com/toolchains/
 
 Yeah, it's dumb to pack it like this! Blame BrainSlayer for that size.
 
-Recommended build system: *Ubuntu 14.04 LTS 32/64bit*
+Recommended build system: *Ubuntu 16.04 LTS 32/64bit*
